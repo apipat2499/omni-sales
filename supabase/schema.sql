@@ -2822,3 +2822,255 @@ CREATE POLICY "Allow all for email_campaigns" ON email_campaigns FOR ALL USING (
 CREATE POLICY "Allow all for email_analytics" ON email_analytics FOR ALL USING (true);
 CREATE POLICY "Allow all for email_bounces" ON email_bounces FOR ALL USING (true);
 CREATE POLICY "Allow all for email_compliance" ON email_compliance FOR ALL USING (true);
+
+-- ============================================
+-- CUSTOMER SEGMENTATION & BEHAVIORAL ANALYTICS TABLES
+-- ============================================
+
+-- Segment Definitions
+CREATE TABLE IF NOT EXISTS customer_segments_v2 (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  description TEXT,
+  segment_type VARCHAR(50) NOT NULL, -- rfm, behavioral, cohort, custom, demographic, value-based
+  criteria JSONB DEFAULT '{}', -- Segment membership rules
+  is_active BOOLEAN DEFAULT true,
+  member_count INTEGER DEFAULT 0,
+  created_by UUID,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(user_id, name)
+);
+
+-- Segment Memberships
+CREATE TABLE IF NOT EXISTS segment_members (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  segment_id UUID NOT NULL REFERENCES customer_segments_v2(id) ON DELETE CASCADE,
+  customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  joined_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  left_at TIMESTAMP WITH TIME ZONE,
+  UNIQUE(segment_id, customer_id)
+);
+
+-- Customer Behavior Events
+CREATE TABLE IF NOT EXISTS customer_behavior_events (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  event_type VARCHAR(100) NOT NULL, -- page_view, product_view, add_to_cart, purchase, review, wishlist, email_open, email_click, sms_open, etc
+  event_category VARCHAR(50), -- website, email, sms, app, support
+  product_id UUID REFERENCES products(id),
+  product_name VARCHAR(255),
+  product_category VARCHAR(100),
+  event_value DECIMAL(10, 2),
+  event_properties JSONB DEFAULT '{}',
+  page_url VARCHAR(500),
+  referrer_url VARCHAR(500),
+  ip_address VARCHAR(50),
+  user_agent VARCHAR(500),
+  device_type VARCHAR(50), -- desktop, mobile, tablet
+  browser VARCHAR(100),
+  os VARCHAR(100),
+  location JSONB, -- country, state, city
+  session_id VARCHAR(255),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Customer Behavior Summary (Aggregated for Performance)
+CREATE TABLE IF NOT EXISTS customer_behavior_summary (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  last_activity_date TIMESTAMP WITH TIME ZONE,
+  total_page_views INTEGER DEFAULT 0,
+  total_product_views INTEGER DEFAULT 0,
+  total_add_to_cart INTEGER DEFAULT 0,
+  total_purchases INTEGER DEFAULT 0,
+  total_reviews INTEGER DEFAULT 0,
+  total_wishlist_adds INTEGER DEFAULT 0,
+  total_email_opens INTEGER DEFAULT 0,
+  total_email_clicks INTEGER DEFAULT 0,
+  total_sms_opens INTEGER DEFAULT 0,
+  avg_session_duration_minutes DECIMAL(10, 2),
+  favorite_product_category VARCHAR(100),
+  favorite_brand VARCHAR(255),
+  device_preference VARCHAR(50),
+  preferred_browser VARCHAR(100),
+  preferred_channel VARCHAR(50), -- website, email, sms, app
+  engagement_score DECIMAL(3, 2), -- 0-1
+  purchase_stage VARCHAR(50), -- awareness, consideration, decision, retention, churn_risk
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(user_id, customer_id)
+);
+
+-- Cohort Analysis
+CREATE TABLE IF NOT EXISTS cohorts (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  cohort_name VARCHAR(255) NOT NULL,
+  cohort_type VARCHAR(50), -- acquisition, behavior, value
+  acquisition_start_date DATE,
+  acquisition_end_date DATE,
+  description TEXT,
+  member_count INTEGER DEFAULT 0,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(user_id, cohort_name)
+);
+
+-- Cohort Members
+CREATE TABLE IF NOT EXISTS cohort_members (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  cohort_id UUID NOT NULL REFERENCES cohorts(id) ON DELETE CASCADE,
+  customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  acquired_date DATE,
+  UNIQUE(cohort_id, customer_id)
+);
+
+-- Customer Journey Stages
+CREATE TABLE IF NOT EXISTS customer_journey_stages (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  current_stage VARCHAR(50) NOT NULL, -- awareness, consideration, decision, retention, advocacy, churn_risk
+  stage_entered_at TIMESTAMP WITH TIME ZONE,
+  days_in_stage INTEGER DEFAULT 0,
+  previous_stage VARCHAR(50),
+  stage_history JSONB DEFAULT '[]', -- Array of stage transitions
+  exit_reason VARCHAR(255),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(user_id, customer_id)
+);
+
+-- Customer Lifetime Value Predictions
+CREATE TABLE IF NOT EXISTS customer_ltv_predictions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  current_ltv DECIMAL(12, 2),
+  predicted_ltv_1year DECIMAL(12, 2),
+  predicted_ltv_3year DECIMAL(12, 2),
+  predicted_ltv_5year DECIMAL(12, 2),
+  churn_probability DECIMAL(5, 2), -- 0-100
+  growth_potential VARCHAR(50), -- high, medium, low
+  confidence_score DECIMAL(3, 2), -- 0-1
+  prediction_date TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(user_id, customer_id)
+);
+
+-- Behavioral Analytics
+CREATE TABLE IF NOT EXISTS behavioral_analytics (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  date DATE,
+  segment_id UUID REFERENCES customer_segments_v2(id),
+  total_customers INTEGER DEFAULT 0,
+  new_customers INTEGER DEFAULT 0,
+  active_customers INTEGER DEFAULT 0,
+  at_risk_customers INTEGER DEFAULT 0,
+  churned_customers INTEGER DEFAULT 0,
+  total_page_views INTEGER DEFAULT 0,
+  total_product_views INTEGER DEFAULT 0,
+  total_add_to_cart INTEGER DEFAULT 0,
+  total_purchases INTEGER DEFAULT 0,
+  conversion_rate DECIMAL(5, 2),
+  avg_session_duration_minutes DECIMAL(10, 2),
+  bounce_rate DECIMAL(5, 2),
+  repeat_purchase_rate DECIMAL(5, 2),
+  avg_order_value DECIMAL(10, 2),
+  revenue DECIMAL(12, 2),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Segment Performance Metrics
+CREATE TABLE IF NOT EXISTS segment_performance (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  segment_id UUID NOT NULL REFERENCES customer_segments_v2(id) ON DELETE CASCADE,
+  date DATE,
+  member_count INTEGER DEFAULT 0,
+  active_members INTEGER DEFAULT 0,
+  churn_rate DECIMAL(5, 2),
+  lifetime_value DECIMAL(12, 2),
+  avg_order_value DECIMAL(10, 2),
+  purchase_frequency DECIMAL(5, 2),
+  conversion_rate DECIMAL(5, 2),
+  email_open_rate DECIMAL(5, 2),
+  email_click_rate DECIMAL(5, 2),
+  sms_open_rate DECIMAL(5, 2),
+  engagement_score DECIMAL(3, 2),
+  revenue_generated DECIMAL(12, 2),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create Indexes for Segmentation
+CREATE INDEX IF NOT EXISTS idx_customer_segments_v2_user ON customer_segments_v2(user_id);
+CREATE INDEX IF NOT EXISTS idx_customer_segments_v2_type ON customer_segments_v2(user_id, segment_type);
+CREATE INDEX IF NOT EXISTS idx_customer_segments_v2_active ON customer_segments_v2(user_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_segment_members_segment ON segment_members(segment_id);
+CREATE INDEX IF NOT EXISTS idx_segment_members_customer ON segment_members(customer_id);
+CREATE INDEX IF NOT EXISTS idx_segment_members_user ON segment_members(user_id);
+CREATE INDEX IF NOT EXISTS idx_behavior_events_customer ON customer_behavior_events(customer_id);
+CREATE INDEX IF NOT EXISTS idx_behavior_events_type ON customer_behavior_events(event_type);
+CREATE INDEX IF NOT EXISTS idx_behavior_events_date ON customer_behavior_events(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_behavior_events_user ON customer_behavior_events(user_id);
+CREATE INDEX IF NOT EXISTS idx_behavior_summary_user ON customer_behavior_summary(user_id);
+CREATE INDEX IF NOT EXISTS idx_behavior_summary_stage ON customer_behavior_summary(purchase_stage);
+CREATE INDEX IF NOT EXISTS idx_cohorts_user ON cohorts(user_id);
+CREATE INDEX IF NOT EXISTS idx_cohorts_active ON cohorts(user_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_cohort_members_cohort ON cohort_members(cohort_id);
+CREATE INDEX IF NOT EXISTS idx_cohort_members_customer ON cohort_members(customer_id);
+CREATE INDEX IF NOT EXISTS idx_journey_stages_customer ON customer_journey_stages(customer_id);
+CREATE INDEX IF NOT EXISTS idx_journey_stages_stage ON customer_journey_stages(user_id, current_stage);
+CREATE INDEX IF NOT EXISTS idx_ltv_predictions_user ON customer_ltv_predictions(user_id);
+CREATE INDEX IF NOT EXISTS idx_ltv_predictions_churn ON customer_ltv_predictions(user_id, churn_probability DESC);
+CREATE INDEX IF NOT EXISTS idx_behavioral_analytics_user_date ON behavioral_analytics(user_id, date DESC);
+CREATE INDEX IF NOT EXISTS idx_behavioral_analytics_segment ON behavioral_analytics(segment_id);
+CREATE INDEX IF NOT EXISTS idx_segment_performance_segment_date ON segment_performance(segment_id, date DESC);
+
+-- Create Triggers for Segmentation
+CREATE TRIGGER update_customer_segments_v2_updated_at BEFORE UPDATE ON customer_segments_v2
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_customer_behavior_summary_updated_at BEFORE UPDATE ON customer_behavior_summary
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_cohorts_updated_at BEFORE UPDATE ON cohorts
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_customer_journey_stages_updated_at BEFORE UPDATE ON customer_journey_stages
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_customer_ltv_predictions_updated_at BEFORE UPDATE ON customer_ltv_predictions
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Enable RLS for Segmentation Tables
+ALTER TABLE customer_segments_v2 ENABLE ROW LEVEL SECURITY;
+ALTER TABLE segment_members ENABLE ROW LEVEL SECURITY;
+ALTER TABLE customer_behavior_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE customer_behavior_summary ENABLE ROW LEVEL SECURITY;
+ALTER TABLE cohorts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE cohort_members ENABLE ROW LEVEL SECURITY;
+ALTER TABLE customer_journey_stages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE customer_ltv_predictions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE behavioral_analytics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE segment_performance ENABLE ROW LEVEL SECURITY;
+
+-- Create Policies for Segmentation Tables
+CREATE POLICY "Allow all for customer_segments_v2" ON customer_segments_v2 FOR ALL USING (true);
+CREATE POLICY "Allow all for segment_members" ON segment_members FOR ALL USING (true);
+CREATE POLICY "Allow all for customer_behavior_events" ON customer_behavior_events FOR ALL USING (true);
+CREATE POLICY "Allow all for customer_behavior_summary" ON customer_behavior_summary FOR ALL USING (true);
+CREATE POLICY "Allow all for cohorts" ON cohorts FOR ALL USING (true);
+CREATE POLICY "Allow all for cohort_members" ON cohort_members FOR ALL USING (true);
+CREATE POLICY "Allow all for customer_journey_stages" ON customer_journey_stages FOR ALL USING (true);
+CREATE POLICY "Allow all for customer_ltv_predictions" ON customer_ltv_predictions FOR ALL USING (true);
+CREATE POLICY "Allow all for behavioral_analytics" ON behavioral_analytics FOR ALL USING (true);
+CREATE POLICY "Allow all for segment_performance" ON segment_performance FOR ALL USING (true);

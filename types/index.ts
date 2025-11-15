@@ -2006,3 +2006,180 @@ export interface EmailCompliance {
   createdAt: Date;
   updatedAt: Date;
 }
+
+// ============================================
+// CUSTOMER SEGMENTATION & BEHAVIORAL ANALYTICS TYPES
+// ============================================
+
+export type SegmentType = 'rfm' | 'behavioral' | 'cohort' | 'custom' | 'demographic' | 'value-based';
+export type CohortType = 'acquisition' | 'behavior' | 'value';
+export type PurchaseStage = 'awareness' | 'consideration' | 'decision' | 'retention' | 'advocacy' | 'churn_risk';
+export type EventCategory = 'website' | 'email' | 'sms' | 'app' | 'support';
+export type DeviceType = 'desktop' | 'mobile' | 'tablet';
+export type GrowthPotential = 'high' | 'medium' | 'low';
+
+export interface CustomerSegmentV2 {
+  id: string;
+  userId: string;
+  name: string;
+  description?: string;
+  segmentType: SegmentType;
+  criteria: Record<string, unknown>;
+  isActive: boolean;
+  memberCount: number;
+  createdBy?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SegmentMember {
+  id: string;
+  userId: string;
+  segmentId: string;
+  customerId: string;
+  joinedAt: Date;
+  leftAt?: Date;
+}
+
+export interface CustomerBehaviorEvent {
+  id: string;
+  userId: string;
+  customerId: string;
+  eventType: string;
+  eventCategory?: EventCategory;
+  productId?: string;
+  productName?: string;
+  productCategory?: string;
+  eventValue?: number;
+  eventProperties?: Record<string, unknown>;
+  pageUrl?: string;
+  referrerUrl?: string;
+  ipAddress?: string;
+  userAgent?: string;
+  deviceType?: DeviceType;
+  browser?: string;
+  os?: string;
+  location?: Record<string, unknown>;
+  sessionId?: string;
+  createdAt: Date;
+}
+
+export interface CustomerBehaviorSummary {
+  id: string;
+  userId: string;
+  customerId: string;
+  lastActivityDate?: Date;
+  totalPageViews: number;
+  totalProductViews: number;
+  totalAddToCart: number;
+  totalPurchases: number;
+  totalReviews: number;
+  totalWishlistAdds: number;
+  totalEmailOpens: number;
+  totalEmailClicks: number;
+  totalSmsOpens: number;
+  avgSessionDurationMinutes?: number;
+  favoriteProductCategory?: string;
+  favoriteBrand?: string;
+  devicePreference?: DeviceType;
+  preferredBrowser?: string;
+  preferredChannel?: string;
+  engagementScore?: number;
+  purchaseStage?: PurchaseStage;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Cohort {
+  id: string;
+  userId: string;
+  cohortName: string;
+  cohortType?: CohortType;
+  acquisitionStartDate?: Date;
+  acquisitionEndDate?: Date;
+  description?: string;
+  memberCount: number;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CohortMember {
+  id: string;
+  cohortId: string;
+  customerId: string;
+  acquiredDate?: Date;
+}
+
+export interface CustomerJourneyStage {
+  id: string;
+  userId: string;
+  customerId: string;
+  currentStage: PurchaseStage;
+  stageEnteredAt?: Date;
+  daysInStage?: number;
+  previousStage?: PurchaseStage;
+  stageHistory?: Record<string, unknown>[];
+  exitReason?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CustomerLTVPrediction {
+  id: string;
+  userId: string;
+  customerId: string;
+  currentLtv?: number;
+  predictedLtv1Year?: number;
+  predictedLtv3Year?: number;
+  predictedLtv5Year?: number;
+  churnProbability?: number;
+  growthPotential?: GrowthPotential;
+  confidenceScore?: number;
+  predictionDate?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface BehavioralAnalytics {
+  id: string;
+  userId: string;
+  date: Date;
+  segmentId?: string;
+  totalCustomers: number;
+  newCustomers: number;
+  activeCustomers: number;
+  atRiskCustomers: number;
+  churnedCustomers: number;
+  totalPageViews: number;
+  totalProductViews: number;
+  totalAddToCart: number;
+  totalPurchases: number;
+  conversionRate?: number;
+  avgSessionDurationMinutes?: number;
+  bounceRate?: number;
+  repeatPurchaseRate?: number;
+  avgOrderValue?: number;
+  revenue?: number;
+  createdAt: Date;
+}
+
+export interface SegmentPerformance {
+  id: string;
+  userId: string;
+  segmentId: string;
+  date: Date;
+  memberCount: number;
+  activeMembers: number;
+  churnRate?: number;
+  lifetimeValue?: number;
+  avgOrderValue?: number;
+  purchaseFrequency?: number;
+  conversionRate?: number;
+  emailOpenRate?: number;
+  emailClickRate?: number;
+  smsOpenRate?: number;
+  engagementScore?: number;
+  revenueGenerated?: number;
+  createdAt: Date;
+}
