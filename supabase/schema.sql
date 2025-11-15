@@ -977,6 +977,301 @@ CREATE TABLE IF NOT EXISTS inventory_forecasts (
   UNIQUE(user_id, product_id, warehouse_id, forecast_date)
 );
 
+-- ============================================
+-- CUSTOMER MANAGEMENT (CRM) TABLES
+-- ============================================
+
+-- Enhanced Customer Profiles
+CREATE TABLE IF NOT EXISTS customer_profiles (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  first_name VARCHAR(100),
+  last_name VARCHAR(100),
+  email VARCHAR(255) NOT NULL,
+  phone VARCHAR(20),
+  date_of_birth DATE,
+  company_name VARCHAR(255),
+  industry VARCHAR(100),
+  website VARCHAR(255),
+  profile_picture VARCHAR(500),
+  preferred_language VARCHAR(10),
+  timezone VARCHAR(50),
+  customer_type VARCHAR(50), -- retail, wholesale, distributor, etc
+  source VARCHAR(100), -- where customer came from (direct, marketplace, referral, etc)
+  status VARCHAR(50) DEFAULT 'active', -- active, inactive, vip, at_risk, lost
+  lifetime_value DECIMAL(12, 2) DEFAULT 0,
+  total_orders INTEGER DEFAULT 0,
+  total_spent DECIMAL(12, 2) DEFAULT 0,
+  first_order_date TIMESTAMP WITH TIME ZONE,
+  last_order_date TIMESTAMP WITH TIME ZONE,
+  average_order_value DECIMAL(10, 2),
+  notes TEXT,
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(user_id, customer_id)
+);
+
+-- Customer Addresses
+CREATE TABLE IF NOT EXISTS customer_addresses (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  address_type VARCHAR(50), -- billing, shipping, home, office
+  street_address VARCHAR(255) NOT NULL,
+  city VARCHAR(100) NOT NULL,
+  state_province VARCHAR(100),
+  postal_code VARCHAR(20),
+  country VARCHAR(100) NOT NULL,
+  phone VARCHAR(20),
+  is_default BOOLEAN DEFAULT false,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Customer Preferences
+CREATE TABLE IF NOT EXISTS customer_preferences (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  notification_email BOOLEAN DEFAULT true,
+  notification_sms BOOLEAN DEFAULT false,
+  notification_push BOOLEAN DEFAULT false,
+  marketing_emails BOOLEAN DEFAULT true,
+  promotional_offers BOOLEAN DEFAULT true,
+  newsletter BOOLEAN DEFAULT true,
+  product_updates BOOLEAN DEFAULT false,
+  order_notifications BOOLEAN DEFAULT true,
+  communication_frequency VARCHAR(50), -- daily, weekly, monthly
+  preferred_contact_method VARCHAR(50), -- email, phone, sms
+  do_not_contact BOOLEAN DEFAULT false,
+  gdpr_consent BOOLEAN DEFAULT false,
+  gdpr_consent_date TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(user_id, customer_id)
+);
+
+-- Customer Segments
+CREATE TABLE IF NOT EXISTS customer_segments (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  name VARCHAR(100) NOT NULL,
+  description TEXT,
+  criteria JSONB, -- rules for segment membership
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(user_id, name)
+);
+
+-- Customer Segment Members
+CREATE TABLE IF NOT EXISTS customer_segment_members (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  segment_id UUID NOT NULL REFERENCES customer_segments(id) ON DELETE CASCADE,
+  customer_id UUID NOT NULL,
+  user_id UUID NOT NULL,
+  added_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(segment_id, customer_id)
+);
+
+-- Customer Tags
+CREATE TABLE IF NOT EXISTS customer_tags (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  tag VARCHAR(100) NOT NULL,
+  color VARCHAR(50),
+  added_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(user_id, customer_id, tag)
+);
+
+-- Customer Notes
+CREATE TABLE IF NOT EXISTS customer_notes (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  title VARCHAR(255),
+  content TEXT NOT NULL,
+  note_type VARCHAR(50), -- internal, follow_up, reminder, complaint, compliment
+  priority VARCHAR(50), -- low, medium, high
+  is_pinned BOOLEAN DEFAULT false,
+  created_by UUID,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Customer Communications
+CREATE TABLE IF NOT EXISTS customer_communications (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  communication_type VARCHAR(50), -- email, sms, phone, chat, in_person, note
+  subject VARCHAR(255),
+  message TEXT,
+  direction VARCHAR(20), -- inbound, outbound
+  channel VARCHAR(50), -- email, marketplace_message, sms, phone, etc
+  status VARCHAR(50), -- sent, delivered, opened, clicked, bounced, replied
+  sent_by UUID,
+  sent_at TIMESTAMP WITH TIME ZONE,
+  opened_at TIMESTAMP WITH TIME ZONE,
+  clicked_at TIMESTAMP WITH TIME ZONE,
+  replied_at TIMESTAMP WITH TIME ZONE,
+  metadata JSONB DEFAULT '{}', -- additional data like email_id, phone_number, etc
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Customer Interactions
+CREATE TABLE IF NOT EXISTS customer_interactions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  interaction_type VARCHAR(50), -- visit, purchase, review, support, return, inquiry
+  event_name VARCHAR(100),
+  event_value DECIMAL(10, 2),
+  page_url VARCHAR(500),
+  ip_address VARCHAR(50),
+  user_agent VARCHAR(500),
+  duration_seconds INTEGER,
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Loyalty Programs
+CREATE TABLE IF NOT EXISTS loyalty_programs (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  description TEXT,
+  program_type VARCHAR(50), -- points, tier, referral, vip
+  is_active BOOLEAN DEFAULT true,
+  point_multiplier DECIMAL(3, 2) DEFAULT 1,
+  min_purchase_for_points DECIMAL(10, 2) DEFAULT 0,
+  point_expiry_days INTEGER,
+  tier_structure JSONB, -- tiers if applicable
+  rewards JSONB, -- redemption options
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(user_id, name)
+);
+
+-- Customer Loyalty Points
+CREATE TABLE IF NOT EXISTS customer_loyalty_points (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  loyalty_program_id UUID REFERENCES loyalty_programs(id) ON DELETE SET NULL,
+  total_points INTEGER DEFAULT 0,
+  available_points INTEGER DEFAULT 0,
+  redeemed_points INTEGER DEFAULT 0,
+  tier_level VARCHAR(50), -- if tier-based
+  tier_since TIMESTAMP WITH TIME ZONE,
+  points_expiry_date TIMESTAMP WITH TIME ZONE,
+  last_activity_date TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(user_id, customer_id, loyalty_program_id)
+);
+
+-- Customer RFM Scores
+CREATE TABLE IF NOT EXISTS customer_rfm_scores (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  recency_score INTEGER, -- 1-5, how recent last purchase
+  frequency_score INTEGER, -- 1-5, how often purchases
+  monetary_score INTEGER, -- 1-5, how much spent
+  overall_rfm_score DECIMAL(3, 1), -- weighted average
+  rfm_segment VARCHAR(50), -- Champions, Loyal, At Risk, etc
+  last_calculated_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(user_id, customer_id)
+);
+
+-- Customer Analytics
+CREATE TABLE IF NOT EXISTS customer_analytics (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  total_orders INTEGER DEFAULT 0,
+  total_spent DECIMAL(12, 2) DEFAULT 0,
+  average_order_value DECIMAL(10, 2) DEFAULT 0,
+  repeat_purchase_rate DECIMAL(5, 2) DEFAULT 0,
+  product_preferences VARCHAR(500)[], -- most bought categories
+  purchase_frequency_days INTEGER,
+  churn_risk_score DECIMAL(3, 2), -- 0-1, likelihood to churn
+  lifetime_value_predicted DECIMAL(12, 2),
+  engagement_score DECIMAL(3, 2),
+  satisfication_score DECIMAL(3, 2),
+  nps_score INTEGER, -- Net Promoter Score -100 to 100
+  last_calculated_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(user_id, customer_id)
+);
+
+-- Create Indexes for Customer Management
+CREATE INDEX IF NOT EXISTS idx_customer_profiles_user ON customer_profiles(user_id);
+CREATE INDEX IF NOT EXISTS idx_customer_profiles_status ON customer_profiles(user_id, status);
+CREATE INDEX IF NOT EXISTS idx_customer_profiles_ltv ON customer_profiles(user_id, lifetime_value DESC);
+CREATE INDEX IF NOT EXISTS idx_customer_profiles_date ON customer_profiles(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_customer_addresses_user ON customer_addresses(user_id, customer_id);
+CREATE INDEX IF NOT EXISTS idx_customer_preferences_user ON customer_preferences(user_id);
+CREATE INDEX IF NOT EXISTS idx_customer_segments_user ON customer_segments(user_id);
+CREATE INDEX IF NOT EXISTS idx_customer_segment_members_segment ON customer_segment_members(segment_id);
+CREATE INDEX IF NOT EXISTS idx_customer_segment_members_customer ON customer_segment_members(customer_id);
+CREATE INDEX IF NOT EXISTS idx_customer_tags_user ON customer_tags(user_id);
+CREATE INDEX IF NOT EXISTS idx_customer_tags_customer ON customer_tags(customer_id);
+CREATE INDEX IF NOT EXISTS idx_customer_notes_user ON customer_notes(user_id);
+CREATE INDEX IF NOT EXISTS idx_customer_notes_date ON customer_notes(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_customer_communications_user ON customer_communications(user_id);
+CREATE INDEX IF NOT EXISTS idx_customer_communications_customer ON customer_communications(customer_id);
+CREATE INDEX IF NOT EXISTS idx_customer_communications_date ON customer_communications(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_customer_communications_status ON customer_communications(status);
+CREATE INDEX IF NOT EXISTS idx_customer_interactions_user ON customer_interactions(user_id);
+CREATE INDEX IF NOT EXISTS idx_customer_interactions_customer ON customer_interactions(customer_id);
+CREATE INDEX IF NOT EXISTS idx_customer_interactions_date ON customer_interactions(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_loyalty_programs_user ON loyalty_programs(user_id);
+CREATE INDEX IF NOT EXISTS idx_customer_loyalty_points_user ON customer_loyalty_points(user_id);
+CREATE INDEX IF NOT EXISTS idx_customer_rfm_scores_user ON customer_rfm_scores(user_id);
+CREATE INDEX IF NOT EXISTS idx_customer_rfm_segment ON customer_rfm_scores(user_id, rfm_segment);
+CREATE INDEX IF NOT EXISTS idx_customer_analytics_user ON customer_analytics(user_id);
+CREATE INDEX IF NOT EXISTS idx_customer_analytics_churn ON customer_analytics(user_id, churn_risk_score DESC);
+
+-- Create Triggers for Customer Management
+CREATE TRIGGER update_customer_profiles_updated_at BEFORE UPDATE ON customer_profiles
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_customer_addresses_updated_at BEFORE UPDATE ON customer_addresses
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_customer_preferences_updated_at BEFORE UPDATE ON customer_preferences
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_customer_segments_updated_at BEFORE UPDATE ON customer_segments
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_customer_notes_updated_at BEFORE UPDATE ON customer_notes
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_customer_communications_updated_at BEFORE UPDATE ON customer_communications
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_loyalty_programs_updated_at BEFORE UPDATE ON loyalty_programs
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_customer_loyalty_points_updated_at BEFORE UPDATE ON customer_loyalty_points
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_customer_rfm_scores_updated_at BEFORE UPDATE ON customer_rfm_scores
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_customer_analytics_updated_at BEFORE UPDATE ON customer_analytics
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
 -- Create Indexes for Inventory
 CREATE INDEX IF NOT EXISTS idx_inventory_user_product ON inventory(user_id, product_id);
 CREATE INDEX IF NOT EXISTS idx_inventory_warehouse ON inventory(warehouse_id);
@@ -1018,6 +1313,21 @@ ALTER TABLE stock_counts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE stock_count_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE inventory_forecasts ENABLE ROW LEVEL SECURITY;
 
+-- Enable RLS for Customer Management Tables
+ALTER TABLE customer_profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE customer_addresses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE customer_preferences ENABLE ROW LEVEL SECURITY;
+ALTER TABLE customer_segments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE customer_segment_members ENABLE ROW LEVEL SECURITY;
+ALTER TABLE customer_tags ENABLE ROW LEVEL SECURITY;
+ALTER TABLE customer_notes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE customer_communications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE customer_interactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE loyalty_programs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE customer_loyalty_points ENABLE ROW LEVEL SECURITY;
+ALTER TABLE customer_rfm_scores ENABLE ROW LEVEL SECURITY;
+ALTER TABLE customer_analytics ENABLE ROW LEVEL SECURITY;
+
 -- Create Policies for Inventory Tables
 CREATE POLICY "Allow all for warehouses" ON warehouses FOR ALL USING (true);
 CREATE POLICY "Allow all for inventory" ON inventory FOR ALL USING (true);
@@ -1033,3 +1343,18 @@ CREATE POLICY "Allow all for products" ON products FOR ALL USING (true);
 CREATE POLICY "Allow all for customers" ON customers FOR ALL USING (true);
 CREATE POLICY "Allow all for orders" ON orders FOR ALL USING (true);
 CREATE POLICY "Allow all for order_items" ON order_items FOR ALL USING (true);
+
+-- Create Policies for Customer Management Tables
+CREATE POLICY "Allow all for customer_profiles" ON customer_profiles FOR ALL USING (true);
+CREATE POLICY "Allow all for customer_addresses" ON customer_addresses FOR ALL USING (true);
+CREATE POLICY "Allow all for customer_preferences" ON customer_preferences FOR ALL USING (true);
+CREATE POLICY "Allow all for customer_segments" ON customer_segments FOR ALL USING (true);
+CREATE POLICY "Allow all for customer_segment_members" ON customer_segment_members FOR ALL USING (true);
+CREATE POLICY "Allow all for customer_tags" ON customer_tags FOR ALL USING (true);
+CREATE POLICY "Allow all for customer_notes" ON customer_notes FOR ALL USING (true);
+CREATE POLICY "Allow all for customer_communications" ON customer_communications FOR ALL USING (true);
+CREATE POLICY "Allow all for customer_interactions" ON customer_interactions FOR ALL USING (true);
+CREATE POLICY "Allow all for loyalty_programs" ON loyalty_programs FOR ALL USING (true);
+CREATE POLICY "Allow all for customer_loyalty_points" ON customer_loyalty_points FOR ALL USING (true);
+CREATE POLICY "Allow all for customer_rfm_scores" ON customer_rfm_scores FOR ALL USING (true);
+CREATE POLICY "Allow all for customer_analytics" ON customer_analytics FOR ALL USING (true);

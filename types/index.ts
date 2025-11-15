@@ -651,3 +651,209 @@ export interface InventoryStats {
   turnoverRate: number;
   accuracyRate: number;
 }
+
+// ============================================
+// CUSTOMER MANAGEMENT (CRM) TYPES
+// ============================================
+
+export interface CustomerProfile {
+  id: string;
+  userId: string;
+  customerId: string;
+  firstName?: string;
+  lastName?: string;
+  email: string;
+  phone?: string;
+  dateOfBirth?: Date;
+  companyName?: string;
+  industry?: string;
+  website?: string;
+  profilePicture?: string;
+  preferredLanguage?: string;
+  timezone?: string;
+  customerType?: string; // retail, wholesale, distributor
+  source?: string; // direct, marketplace, referral
+  status: 'active' | 'inactive' | 'vip' | 'at_risk' | 'lost';
+  lifetimeValue: number;
+  totalOrders: number;
+  totalSpent: number;
+  firstOrderDate?: Date;
+  lastOrderDate?: Date;
+  averageOrderValue?: number;
+  notes?: string;
+  metadata?: Record<string, any>;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CustomerAddress {
+  id: string;
+  userId: string;
+  customerId: string;
+  addressType?: string; // billing, shipping, home, office
+  streetAddress: string;
+  city: string;
+  stateProvince?: string;
+  postalCode?: string;
+  country: string;
+  phone?: string;
+  isDefault: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CustomerPreferences {
+  id: string;
+  userId: string;
+  customerId: string;
+  notificationEmail: boolean;
+  notificationSms: boolean;
+  notificationPush: boolean;
+  marketingEmails: boolean;
+  promotionalOffers: boolean;
+  newsletter: boolean;
+  productUpdates: boolean;
+  orderNotifications: boolean;
+  communicationFrequency?: string; // daily, weekly, monthly
+  preferredContactMethod?: string; // email, phone, sms
+  doNotContact: boolean;
+  gdprConsent: boolean;
+  gdprConsentDate?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CustomerSegment {
+  id: string;
+  userId: string;
+  name: string;
+  description?: string;
+  criteria?: Record<string, any>;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CustomerTag {
+  id: string;
+  userId: string;
+  customerId: string;
+  tag: string;
+  color?: string;
+  addedDate: Date;
+}
+
+export interface CustomerNote {
+  id: string;
+  userId: string;
+  customerId: string;
+  title?: string;
+  content: string;
+  noteType?: string; // internal, follow_up, reminder, complaint, compliment
+  priority?: string; // low, medium, high
+  isPinned: boolean;
+  createdBy?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CustomerCommunication {
+  id: string;
+  userId: string;
+  customerId: string;
+  communicationType: string; // email, sms, phone, chat, in_person
+  subject?: string;
+  message: string;
+  direction: string; // inbound, outbound
+  channel: string; // email, marketplace_message, sms, phone
+  status: string; // sent, delivered, opened, clicked, bounced, replied
+  sentBy?: string;
+  sentAt?: Date;
+  openedAt?: Date;
+  clickedAt?: Date;
+  repliedAt?: Date;
+  metadata?: Record<string, any>;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CustomerInteraction {
+  id: string;
+  userId: string;
+  customerId: string;
+  interactionType: string; // visit, purchase, review, support, return, inquiry
+  eventName?: string;
+  eventValue?: number;
+  pageUrl?: string;
+  ipAddress?: string;
+  userAgent?: string;
+  durationSeconds?: number;
+  metadata?: Record<string, any>;
+  createdAt: Date;
+}
+
+export interface LoyaltyProgram {
+  id: string;
+  userId: string;
+  name: string;
+  description?: string;
+  programType: string; // points, tier, referral, vip
+  isActive: boolean;
+  pointMultiplier: number;
+  minPurchaseForPoints: number;
+  pointExpiryDays?: number;
+  tierStructure?: Record<string, any>;
+  rewards?: Record<string, any>;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CustomerLoyaltyPoints {
+  id: string;
+  userId: string;
+  customerId: string;
+  loyaltyProgramId?: string;
+  totalPoints: number;
+  availablePoints: number;
+  redeemedPoints: number;
+  tierLevel?: string;
+  tierSince?: Date;
+  pointsExpiryDate?: Date;
+  lastActivityDate?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CustomerRFMScore {
+  id: string;
+  userId: string;
+  customerId: string;
+  recencyScore?: number; // 1-5
+  frequencyScore?: number; // 1-5
+  monetaryScore?: number; // 1-5
+  overallRFMScore?: number;
+  rfmSegment?: string; // Champions, Loyal, At Risk, etc
+  lastCalculatedAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CustomerAnalytics {
+  id: string;
+  userId: string;
+  customerId: string;
+  totalOrders: number;
+  totalSpent: number;
+  averageOrderValue: number;
+  repeatPurchaseRate: number;
+  productPreferences?: string[];
+  purchaseFrequencyDays?: number;
+  churnRiskScore: number; // 0-1
+  lifetimeValuePredicted: number;
+  engagementScore?: number;
+  satisfactionScore?: number;
+  npsScore?: number; // -100 to 100
+  lastCalculatedAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
