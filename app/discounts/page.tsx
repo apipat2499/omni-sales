@@ -4,12 +4,15 @@ import { useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import DiscountModal from '@/components/discounts/DiscountModal';
 import DeleteDiscountModal from '@/components/discounts/DeleteDiscountModal';
-import { useDiscounts } from '@/lib/hooks/useDiscounts';
-import { formatCurrency, cn } from '@/lib/utils';
+import { useDiscountsQuery } from '@/lib/hooks/useDiscountsQuery';
+import { formatCurrency } from '@/lib/utils';
 import { exportDiscounts } from '@/lib/utils/export';
-import { Search, Plus, Edit, Trash2, Tag, Percent, DollarSign, Loader2, Calendar, Users, Download } from 'lucide-react';
+import Pagination from '@/components/ui/Pagination';
+import SkeletonLoader from '@/components/ui/SkeletonLoader';
+import { Search, Plus, Edit, Trash2, Tag, Percent, Calendar, Download, ArrowUpDown } from 'lucide-react';
 import type { Discount } from '@/types';
 import { format } from 'date-fns';
+import { th } from 'date-fns/locale';
 
 export default function DiscountsPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -17,8 +20,24 @@ export default function DiscountsPage() {
   const [isDiscountModalOpen, setIsDiscountModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedDiscount, setSelectedDiscount] = useState<Discount | null>(null);
+  const [page, setPage] = useState(1);
+  const [sortBy, setSortBy] = useState<string>('created_at');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
-  const { discounts, loading, error, refresh } = useDiscounts(searchTerm, activeFilter);
+  const { data, isLoading, error } = useDiscountsQuery({
+    search: searchTerm,
+    active: activeFilter,
+    page,
+    limit: 20,
+    sortBy,
+    sortOrder,
+  });
+
+  const discounts = data?.data || [];
+  const pagination = data?.pagination;
+
+  const activeDiscounts = discounts.filter((d) => d.active);
+  const totalUsage = discounts.reduce((sum, d) => sum + d.usageCount, 0);
 
   const handleAddDiscount = () => {
     setSelectedDiscount(null);
@@ -35,8 +54,14 @@ export default function DiscountsPage() {
     setIsDeleteModalOpen(true);
   };
 
-  const activeDiscounts = discounts.filter((d) => d.active);
-  const totalUsage = discounts.reduce((sum, d) => sum + d.usageCount, 0);
+  const handleSort = (column: string) => {
+    if (sortBy === column) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(column);
+      setSortOrder('asc');
+    }
+  };
 
   return (
     <DashboardLayout>
@@ -45,7 +70,9 @@ export default function DiscountsPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">ส่วนลด & โปรโมชั่น</h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">จัดการโค้ดส่วนลดและโปรโมชั่น</p>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">
+              จัดการโค้ดส่วนลดและโปรโมชั่น {pagination && `(${pagination.total.toLocaleString('th-TH')} รายการ)`}
+            </p>
           </div>
           <div className="flex gap-2">
             <button
@@ -67,43 +94,43 @@ export default function DiscountsPage() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                <Tag className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+        {!isLoading && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                  <Tag className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">ส่วนลดทั้งหมด</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{pagination?.total || 0}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">ส่วนลดทั้งหมด</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{discounts.length}</p>
+            </div>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                  <Percent className="h-6 w-6 text-green-600 dark:text-green-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">กำลังใช้งาน</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{activeDiscounts.length}</p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                  <Calendar className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">ใช้งานทั้งหมด</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{totalUsage}</p>
+                </div>
               </div>
             </div>
           </div>
-
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                <Percent className="h-6 w-6 text-green-600 dark:text-green-400" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">ส่วนลดที่ใช้งานได้</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{activeDiscounts.length}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-                <Users className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">จำนวนการใช้งาน</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{totalUsage}</p>
-              </div>
-            </div>
-          </div>
-        </div>
+        )}
 
         {/* Filters */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
@@ -112,192 +139,177 @@ export default function DiscountsPage() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
               <input
                 type="text"
-                placeholder="ค้นหาโค้ดส่วนลดหรือชื่อ..."
+                placeholder="ค้นหาส่วนลด (โค้ด, ชื่อ)..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setPage(1);
+                }}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
               />
             </div>
 
-            <div className="flex gap-2">
-              <button
-                onClick={() => setActiveFilter('all')}
-                className={cn(
-                  'px-4 py-2 rounded-lg font-medium transition-colors',
-                  activeFilter === 'all'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                )}
-              >
-                ทั้งหมด
-              </button>
-              <button
-                onClick={() => setActiveFilter('true')}
-                className={cn(
-                  'px-4 py-2 rounded-lg font-medium transition-colors',
-                  activeFilter === 'true'
-                    ? 'bg-green-600 text-white'
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                )}
-              >
-                ใช้งาน
-              </button>
-              <button
-                onClick={() => setActiveFilter('false')}
-                className={cn(
-                  'px-4 py-2 rounded-lg font-medium transition-colors',
-                  activeFilter === 'false'
-                    ? 'bg-gray-600 text-white'
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                )}
-              >
-                ไม่ใช้งาน
-              </button>
-            </div>
+            <select
+              value={activeFilter}
+              onChange={(e) => {
+                setActiveFilter(e.target.value);
+                setPage(1);
+              }}
+              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+            >
+              <option value="all">ทุกสถานะ</option>
+              <option value="true">กำลังใช้งาน</option>
+              <option value="false">ปิดใช้งาน</option>
+            </select>
           </div>
         </div>
 
-        {/* Discounts List */}
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-          </div>
+        {/* Discounts Table */}
+        {isLoading ? (
+          <SkeletonLoader type="table" />
         ) : error ? (
-          <div className="text-center py-12">
-            <p className="text-red-600 dark:text-red-400">{error}</p>
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6 text-center">
+            <p className="text-red-600 dark:text-red-400">เกิดข้อผิดพลาดในการโหลดข้อมูล</p>
           </div>
         ) : discounts.length === 0 ? (
-          <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
             <Tag className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-600 dark:text-gray-400">ไม่พบส่วนลด</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4">
-            {discounts.map((discount) => (
-              <div
-                key={discount.id}
-                className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 hover:shadow-md transition-shadow"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full font-mono font-bold text-sm">
-                        {discount.code}
-                      </div>
-                      {discount.active ? (
-                        <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full text-xs font-medium">
-                          ใช้งาน
-                        </span>
-                      ) : (
-                        <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded-full text-xs font-medium">
-                          ไม่ใช้งาน
-                        </span>
-                      )}
-                    </div>
-
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
-                      {discount.name}
-                    </h3>
-                    {discount.description && (
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                        {discount.description}
-                      </p>
-                    )}
-
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                      <div>
-                        <p className="text-gray-500 dark:text-gray-400">ประเภท</p>
-                        <p className="font-medium text-gray-900 dark:text-white flex items-center gap-1">
-                          {discount.type === 'percentage' ? (
-                            <>
-                              <Percent className="h-4 w-4" />
-                              {discount.value}%
-                            </>
-                          ) : (
-                            <>
-                              <DollarSign className="h-4 w-4" />
-                              {formatCurrency(discount.value)}
-                            </>
+          <>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                  <thead className="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                      <th
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                        onClick={() => handleSort('code')}
+                      >
+                        <div className="flex items-center gap-2">
+                          โค้ด
+                          <ArrowUpDown className="h-4 w-4" />
+                        </div>
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        รายละเอียด
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        ประเภท
+                      </th>
+                      <th
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                        onClick={() => handleSort('value')}
+                      >
+                        <div className="flex items-center gap-2">
+                          มูลค่า
+                          <ArrowUpDown className="h-4 w-4" />
+                        </div>
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        การใช้งาน
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        ระยะเวลา
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        สถานะ
+                      </th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        จัดการ
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                    {discounts.map((discount) => (
+                      <tr key={discount.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-mono font-bold text-blue-600 dark:text-blue-400">
+                            {discount.code}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm font-medium text-gray-900 dark:text-white">{discount.name}</div>
+                          {discount.description && (
+                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                              {discount.description}
+                            </div>
                           )}
-                        </p>
-                      </div>
-
-                      {discount.minPurchaseAmount > 0 && (
-                        <div>
-                          <p className="text-gray-500 dark:text-gray-400">ซื้อขั้นต่ำ</p>
-                          <p className="font-medium text-gray-900 dark:text-white">
-                            {formatCurrency(discount.minPurchaseAmount)}
-                          </p>
-                        </div>
-                      )}
-
-                      {discount.usageLimit && (
-                        <div>
-                          <p className="text-gray-500 dark:text-gray-400">จำนวนการใช้</p>
-                          <p className="font-medium text-gray-900 dark:text-white">
-                            {discount.usageCount} / {discount.usageLimit}
-                          </p>
-                        </div>
-                      )}
-
-                      {(discount.startDate || discount.endDate) && (
-                        <div>
-                          <p className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                            <Calendar className="h-3 w-3" />
-                            ระยะเวลา
-                          </p>
-                          <p className="font-medium text-gray-900 dark:text-white text-xs">
-                            {discount.startDate && format(new Date(discount.startDate), 'dd/MM/yy')}
-                            {' - '}
-                            {discount.endDate && format(new Date(discount.endDate), 'dd/MM/yy')}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2 ml-4">
-                    <button
-                      onClick={() => handleEditDiscount(discount)}
-                      className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                    >
-                      <Edit className="h-5 w-5" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteDiscount(discount)}
-                      className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                    >
-                      <Trash2 className="h-5 w-5" />
-                    </button>
-                  </div>
-                </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                          {discount.type === 'percentage' ? 'เปอร์เซ็นต์' : 'จำนวนเงิน'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                          {discount.type === 'percentage' ? `${discount.value}%` : formatCurrency(discount.value)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                          {discount.usageCount} / {discount.usageLimit || '∞'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                          {discount.startDate && format(new Date(discount.startDate), 'd MMM', { locale: th })}
+                          {' - '}
+                          {discount.endDate ? format(new Date(discount.endDate), 'd MMM yy', { locale: th }) : '∞'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span
+                            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                              discount.active
+                                ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                                : 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400'
+                            }`}
+                          >
+                            {discount.active ? 'กำลังใช้งาน' : 'ปิดใช้งาน'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <div className="flex justify-end gap-2">
+                            <button
+                              onClick={() => handleEditDiscount(discount)}
+                              className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteDiscount(discount)}
+                              className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            ))}
-          </div>
+            </div>
+
+            {/* Pagination */}
+            {pagination && pagination.totalPages > 1 && (
+              <Pagination
+                currentPage={pagination.page}
+                totalPages={pagination.totalPages}
+                onPageChange={setPage}
+                total={pagination.total}
+                limit={pagination.limit}
+              />
+            )}
+          </>
         )}
-      </div>
 
-      {isDiscountModalOpen && (
+        {/* Modals */}
         <DiscountModal
-          discount={selectedDiscount}
+          isOpen={isDiscountModalOpen}
           onClose={() => setIsDiscountModalOpen(false)}
-          onSuccess={() => {
-            setIsDiscountModalOpen(false);
-            refresh();
-          }}
-        />
-      )}
-
-      {isDeleteModalOpen && selectedDiscount && (
-        <DeleteDiscountModal
           discount={selectedDiscount}
-          onClose={() => setIsDeleteModalOpen(false)}
-          onSuccess={() => {
-            setIsDeleteModalOpen(false);
-            refresh();
-          }}
         />
-      )}
+        <DeleteDiscountModal
+          isOpen={isDeleteModalOpen}
+          onClose={() => setIsDeleteModalOpen(false)}
+          discount={selectedDiscount}
+        />
+      </div>
     </DashboardLayout>
   );
 }
