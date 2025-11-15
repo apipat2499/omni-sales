@@ -2,12 +2,16 @@
 
 import { useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
+import ExportButton from '@/components/ExportButton';
 import { formatCurrency, getStatusColor, getChannelColor } from '@/lib/utils';
+import { exportOrdersToExcel, exportOrdersToPDF, exportOrdersToCSV } from '@/lib/utils/exportUtils';
 import { Search, Eye, Download, ShoppingCart, RefreshCw, Edit } from 'lucide-react';
 import { format } from 'date-fns';
 import { th } from 'date-fns/locale';
 import type { OrderStatus, OrderChannel, Order } from '@/types';
+import type { ExportFormat } from '@/components/ExportButton';
 import { useOrders } from '@/lib/hooks/useOrders';
+import { useToast } from '@/lib/hooks/useToast';
 import OrderDetailsModal from '@/components/orders/OrderDetailsModal';
 import UpdateOrderStatusModal from '@/components/orders/UpdateOrderStatusModal';
 
@@ -24,6 +28,8 @@ export default function OrdersPage() {
     status: statusFilter,
     channel: channelFilter,
   });
+
+  const { success, error: showError } = useToast();
 
   const statusCounts = {
     all: orders.length,
@@ -48,13 +54,46 @@ export default function OrdersPage() {
     refresh();
   };
 
+  const handleExport = (format: ExportFormat) => {
+    try {
+      let result = false;
+
+      switch (format) {
+        case 'excel':
+          result = exportOrdersToExcel(orders);
+          break;
+        case 'pdf':
+          result = exportOrdersToPDF(orders);
+          break;
+        case 'csv':
+          result = exportOrdersToCSV(orders);
+          break;
+      }
+
+      if (result) {
+        success(`Export คำสั่งซื้อเป็น ${format.toUpperCase()} สำเร็จ`);
+      } else {
+        showError('เกิดข้อผิดพลาดในการ Export');
+      }
+    } catch (err) {
+      console.error('Export error:', err);
+      showError('เกิดข้อผิดพลาดในการ Export');
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="p-6 space-y-6">
         {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">คำสั่งซื้อ</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">จัดการคำสั่งซื้อทั้งหมดในระบบ</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">คำสั่งซื้อ</h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">จัดการคำสั่งซื้อทั้งหมดในระบบ</p>
+          </div>
+          <ExportButton
+            onExport={handleExport}
+            disabled={orders.length === 0 || loading}
+          />
         </div>
 
         {/* Stats */}

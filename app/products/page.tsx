@@ -4,10 +4,14 @@ import { useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import ProductModal from '@/components/products/ProductModal';
 import DeleteProductModal from '@/components/products/DeleteProductModal';
+import ExportButton from '@/components/ExportButton';
 import { useProducts } from '@/lib/hooks/useProducts';
 import { formatCurrency, isLowStock, cn } from '@/lib/utils';
+import { exportProductsToExcel, exportProductsToPDF, exportProductsToCSV } from '@/lib/utils/exportUtils';
 import { Search, Plus, Edit, Trash2, AlertCircle, Package, Loader2 } from 'lucide-react';
 import type { Product, ProductCategory } from '@/types';
+import type { ExportFormat } from '@/components/ExportButton';
+import { useToast } from '@/lib/hooks/useToast';
 
 export default function ProductsPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -21,6 +25,7 @@ export default function ProductsPage() {
     category: selectedCategory,
   });
 
+  const { success, error: showError } = useToast();
   const lowStockCount = products.filter((p) => isLowStock(p.stock)).length;
 
   const handleAddProduct = () => {
@@ -46,6 +51,33 @@ export default function ProductsPage() {
     refresh();
   };
 
+  const handleExport = (format: ExportFormat) => {
+    try {
+      let result = false;
+
+      switch (format) {
+        case 'excel':
+          result = exportProductsToExcel(products);
+          break;
+        case 'pdf':
+          result = exportProductsToPDF(products);
+          break;
+        case 'csv':
+          result = exportProductsToCSV(products);
+          break;
+      }
+
+      if (result) {
+        success(`Export สินค้าเป็น ${format.toUpperCase()} สำเร็จ`);
+      } else {
+        showError('เกิดข้อผิดพลาดในการ Export');
+      }
+    } catch (err) {
+      console.error('Export error:', err);
+      showError('เกิดข้อผิดพลาดในการ Export');
+    }
+  };
+
   const categories: (ProductCategory | 'all')[] = [
     'all',
     'Electronics',
@@ -66,13 +98,19 @@ export default function ProductsPage() {
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">สินค้า</h1>
             <p className="text-gray-600 dark:text-gray-400 mt-1">จัดการสินค้าในระบบ</p>
           </div>
-          <button
-            onClick={handleAddProduct}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
-          >
-            <Plus className="h-5 w-5" />
-            เพิ่มสินค้า
-          </button>
+          <div className="flex items-center gap-3">
+            <ExportButton
+              onExport={handleExport}
+              disabled={products.length === 0 || loading}
+            />
+            <button
+              onClick={handleAddProduct}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
+            >
+              <Plus className="h-5 w-5" />
+              เพิ่มสินค้า
+            </button>
+          </div>
         </div>
 
         {/* Low Stock Alert */}

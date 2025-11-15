@@ -7,6 +7,13 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search');
     const category = searchParams.get('category');
+    const minPrice = searchParams.get('minPrice');
+    const maxPrice = searchParams.get('maxPrice');
+    const minRating = searchParams.get('minRating');
+    const inStock = searchParams.get('inStock');
+    const isFeatured = searchParams.get('isFeatured');
+    const sortBy = searchParams.get('sortBy') || 'created_at';
+    const sortOrder = searchParams.get('sortOrder') || 'desc';
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
     const offset = (page - 1) * limit;
@@ -23,7 +30,7 @@ export async function GET(request: NextRequest) {
 
     // Apply search filter to both queries
     if (search) {
-      const searchFilter = `name.ilike.%${search}%,sku.ilike.%${search}%`;
+      const searchFilter = `name.ilike.%${search}%,sku.ilike.%${search}%,barcode.ilike.%${search}%`;
       dataQuery = dataQuery.or(searchFilter);
       countQuery = countQuery.or(searchFilter);
     }
@@ -34,9 +41,52 @@ export async function GET(request: NextRequest) {
       countQuery = countQuery.eq('category', category);
     }
 
+    // Apply price range filters
+    if (minPrice) {
+      const minPriceNum = parseFloat(minPrice);
+      dataQuery = dataQuery.gte('price', minPriceNum);
+      countQuery = countQuery.gte('price', minPriceNum);
+    }
+
+    if (maxPrice) {
+      const maxPriceNum = parseFloat(maxPrice);
+      dataQuery = dataQuery.lte('price', maxPriceNum);
+      countQuery = countQuery.lte('price', maxPriceNum);
+    }
+
+    // Apply rating filter
+    if (minRating) {
+      const minRatingNum = parseFloat(minRating);
+      dataQuery = dataQuery.gte('rating', minRatingNum);
+      countQuery = countQuery.gte('rating', minRatingNum);
+    }
+
+    // Apply stock filter
+    if (inStock === 'true') {
+      dataQuery = dataQuery.gt('stock', 0);
+      countQuery = countQuery.gt('stock', 0);
+    }
+
+    // Apply featured filter
+    if (isFeatured === 'true') {
+      dataQuery = dataQuery.eq('is_featured', true);
+      countQuery = countQuery.eq('is_featured', true);
+    }
+
+    // Apply sorting
+    const ascending = sortOrder === 'asc';
+    let orderColumn = sortBy;
+
+    // Map sort fields
+    if (sortBy === 'newest') {
+      orderColumn = 'created_at';
+    } else if (sortBy === 'popular') {
+      orderColumn = 'view_count';
+    }
+
     // Apply pagination and ordering
     dataQuery = dataQuery
-      .order('created_at', { ascending: false })
+      .order(orderColumn, { ascending })
       .range(offset, offset + limit - 1);
 
     // Execute both queries in parallel

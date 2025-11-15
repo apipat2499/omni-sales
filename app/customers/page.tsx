@@ -2,12 +2,16 @@
 
 import { useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
+import ExportButton from '@/components/ExportButton';
 import { formatCurrency, getTagColor } from '@/lib/utils';
+import { exportCustomersToExcel, exportCustomersToPDF, exportCustomersToCSV } from '@/lib/utils/exportUtils';
 import { Search, Plus, Mail, Phone, MapPin, ShoppingBag, DollarSign, Users, Star, Edit, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { th } from 'date-fns/locale';
 import type { Customer, CustomerTag } from '@/types';
+import type { ExportFormat } from '@/components/ExportButton';
 import { useCustomers } from '@/lib/hooks/useCustomers';
+import { useToast } from '@/lib/hooks/useToast';
 import CustomerModal from '@/components/customers/CustomerModal';
 import DeleteCustomerModal from '@/components/customers/DeleteCustomerModal';
 
@@ -22,6 +26,8 @@ export default function CustomersPage() {
     search: searchTerm,
     tags: tagFilter,
   });
+
+  const { success, error: showError } = useToast();
 
   const totalSpent = customers.reduce((sum, c) => sum + c.totalSpent, 0);
   const totalOrders = customers.reduce((sum, c) => sum + c.totalOrders, 0);
@@ -46,6 +52,33 @@ export default function CustomersPage() {
     refresh();
   };
 
+  const handleExport = (format: ExportFormat) => {
+    try {
+      let result = false;
+
+      switch (format) {
+        case 'excel':
+          result = exportCustomersToExcel(customers);
+          break;
+        case 'pdf':
+          result = exportCustomersToPDF(customers);
+          break;
+        case 'csv':
+          result = exportCustomersToCSV(customers);
+          break;
+      }
+
+      if (result) {
+        success(`Export ลูกค้าเป็น ${format.toUpperCase()} สำเร็จ`);
+      } else {
+        showError('เกิดข้อผิดพลาดในการ Export');
+      }
+    } catch (err) {
+      console.error('Export error:', err);
+      showError('เกิดข้อผิดพลาดในการ Export');
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="p-6 space-y-6">
@@ -55,13 +88,19 @@ export default function CustomersPage() {
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">ลูกค้า</h1>
             <p className="text-gray-600 dark:text-gray-400 mt-1">จัดการข้อมูลลูกค้าในระบบ</p>
           </div>
-          <button
-            onClick={handleAddCustomer}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
-          >
-            <Plus className="h-5 w-5" />
-            เพิ่มลูกค้า
-          </button>
+          <div className="flex items-center gap-3">
+            <ExportButton
+              onExport={handleExport}
+              disabled={customers.length === 0 || loading}
+            />
+            <button
+              onClick={handleAddCustomer}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
+            >
+              <Plus className="h-5 w-5" />
+              เพิ่มลูกค้า
+            </button>
+          </div>
         </div>
 
         {/* Stats */}
