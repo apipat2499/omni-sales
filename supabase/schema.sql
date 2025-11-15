@@ -5053,3 +5053,238 @@ CREATE POLICY "Allow all for email_automations" ON email_automations FOR ALL USI
 CREATE POLICY "Allow all for email_automation_logs" ON email_automation_logs FOR ALL USING (true);
 CREATE POLICY "Allow all for email_analytics" ON email_analytics FOR ALL USING (true);
 CREATE POLICY "Allow all for email_events" ON email_events FOR ALL USING (true);
+
+-- SMS & Push Notifications Tables
+-- SMS Providers Configuration
+CREATE TABLE IF NOT EXISTS sms_providers (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  provider_name VARCHAR(100) NOT NULL,
+  provider_type VARCHAR(50) NOT NULL,
+  api_key TEXT NOT NULL,
+  api_secret TEXT,
+  account_sid VARCHAR(255),
+  phone_number VARCHAR(20),
+  is_active BOOLEAN DEFAULT true,
+  config JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Push Notification Providers Configuration
+CREATE TABLE IF NOT EXISTS push_providers (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  provider_name VARCHAR(100) NOT NULL,
+  provider_type VARCHAR(50) NOT NULL,
+  api_key TEXT NOT NULL,
+  api_secret TEXT,
+  server_key VARCHAR(500),
+  sender_id VARCHAR(255),
+  is_active BOOLEAN DEFAULT true,
+  config JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- SMS Templates
+CREATE TABLE IF NOT EXISTS sms_templates (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  template_name VARCHAR(255) NOT NULL,
+  content TEXT NOT NULL,
+  variables JSONB DEFAULT '[]'::jsonb,
+  character_count INT,
+  description TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Push Notification Templates
+CREATE TABLE IF NOT EXISTS push_templates (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  template_name VARCHAR(255) NOT NULL,
+  title VARCHAR(255) NOT NULL,
+  body TEXT NOT NULL,
+  image_url TEXT,
+  action_url TEXT,
+  variables JSONB DEFAULT '[]'::jsonb,
+  description TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- SMS Campaigns
+CREATE TABLE IF NOT EXISTS sms_campaigns (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  campaign_name VARCHAR(255) NOT NULL,
+  template_id UUID REFERENCES sms_templates(id),
+  provider_id UUID REFERENCES sms_providers(id),
+  description TEXT,
+  status VARCHAR(50) NOT NULL DEFAULT 'draft',
+  scheduled_send_time TIMESTAMP WITH TIME ZONE,
+  sent_at TIMESTAMP WITH TIME ZONE,
+  audience_filter JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Push Notification Campaigns
+CREATE TABLE IF NOT EXISTS push_campaigns (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  campaign_name VARCHAR(255) NOT NULL,
+  template_id UUID REFERENCES push_templates(id),
+  provider_id UUID REFERENCES push_providers(id),
+  description TEXT,
+  status VARCHAR(50) NOT NULL DEFAULT 'draft',
+  scheduled_send_time TIMESTAMP WITH TIME ZONE,
+  sent_at TIMESTAMP WITH TIME ZONE,
+  audience_filter JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- SMS Campaign Recipients
+CREATE TABLE IF NOT EXISTS sms_campaign_recipients (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  campaign_id UUID NOT NULL REFERENCES sms_campaigns(id) ON DELETE CASCADE,
+  phone_number VARCHAR(20) NOT NULL,
+  recipient_name VARCHAR(255),
+  user_id UUID NOT NULL,
+  status VARCHAR(50) NOT NULL DEFAULT 'queued',
+  delivered_at TIMESTAMP WITH TIME ZONE,
+  read_at TIMESTAMP WITH TIME ZONE,
+  failure_reason TEXT,
+  provider_message_id VARCHAR(255),
+  personalization_data JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Push Notification Campaign Recipients
+CREATE TABLE IF NOT EXISTS push_campaign_recipients (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  campaign_id UUID NOT NULL REFERENCES push_campaigns(id) ON DELETE CASCADE,
+  device_token VARCHAR(500) NOT NULL,
+  recipient_name VARCHAR(255),
+  device_type VARCHAR(50),
+  user_id UUID NOT NULL,
+  status VARCHAR(50) NOT NULL DEFAULT 'queued',
+  delivered_at TIMESTAMP WITH TIME ZONE,
+  opened_at TIMESTAMP WITH TIME ZONE,
+  clicked_at TIMESTAMP WITH TIME ZONE,
+  failure_reason TEXT,
+  provider_message_id VARCHAR(255),
+  personalization_data JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Notification Preferences
+CREATE TABLE IF NOT EXISTS notification_preferences (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  customer_id VARCHAR(255),
+  phone_number VARCHAR(20),
+  device_token VARCHAR(500),
+  sms_opted_in BOOLEAN DEFAULT true,
+  push_opted_in BOOLEAN DEFAULT true,
+  marketing_opted_in BOOLEAN DEFAULT true,
+  transactional_opted_in BOOLEAN DEFAULT true,
+  sms_categories JSONB DEFAULT '[]'::jsonb,
+  push_categories JSONB DEFAULT '[]'::jsonb,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Notification Events Log
+CREATE TABLE IF NOT EXISTS notification_events (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  campaign_id UUID,
+  recipient_id UUID,
+  campaign_type VARCHAR(50) NOT NULL,
+  user_id UUID NOT NULL,
+  event_type VARCHAR(50) NOT NULL,
+  event_timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  metadata JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create Indexes for SMS & Push Notifications
+CREATE INDEX IF NOT EXISTS idx_sms_providers_user ON sms_providers(user_id);
+CREATE INDEX IF NOT EXISTS idx_sms_providers_active ON sms_providers(is_active);
+CREATE INDEX IF NOT EXISTS idx_push_providers_user ON push_providers(user_id);
+CREATE INDEX IF NOT EXISTS idx_push_providers_active ON push_providers(is_active);
+CREATE INDEX IF NOT EXISTS idx_sms_templates_user ON sms_templates(user_id);
+CREATE INDEX IF NOT EXISTS idx_push_templates_user ON push_templates(user_id);
+CREATE INDEX IF NOT EXISTS idx_sms_campaigns_user_status ON sms_campaigns(user_id, status);
+CREATE INDEX IF NOT EXISTS idx_sms_campaigns_scheduled ON sms_campaigns(scheduled_send_time);
+CREATE INDEX IF NOT EXISTS idx_push_campaigns_user_status ON push_campaigns(user_id, status);
+CREATE INDEX IF NOT EXISTS idx_push_campaigns_scheduled ON push_campaigns(scheduled_send_time);
+CREATE INDEX IF NOT EXISTS idx_sms_campaign_recipients_campaign ON sms_campaign_recipients(campaign_id);
+CREATE INDEX IF NOT EXISTS idx_sms_campaign_recipients_phone ON sms_campaign_recipients(phone_number);
+CREATE INDEX IF NOT EXISTS idx_sms_campaign_recipients_status ON sms_campaign_recipients(status);
+CREATE INDEX IF NOT EXISTS idx_push_campaign_recipients_campaign ON push_campaign_recipients(campaign_id);
+CREATE INDEX IF NOT EXISTS idx_push_campaign_recipients_token ON push_campaign_recipients(device_token);
+CREATE INDEX IF NOT EXISTS idx_push_campaign_recipients_status ON push_campaign_recipients(status);
+CREATE INDEX IF NOT EXISTS idx_notification_preferences_phone ON notification_preferences(phone_number);
+CREATE INDEX IF NOT EXISTS idx_notification_preferences_token ON notification_preferences(device_token);
+CREATE INDEX IF NOT EXISTS idx_notification_preferences_user ON notification_preferences(user_id);
+CREATE INDEX IF NOT EXISTS idx_notification_events_campaign_type ON notification_events(campaign_id, event_type);
+CREATE INDEX IF NOT EXISTS idx_notification_events_user ON notification_events(user_id);
+
+-- Composite Indexes for Performance
+CREATE INDEX IF NOT EXISTS idx_sms_campaign_recipients_user_status ON sms_campaign_recipients(user_id, status);
+CREATE INDEX IF NOT EXISTS idx_push_campaign_recipients_user_status ON push_campaign_recipients(user_id, status);
+
+-- Create Triggers for SMS & Push Notifications
+CREATE TRIGGER update_sms_providers_updated_at BEFORE UPDATE ON sms_providers
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_push_providers_updated_at BEFORE UPDATE ON push_providers
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_sms_templates_updated_at BEFORE UPDATE ON sms_templates
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_push_templates_updated_at BEFORE UPDATE ON push_templates
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_sms_campaigns_updated_at BEFORE UPDATE ON sms_campaigns
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_push_campaigns_updated_at BEFORE UPDATE ON push_campaigns
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_sms_campaign_recipients_updated_at BEFORE UPDATE ON sms_campaign_recipients
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_push_campaign_recipients_updated_at BEFORE UPDATE ON push_campaign_recipients
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Enable RLS for SMS & Push Notifications Tables
+ALTER TABLE sms_providers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE push_providers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sms_templates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE push_templates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sms_campaigns ENABLE ROW LEVEL SECURITY;
+ALTER TABLE push_campaigns ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sms_campaign_recipients ENABLE ROW LEVEL SECURITY;
+ALTER TABLE push_campaign_recipients ENABLE ROW LEVEL SECURITY;
+ALTER TABLE notification_preferences ENABLE ROW LEVEL SECURITY;
+ALTER TABLE notification_events ENABLE ROW LEVEL SECURITY;
+
+-- Create Policies for SMS & Push Notifications Tables
+CREATE POLICY "Allow all for sms_providers" ON sms_providers FOR ALL USING (true);
+CREATE POLICY "Allow all for push_providers" ON push_providers FOR ALL USING (true);
+CREATE POLICY "Allow all for sms_templates" ON sms_templates FOR ALL USING (true);
+CREATE POLICY "Allow all for push_templates" ON push_templates FOR ALL USING (true);
+CREATE POLICY "Allow all for sms_campaigns" ON sms_campaigns FOR ALL USING (true);
+CREATE POLICY "Allow all for push_campaigns" ON push_campaigns FOR ALL USING (true);
+CREATE POLICY "Allow all for sms_campaign_recipients" ON sms_campaign_recipients FOR ALL USING (true);
+CREATE POLICY "Allow all for push_campaign_recipients" ON push_campaign_recipients FOR ALL USING (true);
+CREATE POLICY "Allow all for notification_preferences" ON notification_preferences FOR ALL USING (true);
+CREATE POLICY "Allow all for notification_events" ON notification_events FOR ALL USING (true);

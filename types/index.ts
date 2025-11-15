@@ -3684,3 +3684,181 @@ export interface EmailMarketingDashboardData {
   segmentCount: number;
   campaignsByStatus: Record<string, number>;
 }
+
+// SMS & Push Notifications Types
+export type SMSProviderType = 'twilio' | 'aws_sns' | 'nexmo' | 'sinch';
+export type PushProviderType = 'firebase' | 'onesignal' | 'aws_sns' | 'apns';
+export type NotificationStatus = 'queued' | 'sending' | 'delivered' | 'failed' | 'bounced' | 'opted_out';
+export type NotificationEventType = 'sent' | 'delivered' | 'opened' | 'clicked' | 'failed' | 'bounced' | 'opted_out';
+export type DeviceType = 'ios' | 'android' | 'web' | 'unknown';
+export type CampaignType = 'sms' | 'push';
+
+export interface SMSProvider {
+  id: string;
+  userId: string;
+  providerName: string;
+  providerType: SMSProviderType;
+  apiKey: string;
+  apiSecret?: string;
+  accountSid?: string;
+  phoneNumber?: string;
+  isActive: boolean;
+  config: Record<string, any>;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface PushProvider {
+  id: string;
+  userId: string;
+  providerName: string;
+  providerType: PushProviderType;
+  apiKey: string;
+  apiSecret?: string;
+  serverKey?: string;
+  senderId?: string;
+  isActive: boolean;
+  config: Record<string, any>;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SMSTemplate {
+  id: string;
+  userId: string;
+  templateName: string;
+  content: string;
+  variables: string[];
+  characterCount?: number;
+  description?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface PushTemplate {
+  id: string;
+  userId: string;
+  templateName: string;
+  title: string;
+  body: string;
+  imageUrl?: string;
+  actionUrl?: string;
+  variables: string[];
+  description?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SMSCampaign {
+  id: string;
+  userId: string;
+  campaignName: string;
+  templateId?: string;
+  providerId?: string;
+  description?: string;
+  status: 'draft' | 'scheduled' | 'sending' | 'sent' | 'paused' | 'failed';
+  scheduledSendTime?: Date;
+  sentAt?: Date;
+  audienceFilter: Record<string, any>;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface PushCampaign {
+  id: string;
+  userId: string;
+  campaignName: string;
+  templateId?: string;
+  providerId?: string;
+  description?: string;
+  status: 'draft' | 'scheduled' | 'sending' | 'sent' | 'paused' | 'failed';
+  scheduledSendTime?: Date;
+  sentAt?: Date;
+  audienceFilter: Record<string, any>;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SMSCampaignRecipient {
+  id: string;
+  campaignId: string;
+  phoneNumber: string;
+  recipientName?: string;
+  userId: string;
+  status: NotificationStatus;
+  deliveredAt?: Date;
+  readAt?: Date;
+  failureReason?: string;
+  providerMessageId?: string;
+  personalizationData: Record<string, any>;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface PushCampaignRecipient {
+  id: string;
+  campaignId: string;
+  deviceToken: string;
+  recipientName?: string;
+  deviceType?: DeviceType;
+  userId: string;
+  status: NotificationStatus;
+  deliveredAt?: Date;
+  openedAt?: Date;
+  clickedAt?: Date;
+  failureReason?: string;
+  providerMessageId?: string;
+  personalizationData: Record<string, any>;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface NotificationPreferences {
+  id: string;
+  userId: string;
+  customerId?: string;
+  phoneNumber?: string;
+  deviceToken?: string;
+  smsOptedIn: boolean;
+  pushOptedIn: boolean;
+  marketingOptedIn: boolean;
+  transactionalOptedIn: boolean;
+  smsCategories: string[];
+  pushCategories: string[];
+  updatedAt: Date;
+  createdAt: Date;
+}
+
+export interface NotificationEvent {
+  id: string;
+  campaignId?: string;
+  recipientId?: string;
+  campaignType: CampaignType;
+  userId: string;
+  eventType: NotificationEventType;
+  eventTimestamp: Date;
+  metadata: Record<string, any>;
+  createdAt: Date;
+}
+
+export interface NotificationDashboardData {
+  totalSMSCampaigns: number;
+  totalPushCampaigns: number;
+  activeSMSCampaigns: number;
+  activePushCampaigns: number;
+  totalSMSDelivered: number;
+  totalPushDelivered: number;
+  smsSendCost: number;
+  smsAverageDeliveryRate: number;
+  pushAverageOpenRate: number;
+  pushAverageClickRate: number;
+  recentSMSCampaigns: SMSCampaign[];
+  recentPushCampaigns: PushCampaign[];
+  topPerformingSMSCampaigns: SMSCampaign[];
+  topPerformingPushCampaigns: PushCampaign[];
+  smsTemplateCount: number;
+  pushTemplateCount: number;
+  smsProviderCount: number;
+  pushProviderCount: number;
+  campaignsByStatus: Record<string, number>;
+}
