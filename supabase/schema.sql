@@ -425,6 +425,227 @@ CREATE POLICY "Allow all for marketplace_order_items" ON marketplace_order_items
 CREATE POLICY "Allow all for marketplace_sync_logs" ON marketplace_sync_logs FOR ALL USING (true);
 CREATE POLICY "Allow all for marketplace_webhooks" ON marketplace_webhooks FOR ALL USING (true);
 
+-- Analytics Tables
+
+-- Daily Sales Metrics (for fast query performance)
+CREATE TABLE IF NOT EXISTS daily_metrics (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  date DATE NOT NULL,
+  total_orders INTEGER DEFAULT 0,
+  total_revenue DECIMAL(12, 2) DEFAULT 0,
+  total_profit DECIMAL(12, 2) DEFAULT 0,
+  average_order_value DECIMAL(10, 2) DEFAULT 0,
+  unique_customers INTEGER DEFAULT 0,
+  returned_orders INTEGER DEFAULT 0,
+  cancelled_orders INTEGER DEFAULT 0,
+  completed_orders INTEGER DEFAULT 0,
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(user_id, date)
+);
+
+-- Product Performance Metrics
+CREATE TABLE IF NOT EXISTS product_performance (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  product_id UUID REFERENCES products(id),
+  date DATE NOT NULL,
+  units_sold INTEGER DEFAULT 0,
+  revenue DECIMAL(12, 2) DEFAULT 0,
+  profit DECIMAL(12, 2) DEFAULT 0,
+  returns INTEGER DEFAULT 0,
+  rating_avg DECIMAL(3, 2),
+  rank_by_revenue INTEGER,
+  trend DECIMAL(5, 2),
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(user_id, product_id, date)
+);
+
+-- Customer Analytics
+CREATE TABLE IF NOT EXISTS customer_analytics (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  customer_id UUID REFERENCES customers(id),
+  lifetime_value DECIMAL(12, 2) DEFAULT 0,
+  order_count INTEGER DEFAULT 0,
+  average_order_value DECIMAL(10, 2) DEFAULT 0,
+  first_purchase_date TIMESTAMP WITH TIME ZONE,
+  last_purchase_date TIMESTAMP WITH TIME ZONE,
+  days_since_purchase INTEGER,
+  purchase_frequency DECIMAL(5, 2),
+  segment VARCHAR(50),
+  churn_risk DECIMAL(3, 2),
+  rfm_score VARCHAR(10),
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(user_id, customer_id)
+);
+
+-- Channel Performance (Marketplace, Online, Offline, etc)
+CREATE TABLE IF NOT EXISTS channel_performance (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  channel VARCHAR(50) NOT NULL,
+  date DATE NOT NULL,
+  orders INTEGER DEFAULT 0,
+  revenue DECIMAL(12, 2) DEFAULT 0,
+  profit DECIMAL(12, 2) DEFAULT 0,
+  average_order_value DECIMAL(10, 2) DEFAULT 0,
+  conversion_rate DECIMAL(5, 2),
+  cost_per_acquisition DECIMAL(10, 2),
+  roi DECIMAL(5, 2),
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(user_id, channel, date)
+);
+
+-- Category Performance
+CREATE TABLE IF NOT EXISTS category_performance (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  category VARCHAR(100) NOT NULL,
+  date DATE NOT NULL,
+  orders INTEGER DEFAULT 0,
+  revenue DECIMAL(12, 2) DEFAULT 0,
+  profit DECIMAL(12, 2) DEFAULT 0,
+  units_sold INTEGER DEFAULT 0,
+  average_price DECIMAL(10, 2) DEFAULT 0,
+  margin_percent DECIMAL(5, 2),
+  trend DECIMAL(5, 2),
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(user_id, category, date)
+);
+
+-- Sales Forecast (AI/ML predictions)
+CREATE TABLE IF NOT EXISTS sales_forecast (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  forecast_date DATE NOT NULL,
+  predicted_orders INTEGER,
+  predicted_revenue DECIMAL(12, 2),
+  predicted_profit DECIMAL(12, 2),
+  confidence_score DECIMAL(3, 2),
+  model_version VARCHAR(50),
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(user_id, forecast_date)
+);
+
+-- Custom Reports
+CREATE TABLE IF NOT EXISTS custom_reports (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  description TEXT,
+  report_type VARCHAR(50) NOT NULL,
+  filters JSONB DEFAULT '{}',
+  metrics TEXT[] DEFAULT '{}',
+  date_range_start DATE,
+  date_range_end DATE,
+  is_scheduled BOOLEAN DEFAULT false,
+  schedule_interval VARCHAR(50),
+  last_generated_at TIMESTAMP WITH TIME ZONE,
+  export_format VARCHAR(20) DEFAULT 'pdf',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Report Storage
+CREATE TABLE IF NOT EXISTS report_files (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  report_id UUID REFERENCES custom_reports(id) ON DELETE CASCADE,
+  file_name VARCHAR(255) NOT NULL,
+  file_size INTEGER,
+  file_url VARCHAR(500),
+  format VARCHAR(20),
+  generated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  expires_at TIMESTAMP WITH TIME ZONE,
+  download_count INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Anomaly Detection
+CREATE TABLE IF NOT EXISTS anomalies (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  anomaly_type VARCHAR(100) NOT NULL,
+  severity VARCHAR(50) DEFAULT 'medium',
+  detected_value DECIMAL(12, 2),
+  expected_value DECIMAL(12, 2),
+  deviation_percent DECIMAL(5, 2),
+  affected_metric VARCHAR(100),
+  description TEXT,
+  is_resolved BOOLEAN DEFAULT false,
+  resolved_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create Indexes for Analytics
+CREATE INDEX IF NOT EXISTS idx_daily_metrics_user_date ON daily_metrics(user_id, date DESC);
+CREATE INDEX IF NOT EXISTS idx_product_performance_user_date ON product_performance(user_id, date DESC);
+CREATE INDEX IF NOT EXISTS idx_product_performance_product ON product_performance(product_id);
+CREATE INDEX IF NOT EXISTS idx_customer_analytics_user ON customer_analytics(user_id);
+CREATE INDEX IF NOT EXISTS idx_customer_analytics_segment ON customer_analytics(user_id, segment);
+CREATE INDEX IF NOT EXISTS idx_channel_performance_user_date ON channel_performance(user_id, date DESC);
+CREATE INDEX IF NOT EXISTS idx_category_performance_user_date ON category_performance(user_id, date DESC);
+CREATE INDEX IF NOT EXISTS idx_sales_forecast_user ON sales_forecast(user_id, forecast_date DESC);
+CREATE INDEX IF NOT EXISTS idx_custom_reports_user ON custom_reports(user_id);
+CREATE INDEX IF NOT EXISTS idx_report_files_report ON report_files(report_id);
+CREATE INDEX IF NOT EXISTS idx_anomalies_user ON anomalies(user_id, created_at DESC);
+
+-- Create Triggers for Analytics
+CREATE TRIGGER update_daily_metrics_updated_at BEFORE UPDATE ON daily_metrics
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_product_performance_updated_at BEFORE UPDATE ON product_performance
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_customer_analytics_updated_at BEFORE UPDATE ON customer_analytics
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_channel_performance_updated_at BEFORE UPDATE ON channel_performance
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_category_performance_updated_at BEFORE UPDATE ON category_performance
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_sales_forecast_updated_at BEFORE UPDATE ON sales_forecast
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_custom_reports_updated_at BEFORE UPDATE ON custom_reports
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Enable RLS for Analytics
+ALTER TABLE daily_metrics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE product_performance ENABLE ROW LEVEL SECURITY;
+ALTER TABLE customer_analytics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE channel_performance ENABLE ROW LEVEL SECURITY;
+ALTER TABLE category_performance ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sales_forecast ENABLE ROW LEVEL SECURITY;
+ALTER TABLE custom_reports ENABLE ROW LEVEL SECURITY;
+ALTER TABLE report_files ENABLE ROW LEVEL SECURITY;
+ALTER TABLE anomalies ENABLE ROW LEVEL SECURITY;
+
+-- Create Policies for Analytics
+CREATE POLICY "Allow all for daily_metrics" ON daily_metrics FOR ALL USING (true);
+CREATE POLICY "Allow all for product_performance" ON product_performance FOR ALL USING (true);
+CREATE POLICY "Allow all for customer_analytics" ON customer_analytics FOR ALL USING (true);
+CREATE POLICY "Allow all for channel_performance" ON channel_performance FOR ALL USING (true);
+CREATE POLICY "Allow all for category_performance" ON category_performance FOR ALL USING (true);
+CREATE POLICY "Allow all for sales_forecast" ON sales_forecast FOR ALL USING (true);
+CREATE POLICY "Allow all for custom_reports" ON custom_reports FOR ALL USING (true);
+CREATE POLICY "Allow all for report_files" ON report_files FOR ALL USING (true);
+CREATE POLICY "Allow all for anomalies" ON anomalies FOR ALL USING (true);
+
 -- Original Policies
 CREATE POLICY "Allow all for products" ON products FOR ALL USING (true);
 CREATE POLICY "Allow all for customers" ON customers FOR ALL USING (true);

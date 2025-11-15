@@ -278,3 +278,147 @@ export interface MarketplaceSyncLog {
   completedAt?: Date;
   createdAt: Date;
 }
+
+export interface DailyMetrics {
+  id: string;
+  userId: string;
+  date: Date;
+  totalOrders: number;
+  totalRevenue: number;
+  totalProfit: number;
+  averageOrderValue: number;
+  uniqueCustomers: number;
+  returnedOrders: number;
+  cancelledOrders: number;
+  completedOrders: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ProductPerformance {
+  id: string;
+  userId: string;
+  productId: string;
+  date: Date;
+  unitsSold: number;
+  revenue: number;
+  profit: number;
+  returns: number;
+  ratingAvg?: number;
+  rankByRevenue?: number;
+  trend?: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CustomerAnalytics {
+  id: string;
+  userId: string;
+  customerId: string;
+  lifetimeValue: number;
+  orderCount: number;
+  averageOrderValue: number;
+  firstPurchaseDate?: Date;
+  lastPurchaseDate?: Date;
+  daysSincePurchase?: number;
+  purchaseFrequency?: number;
+  segment?: string;
+  churnRisk?: number;
+  rfmScore?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ChannelPerformance {
+  id: string;
+  userId: string;
+  channel: string;
+  date: Date;
+  orders: number;
+  revenue: number;
+  profit: number;
+  averageOrderValue: number;
+  conversionRate?: number;
+  costPerAcquisition?: number;
+  roi?: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CategoryPerformance {
+  id: string;
+  userId: string;
+  category: string;
+  date: Date;
+  orders: number;
+  revenue: number;
+  profit: number;
+  unitsSold: number;
+  averagePrice: number;
+  marginPercent?: number;
+  trend?: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SalesForecast {
+  id: string;
+  userId: string;
+  forecastDate: Date;
+  predictedOrders?: number;
+  predictedRevenue?: number;
+  predictedProfit?: number;
+  confidenceScore?: number;
+  modelVersion?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CustomReport {
+  id: string;
+  userId: string;
+  name: string;
+  description?: string;
+  reportType: string;
+  filters?: Record<string, unknown>;
+  metrics?: string[];
+  dateRangeStart?: Date;
+  dateRangeEnd?: Date;
+  isScheduled?: boolean;
+  scheduleInterval?: string;
+  lastGeneratedAt?: Date;
+  exportFormat?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Anomaly {
+  id: string;
+  userId: string;
+  anomalyType: string;
+  severity: 'low' | 'medium' | 'high';
+  detectedValue?: number;
+  expectedValue?: number;
+  deviationPercent?: number;
+  affectedMetric?: string;
+  description?: string;
+  isResolved?: boolean;
+  resolvedAt?: Date;
+  createdAt: Date;
+}
+
+export interface AnalyticsDashboard {
+  totalRevenue: number;
+  totalProfit: number;
+  totalOrders: number;
+  uniqueCustomers: number;
+  averageOrderValue: number;
+  revenueGrowth: number;
+  ordersGrowth: number;
+  customersGrowth: number;
+  topProducts: ProductPerformance[];
+  topChannels: ChannelPerformance[];
+  topCategories: CategoryPerformance[];
+  customerSegments: Record<string, number>;
+  anomalies: Anomaly[];
+}
