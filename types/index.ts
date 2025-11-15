@@ -999,3 +999,139 @@ export interface OrderWithDetails {
   updatedAt: Date;
   deliveredAt?: Date;
 }
+
+// ============================================
+// DISCOUNT & COUPON MANAGEMENT TYPES
+// ============================================
+
+export type DiscountType = 'percentage' | 'fixed_amount' | 'buy_x_get_y' | 'tiered';
+export type DiscountStatus = 'active' | 'inactive' | 'expired' | 'archived';
+export type DiscountApplicableTo = 'all' | 'specific_products' | 'specific_categories' | 'specific_customers';
+export type RuleType = 'quantity_based' | 'amount_based' | 'category_based' | 'customer_segment';
+export type CampaignType = 'seasonal' | 'flash_sale' | 'loyalty' | 'bulk_discount' | 'referral';
+export type CampaignStatus = 'draft' | 'active' | 'paused' | 'ended' | 'archived';
+export type TargetAudience = 'all' | 'specific_segment' | 'new_customers' | 'vip_customers';
+export type MarketingChannel = 'email' | 'sms' | 'in_app' | 'web' | 'social';
+
+export interface DiscountCode {
+  id: string;
+  userId: string;
+  code: string;
+  description?: string;
+  discountType: DiscountType;
+  discountValue: number;
+  currency: string;
+  status: DiscountStatus;
+  isStackable: boolean;
+  isExclusive: boolean;
+  usageLimit?: number;
+  usagePerCustomer?: number;
+  currentUsageCount: number;
+  minimumOrderValue?: number;
+  maximumDiscountAmount?: number;
+  applicableTo: DiscountApplicableTo;
+  startDate?: Date;
+  endDate?: Date;
+  autoApply: boolean;
+  notes?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  createdBy?: string;
+}
+
+export interface DiscountRule {
+  id: string;
+  userId: string;
+  discountCodeId: string;
+  ruleType: RuleType;
+  conditionOperator?: 'equals' | 'greater_than' | 'less_than' | 'between';
+  conditionValue?: Record<string, any>;
+  discountValue: number;
+  priority: number;
+  createdAt: Date;
+}
+
+export interface DiscountCodeProduct {
+  id: string;
+  userId: string;
+  discountCodeId: string;
+  productId: string;
+  productSku?: string;
+  productName?: string;
+  createdAt: Date;
+}
+
+export interface DiscountCodeCategory {
+  id: string;
+  userId: string;
+  discountCodeId: string;
+  categoryName: string;
+  createdAt: Date;
+}
+
+export interface DiscountCodeSegment {
+  id: string;
+  userId: string;
+  discountCodeId: string;
+  customerSegmentId?: string;
+  segmentName: string;
+  createdAt: Date;
+}
+
+export interface CouponRedemption {
+  id: string;
+  userId: string;
+  discountCodeId?: string;
+  orderId?: string;
+  customerId?: string;
+  code: string;
+  discountAmount: number;
+  redeemedAt: Date;
+  redeemedBy?: string;
+  notes?: string;
+}
+
+export interface PromotionalCampaign {
+  id: string;
+  userId: string;
+  campaignName: string;
+  description?: string;
+  campaignType: CampaignType;
+  status: CampaignStatus;
+  startDate?: Date;
+  endDate?: Date;
+  budgetLimit?: number;
+  budgetUsed: number;
+  discountCodes: string[];
+  targetAudience: TargetAudience;
+  minPurchaseAmount?: number;
+  marketingChannel?: MarketingChannel;
+  campaignNotes?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  createdBy?: string;
+}
+
+export interface DiscountAnalytics {
+  id: string;
+  userId: string;
+  discountCodeId?: string;
+  campaignId?: string;
+  date: Date;
+  totalRedemptions: number;
+  totalDiscountAmount: number;
+  averageOrderValue?: number;
+  ordersCreated: number;
+  customersReached: number;
+  conversionRate?: number;
+  createdAt: Date;
+}
+
+export interface DiscountWithDetails extends DiscountCode {
+  rules?: DiscountRule[];
+  applicableProducts?: DiscountCodeProduct[];
+  applicableCategories?: DiscountCodeCategory[];
+  applicableSegments?: DiscountCodeSegment[];
+  redemptions?: CouponRedemption[];
+  analytics?: DiscountAnalytics[];
+}

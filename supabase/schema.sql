@@ -182,6 +182,140 @@ CREATE TABLE IF NOT EXISTS order_discounts (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- ============================================
+-- DISCOUNT & COUPON MANAGEMENT SYSTEM TABLES
+-- ============================================
+
+-- Discount/Coupon Codes
+CREATE TABLE IF NOT EXISTS discount_codes (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  code VARCHAR(100) NOT NULL UNIQUE,
+  description TEXT,
+  discount_type VARCHAR(50) NOT NULL, -- percentage, fixed_amount, buy_x_get_y, tiered
+  discount_value DECIMAL(12, 2) NOT NULL,
+  currency VARCHAR(3) DEFAULT 'USD',
+  status VARCHAR(50) DEFAULT 'active', -- active, inactive, expired, archived
+  is_stackable BOOLEAN DEFAULT false,
+  is_exclusive BOOLEAN DEFAULT false,
+  usage_limit INTEGER, -- null = unlimited
+  usage_per_customer INTEGER, -- null = unlimited
+  current_usage_count INTEGER DEFAULT 0,
+  minimum_order_value DECIMAL(12, 2),
+  maximum_discount_amount DECIMAL(12, 2),
+  applicable_to VARCHAR(50) DEFAULT 'all', -- all, specific_products, specific_categories, specific_customers
+  start_date TIMESTAMP WITH TIME ZONE,
+  end_date TIMESTAMP WITH TIME ZONE,
+  auto_apply BOOLEAN DEFAULT false,
+  notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  created_by UUID,
+  CONSTRAINT discount_codes_user_id_fk FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+
+-- Discount Code Rules (for tiered/conditional discounts)
+CREATE TABLE IF NOT EXISTS discount_rules (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  discount_code_id UUID NOT NULL REFERENCES discount_codes(id) ON DELETE CASCADE,
+  rule_type VARCHAR(50) NOT NULL, -- quantity_based, amount_based, category_based, customer_segment
+  condition_operator VARCHAR(20), -- equals, greater_than, less_than, between
+  condition_value JSONB, -- flexible condition values
+  discount_value DECIMAL(12, 2),
+  priority INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT discount_rules_user_id_fk FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+
+-- Discount Code Applicable Products
+CREATE TABLE IF NOT EXISTS discount_code_products (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  discount_code_id UUID NOT NULL REFERENCES discount_codes(id) ON DELETE CASCADE,
+  product_id TEXT NOT NULL,
+  product_sku VARCHAR(100),
+  product_name VARCHAR(255),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT discount_code_products_user_id_fk FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+
+-- Discount Code Applicable Categories
+CREATE TABLE IF NOT EXISTS discount_code_categories (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  discount_code_id UUID NOT NULL REFERENCES discount_codes(id) ON DELETE CASCADE,
+  category_name VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT discount_code_categories_user_id_fk FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+
+-- Discount Code Customer Segments
+CREATE TABLE IF NOT EXISTS discount_code_segments (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  discount_code_id UUID NOT NULL REFERENCES discount_codes(id) ON DELETE CASCADE,
+  customer_segment_id TEXT, -- reference to customer segments
+  segment_name VARCHAR(255),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT discount_code_segments_user_id_fk FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+
+-- Coupon Usage History/Redemption
+CREATE TABLE IF NOT EXISTS coupon_redemptions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  discount_code_id UUID NOT NULL REFERENCES discount_codes(id) ON DELETE SET NULL,
+  order_id UUID REFERENCES orders(id) ON DELETE SET NULL,
+  customer_id TEXT,
+  code VARCHAR(100),
+  discount_amount DECIMAL(12, 2) NOT NULL,
+  redeemed_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  redeemed_by UUID,
+  notes TEXT,
+  CONSTRAINT coupon_redemptions_user_id_fk FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+
+-- Promotional Campaigns
+CREATE TABLE IF NOT EXISTS promotional_campaigns (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  campaign_name VARCHAR(255) NOT NULL,
+  description TEXT,
+  campaign_type VARCHAR(50), -- seasonal, flash_sale, loyalty, bulk_discount, referral
+  status VARCHAR(50) DEFAULT 'draft', -- draft, active, paused, ended, archived
+  start_date TIMESTAMP WITH TIME ZONE,
+  end_date TIMESTAMP WITH TIME ZONE,
+  budget_limit DECIMAL(12, 2),
+  budget_used DECIMAL(12, 2) DEFAULT 0,
+  discount_codes TEXT[] DEFAULT '{}', -- array of discount code IDs
+  target_audience VARCHAR(50), -- all, specific_segment, new_customers, vip_customers
+  min_purchase_amount DECIMAL(12, 2),
+  marketing_channel VARCHAR(50), -- email, sms, in_app, web, social
+  campaign_notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  created_by UUID,
+  CONSTRAINT promotional_campaigns_user_id_fk FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+
+-- Discount Analytics/Performance
+CREATE TABLE IF NOT EXISTS discount_analytics (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  discount_code_id UUID REFERENCES discount_codes(id) ON DELETE CASCADE,
+  campaign_id UUID REFERENCES promotional_campaigns(id) ON DELETE CASCADE,
+  date TIMESTAMP WITH TIME ZONE,
+  total_redemptions INTEGER DEFAULT 0,
+  total_discount_amount DECIMAL(12, 2) DEFAULT 0,
+  average_order_value DECIMAL(12, 2),
+  orders_created INTEGER DEFAULT 0,
+  customers_reached INTEGER DEFAULT 0,
+  conversion_rate DECIMAL(5, 2), -- percentage
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT discount_analytics_user_id_fk FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+
 -- Create Indexes
 CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);
 CREATE INDEX IF NOT EXISTS idx_products_sku ON products(sku);
@@ -209,6 +343,25 @@ CREATE INDEX IF NOT EXISTS idx_refunds_status ON refunds(refund_status);
 CREATE INDEX IF NOT EXISTS idx_fulfillment_tasks_order ON fulfillment_tasks(order_id);
 CREATE INDEX IF NOT EXISTS idx_fulfillment_tasks_status ON fulfillment_tasks(task_status);
 CREATE INDEX IF NOT EXISTS idx_order_discounts_order ON order_discounts(order_id);
+
+-- Create Indexes for Discount Management
+CREATE INDEX IF NOT EXISTS idx_discount_codes_user ON discount_codes(user_id);
+CREATE INDEX IF NOT EXISTS idx_discount_codes_code ON discount_codes(code);
+CREATE INDEX IF NOT EXISTS idx_discount_codes_status ON discount_codes(status);
+CREATE INDEX IF NOT EXISTS idx_discount_codes_date_range ON discount_codes(start_date, end_date);
+CREATE INDEX IF NOT EXISTS idx_discount_rules_code ON discount_rules(discount_code_id);
+CREATE INDEX IF NOT EXISTS idx_discount_code_products_code ON discount_code_products(discount_code_id);
+CREATE INDEX IF NOT EXISTS idx_discount_code_categories_code ON discount_code_categories(discount_code_id);
+CREATE INDEX IF NOT EXISTS idx_discount_code_segments_code ON discount_code_segments(discount_code_id);
+CREATE INDEX IF NOT EXISTS idx_coupon_redemptions_code ON coupon_redemptions(discount_code_id);
+CREATE INDEX IF NOT EXISTS idx_coupon_redemptions_order ON coupon_redemptions(order_id);
+CREATE INDEX IF NOT EXISTS idx_coupon_redemptions_customer ON coupon_redemptions(customer_id);
+CREATE INDEX IF NOT EXISTS idx_coupon_redemptions_date ON coupon_redemptions(redeemed_at);
+CREATE INDEX IF NOT EXISTS idx_promotional_campaigns_user ON promotional_campaigns(user_id);
+CREATE INDEX IF NOT EXISTS idx_promotional_campaigns_status ON promotional_campaigns(status);
+CREATE INDEX IF NOT EXISTS idx_discount_analytics_code ON discount_analytics(discount_code_id);
+CREATE INDEX IF NOT EXISTS idx_discount_analytics_campaign ON discount_analytics(campaign_id);
+CREATE INDEX IF NOT EXISTS idx_discount_analytics_date ON discount_analytics(date);
 
 -- Create Views for Statistics
 CREATE OR REPLACE VIEW customer_stats AS
@@ -1470,6 +1623,16 @@ ALTER TABLE customer_loyalty_points ENABLE ROW LEVEL SECURITY;
 ALTER TABLE customer_rfm_scores ENABLE ROW LEVEL SECURITY;
 ALTER TABLE customer_analytics ENABLE ROW LEVEL SECURITY;
 
+-- Enable RLS for Discount Management Tables
+ALTER TABLE discount_codes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE discount_rules ENABLE ROW LEVEL SECURITY;
+ALTER TABLE discount_code_products ENABLE ROW LEVEL SECURITY;
+ALTER TABLE discount_code_categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE discount_code_segments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE coupon_redemptions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE promotional_campaigns ENABLE ROW LEVEL SECURITY;
+ALTER TABLE discount_analytics ENABLE ROW LEVEL SECURITY;
+
 -- Create Policies for Inventory Tables
 CREATE POLICY "Allow all for warehouses" ON warehouses FOR ALL USING (true);
 CREATE POLICY "Allow all for inventory" ON inventory FOR ALL USING (true);
@@ -1500,3 +1663,13 @@ CREATE POLICY "Allow all for loyalty_programs" ON loyalty_programs FOR ALL USING
 CREATE POLICY "Allow all for customer_loyalty_points" ON customer_loyalty_points FOR ALL USING (true);
 CREATE POLICY "Allow all for customer_rfm_scores" ON customer_rfm_scores FOR ALL USING (true);
 CREATE POLICY "Allow all for customer_analytics" ON customer_analytics FOR ALL USING (true);
+
+-- Create Policies for Discount Management Tables
+CREATE POLICY "Allow all for discount_codes" ON discount_codes FOR ALL USING (true);
+CREATE POLICY "Allow all for discount_rules" ON discount_rules FOR ALL USING (true);
+CREATE POLICY "Allow all for discount_code_products" ON discount_code_products FOR ALL USING (true);
+CREATE POLICY "Allow all for discount_code_categories" ON discount_code_categories FOR ALL USING (true);
+CREATE POLICY "Allow all for discount_code_segments" ON discount_code_segments FOR ALL USING (true);
+CREATE POLICY "Allow all for coupon_redemptions" ON coupon_redemptions FOR ALL USING (true);
+CREATE POLICY "Allow all for promotional_campaigns" ON promotional_campaigns FOR ALL USING (true);
+CREATE POLICY "Allow all for discount_analytics" ON discount_analytics FOR ALL USING (true);
