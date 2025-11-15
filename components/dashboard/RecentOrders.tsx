@@ -1,0 +1,84 @@
+import Link from 'next/link';
+import { ArrowRight } from 'lucide-react';
+import { mockOrders } from '@/lib/data/mock-data';
+import { formatCurrency, getStatusColor, getChannelColor } from '@/lib/utils';
+import { format } from 'date-fns';
+import { th } from 'date-fns/locale';
+
+export default function RecentOrders() {
+  const recentOrders = mockOrders.slice(0, 5);
+
+  return (
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+      <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-bold text-gray-900">คำสั่งซื้อล่าสุด</h2>
+          <p className="text-sm text-gray-600 mt-1">
+            รายการคำสั่งซื้อล่าสุดในระบบ
+          </p>
+        </div>
+        <Link
+          href="/orders"
+          className="flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700"
+        >
+          ดูทั้งหมด
+          <ArrowRight className="h-4 w-4" />
+        </Link>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead className="bg-gray-50 border-b border-gray-200">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                รหัสออเดอร์
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                ลูกค้า
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                ช่องทาง
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                ยอดรวม
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                สถานะ
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                วันที่
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-200">
+            {recentOrders.map((order) => (
+              <tr key={order.id} className="hover:bg-gray-50">
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  #{order.id.toUpperCase()}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  {order.customerName}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span className={`px-2 py-1 text-xs font-medium rounded-md border ${getChannelColor(order.channel)}`}>
+                    {order.channel}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
+                  {formatCurrency(order.total)}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span className={`px-2 py-1 text-xs font-medium rounded-md border ${getStatusColor(order.status)}`}>
+                    {order.status}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                  {format(order.createdAt, 'dd MMM yyyy', { locale: th })}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
