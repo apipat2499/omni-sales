@@ -253,6 +253,178 @@ CREATE POLICY "Allow all for invoices" ON invoices FOR ALL USING (true);
 CREATE POLICY "Allow all for payments" ON payments FOR ALL USING (true);
 CREATE POLICY "Allow all for billing_usage" ON billing_usage FOR ALL USING (true);
 
+-- Marketplace Integrations Tables
+
+-- Marketplace Platforms (Shopee, Lazada, Facebook)
+CREATE TABLE IF NOT EXISTS marketplace_platforms (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name VARCHAR(100) NOT NULL,
+  code VARCHAR(50) UNIQUE NOT NULL,
+  icon_url VARCHAR(500),
+  api_base_url VARCHAR(500),
+  description TEXT,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Marketplace Connections (User's API credentials per platform)
+CREATE TABLE IF NOT EXISTS marketplace_connections (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  platform_id UUID REFERENCES marketplace_platforms(id),
+  platform_code VARCHAR(50) NOT NULL,
+  shop_id VARCHAR(255),
+  shop_name VARCHAR(255),
+  access_token VARCHAR(500),
+  refresh_token VARCHAR(500),
+  shop_authorization_token VARCHAR(500),
+  api_key VARCHAR(255),
+  api_secret VARCHAR(255),
+  webhook_secret VARCHAR(255),
+  metadata JSONB DEFAULT '{}',
+  is_active BOOLEAN DEFAULT true,
+  last_synced_at TIMESTAMP WITH TIME ZONE,
+  connected_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Marketplace Products (Sync from marketplace)
+CREATE TABLE IF NOT EXISTS marketplace_products (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  connection_id UUID REFERENCES marketplace_connections(id) ON DELETE CASCADE,
+  marketplace_product_id VARCHAR(255) NOT NULL,
+  platform_code VARCHAR(50) NOT NULL,
+  local_product_id UUID REFERENCES products(id),
+  name VARCHAR(255) NOT NULL,
+  description TEXT,
+  price DECIMAL(10, 2),
+  quantity_available INTEGER,
+  image_url VARCHAR(500),
+  marketplace_url VARCHAR(500),
+  status VARCHAR(50) NOT NULL DEFAULT 'active',
+  metadata JSONB DEFAULT '{}',
+  synced_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(platform_code, marketplace_product_id, user_id)
+);
+
+-- Marketplace Orders (Orders from all platforms)
+CREATE TABLE IF NOT EXISTS marketplace_orders (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  connection_id UUID REFERENCES marketplace_connections(id) ON DELETE CASCADE,
+  local_order_id UUID REFERENCES orders(id),
+  marketplace_order_id VARCHAR(255) NOT NULL,
+  platform_code VARCHAR(50) NOT NULL,
+  customer_name VARCHAR(255),
+  customer_email VARCHAR(255),
+  customer_phone VARCHAR(50),
+  order_status VARCHAR(50),
+  payment_status VARCHAR(50),
+  total_amount DECIMAL(10, 2),
+  currency VARCHAR(3) DEFAULT 'THB',
+  shipping_address TEXT,
+  items_count INTEGER,
+  raw_data JSONB DEFAULT '{}',
+  synced_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(platform_code, marketplace_order_id, user_id)
+);
+
+-- Marketplace Order Items
+CREATE TABLE IF NOT EXISTS marketplace_order_items (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  marketplace_order_id UUID REFERENCES marketplace_orders(id) ON DELETE CASCADE,
+  marketplace_product_id VARCHAR(255),
+  product_name VARCHAR(255),
+  quantity INTEGER,
+  price DECIMAL(10, 2),
+  variation_details JSONB DEFAULT '{}',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Marketplace Sync Logs
+CREATE TABLE IF NOT EXISTS marketplace_sync_logs (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  connection_id UUID REFERENCES marketplace_connections(id) ON DELETE CASCADE,
+  sync_type VARCHAR(50) NOT NULL,
+  status VARCHAR(50) NOT NULL,
+  items_synced INTEGER DEFAULT 0,
+  items_failed INTEGER DEFAULT 0,
+  error_message TEXT,
+  sync_duration_ms INTEGER,
+  started_at TIMESTAMP WITH TIME ZONE,
+  completed_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Marketplace Webhooks (For real-time updates)
+CREATE TABLE IF NOT EXISTS marketplace_webhooks (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  connection_id UUID REFERENCES marketplace_connections(id) ON DELETE CASCADE,
+  webhook_type VARCHAR(100) NOT NULL,
+  event_data JSONB NOT NULL,
+  processed BOOLEAN DEFAULT false,
+  processed_at TIMESTAMP WITH TIME ZONE,
+  error_message TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create Indexes for Marketplace
+CREATE INDEX IF NOT EXISTS idx_marketplace_connections_user_id ON marketplace_connections(user_id);
+CREATE INDEX IF NOT EXISTS idx_marketplace_connections_platform_code ON marketplace_connections(platform_code);
+CREATE INDEX IF NOT EXISTS idx_marketplace_products_user_id ON marketplace_products(user_id);
+CREATE INDEX IF NOT EXISTS idx_marketplace_products_connection_id ON marketplace_products(connection_id);
+CREATE INDEX IF NOT EXISTS idx_marketplace_products_local_product_id ON marketplace_products(local_product_id);
+CREATE INDEX IF NOT EXISTS idx_marketplace_orders_user_id ON marketplace_orders(user_id);
+CREATE INDEX IF NOT EXISTS idx_marketplace_orders_connection_id ON marketplace_orders(connection_id);
+CREATE INDEX IF NOT EXISTS idx_marketplace_orders_local_order_id ON marketplace_orders(local_order_id);
+CREATE INDEX IF NOT EXISTS idx_marketplace_orders_platform_code ON marketplace_orders(platform_code);
+CREATE INDEX IF NOT EXISTS idx_marketplace_order_items_marketplace_order_id ON marketplace_order_items(marketplace_order_id);
+CREATE INDEX IF NOT EXISTS idx_marketplace_sync_logs_user_id ON marketplace_sync_logs(user_id);
+CREATE INDEX IF NOT EXISTS idx_marketplace_webhooks_connection_id ON marketplace_webhooks(connection_id);
+
+-- Create Triggers for Marketplace
+CREATE TRIGGER update_marketplace_platforms_updated_at BEFORE UPDATE ON marketplace_platforms
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_marketplace_connections_updated_at BEFORE UPDATE ON marketplace_connections
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_marketplace_products_updated_at BEFORE UPDATE ON marketplace_products
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_marketplace_orders_updated_at BEFORE UPDATE ON marketplace_orders
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_marketplace_webhooks_updated_at BEFORE UPDATE ON marketplace_webhooks
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Enable RLS for marketplace tables
+ALTER TABLE marketplace_platforms ENABLE ROW LEVEL SECURITY;
+ALTER TABLE marketplace_connections ENABLE ROW LEVEL SECURITY;
+ALTER TABLE marketplace_products ENABLE ROW LEVEL SECURITY;
+ALTER TABLE marketplace_orders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE marketplace_order_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE marketplace_sync_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE marketplace_webhooks ENABLE ROW LEVEL SECURITY;
+
+-- Create Policies for marketplace tables
+CREATE POLICY "Allow all for marketplace_platforms" ON marketplace_platforms FOR ALL USING (true);
+CREATE POLICY "Allow all for marketplace_connections" ON marketplace_connections FOR ALL USING (true);
+CREATE POLICY "Allow all for marketplace_products" ON marketplace_products FOR ALL USING (true);
+CREATE POLICY "Allow all for marketplace_orders" ON marketplace_orders FOR ALL USING (true);
+CREATE POLICY "Allow all for marketplace_order_items" ON marketplace_order_items FOR ALL USING (true);
+CREATE POLICY "Allow all for marketplace_sync_logs" ON marketplace_sync_logs FOR ALL USING (true);
+CREATE POLICY "Allow all for marketplace_webhooks" ON marketplace_webhooks FOR ALL USING (true);
+
 -- Original Policies
 CREATE POLICY "Allow all for products" ON products FOR ALL USING (true);
 CREATE POLICY "Allow all for customers" ON customers FOR ALL USING (true);
