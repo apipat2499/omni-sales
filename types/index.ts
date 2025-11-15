@@ -1762,3 +1762,247 @@ export interface SMSCompliance {
   createdAt: Date;
   updatedAt: Date;
 }
+
+// ============================================
+// EMAIL MARKETING & CAMPAIGNS TYPES
+// ============================================
+
+export type EmailStatus = 'pending' | 'queued' | 'sent' | 'delivered' | 'bounced' | 'complained' | 'opened' | 'clicked';
+export type EmailTemplateType = 'order_confirmation' | 'shipping_update' | 'payment_reminder' | 'newsletter' | 'promotional' | 'welcome' | 'password_reset' | 'verification' | 'cart_recovery' | 'customer_service';
+export type EmailCampaignType = 'newsletter' | 'promotional' | 'transactional' | 'welcome' | 'educational' | 'seasonal' | 'cart_recovery';
+export type EmailCampaignStatus = 'draft' | 'scheduled' | 'active' | 'paused' | 'completed' | 'cancelled';
+export type EmailBounceType = 'hard_bounce' | 'soft_bounce' | 'complaint';
+export type EmailConsentStatus = 'opted_in' | 'opted_out' | 'pending' | 'revoked' | 'unsupported';
+export type EmailRegulatoryFramework = 'CAN-SPAM' | 'GDPR' | 'CASL' | 'PECR' | 'CCPA';
+
+export interface EmailProvider {
+  id: string;
+  userId: string;
+  providerName: string;
+  isActive: boolean;
+  fromEmail: string;
+  fromName?: string;
+  replyToEmail?: string;
+  monthlyQuota: number;
+  currentUsage: number;
+  bounceRate: number;
+  spamRate: number;
+  reputationScore?: number;
+  supportedCountries: string[];
+  connectedAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface EmailTemplate {
+  id: string;
+  userId: string;
+  name: string;
+  templateType: EmailTemplateType;
+  subjectLine: string;
+  preheaderText?: string;
+  htmlContent: string;
+  plainTextContent?: string;
+  variables: string[];
+  category?: string;
+  thumbnailUrl?: string;
+  isDefault: boolean;
+  isActive: boolean;
+  isResponsive: boolean;
+  previewData?: Record<string, unknown>;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface EmailTrigger {
+  id: string;
+  userId: string;
+  triggerName: string;
+  triggerEvent: string;
+  templateId?: string;
+  isEnabled: boolean;
+  delayMinutes: number;
+  recipientType: string;
+  conditions?: Record<string, unknown>;
+  maxFrequencyHours?: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface EmailLog {
+  id: string;
+  userId: string;
+  recipientEmail: string;
+  recipientName?: string;
+  templateType?: EmailTemplateType;
+  subjectLine: string;
+  emailBody?: string;
+  status: EmailStatus;
+  provider?: string;
+  providerMessageId?: string;
+  deliveryStatus?: string;
+  bounceType?: EmailBounceType;
+  bounceReason?: string;
+  failureReason?: string;
+  failureCode?: string;
+  clickCount: number;
+  openCount: number;
+  relatedOrderId?: string;
+  relatedCustomerId?: string;
+  sentAt?: Date;
+  deliveredAt?: Date;
+  openedAt?: Date;
+  clickedAt?: Date;
+  bouncedAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface EmailQueue {
+  id: string;
+  userId: string;
+  recipientEmail: string;
+  recipientName?: string;
+  templateId?: string;
+  subjectLine: string;
+  htmlContent: string;
+  plainTextContent?: string;
+  variables?: Record<string, unknown>;
+  status: string;
+  retryCount: number;
+  maxRetries: number;
+  scheduledFor?: Date;
+  sentAt?: Date;
+  errorMessage?: string;
+  relatedOrderId?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface EmailPreferences {
+  id: string;
+  userId: string;
+  customerId: string;
+  emailAddress: string;
+  emailVerified: boolean;
+  verifiedAt?: Date;
+  allEmails: boolean;
+  orderNotifications: boolean;
+  orderConfirmation: boolean;
+  shippingUpdates: boolean;
+  deliveryConfirmation: boolean;
+  paymentReminders: boolean;
+  promotionalOffers: boolean;
+  newsletter: boolean;
+  productRecommendations: boolean;
+  weeklyDigest: boolean;
+  birthdayOffers: boolean;
+  flashSales: boolean;
+  abandonedCart: boolean;
+  isOptedIn: boolean;
+  optedInDate?: Date;
+  optedOutDate?: Date;
+  optedOutReason?: string;
+  doNotContact: boolean;
+  unsubscribeToken?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface EmailCampaign {
+  id: string;
+  userId: string;
+  campaignName: string;
+  description?: string;
+  campaignType: EmailCampaignType;
+  status: EmailCampaignStatus;
+  templateId?: string;
+  subjectLine?: string;
+  preheaderText?: string;
+  htmlContent?: string;
+  plainTextContent?: string;
+  targetAudience: string;
+  targetSegmentId?: string;
+  recipientCount: number;
+  segmentFilter?: Record<string, unknown>;
+  scheduledFor?: Date;
+  startedAt?: Date;
+  completedAt?: Date;
+  budgetLimit?: number;
+  totalCost: number;
+  sentCount: number;
+  deliveredCount: number;
+  openedCount: number;
+  clickedCount: number;
+  bouncedCount: number;
+  complaintCount: number;
+  unsubscribedCount: number;
+  conversionCount: number;
+  revenueGenerated: number;
+  openRate?: number;
+  clickRate?: number;
+  conversionRate?: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface EmailAnalytics {
+  id: string;
+  userId: string;
+  date: Date;
+  totalSent: number;
+  totalDelivered: number;
+  totalBounced: number;
+  totalComplained: number;
+  totalUnsubscribed: number;
+  totalOpened: number;
+  totalClicked: number;
+  totalRevenue: number;
+  totalConversions: number;
+  uniqueOpens: number;
+  uniqueClicks: number;
+  deliveryRate: number;
+  bounceRate: number;
+  complaintRate: number;
+  openRate: number;
+  clickRate: number;
+  conversionRate: number;
+  revenuePerEmail?: number;
+  uniqueRecipients: number;
+  campaignId?: string;
+  createdAt: Date;
+}
+
+export interface EmailBounce {
+  id: string;
+  userId: string;
+  emailAddress: string;
+  bounceType: EmailBounceType;
+  bounceReason?: string;
+  isPermanent: boolean;
+  firstBounceAt?: Date;
+  lastBounceAt?: Date;
+  bounceCount: number;
+  suppressionStatus?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface EmailCompliance {
+  id: string;
+  userId: string;
+  customerId?: string;
+  emailAddress?: string;
+  consentType: string;
+  consentStatus: EmailConsentStatus;
+  consentDate?: Date;
+  consentMethod?: string;
+  ipAddress?: string;
+  userAgent?: string;
+  regulatoryFramework?: EmailRegulatoryFramework;
+  doubleOptInDate?: Date;
+  listId?: string;
+  notes?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}

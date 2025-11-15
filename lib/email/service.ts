@@ -1,460 +1,578 @@
-import { supabase } from '@/lib/supabase/client';
-import { EmailTemplate, EmailLog, EmailQueueItem } from '@/types';
+import { createClient } from '@supabase/supabase-js';
+import {
+  EmailTemplate,
+  EmailLog,
+  EmailCampaign,
+  EmailAnalytics,
+  EmailPreferences,
+  EmailProvider,
+  EmailTrigger,
+  EmailQueue,
+  EmailBounce,
+  EmailCompliance,
+} from '@/types';
 
-/**
- * Email Service for sending transactional emails
- * Uses Resend (https://resend.com) - modern email API
- *
- * To use:
- * 1. Sign up at https://resend.com
- * 2. Get your API key
- * 3. Add to .env.local: RESEND_API_KEY=your_key
- */
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+);
 
-const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const RESEND_API_URL = 'https://api.resend.com/emails';
+// ============================================
+// TEMPLATE MANAGEMENT
+// ============================================
 
-interface SendEmailOptions {
-  from?: string;
-  to: string;
-  subject: string;
-  html: string;
-  text?: string;
-  replyTo?: string;
-}
-
-/**
- * Send email via Resend API
- */
-export async function sendEmail(options: SendEmailOptions): Promise<{
-  success: boolean;
-  messageId?: string;
-  error?: string;
-}> {
-  try {
-    if (!RESEND_API_KEY) {
-      console.warn('RESEND_API_KEY not configured. Email sending disabled.');
-      return {
-        success: false,
-        error: 'Email service not configured',
-      };
-    }
-
-    const response = await fetch(RESEND_API_URL, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: options.from || 'noreply@omnisales.app',
-        to: options.to,
-        subject: options.subject,
-        html: options.html,
-        text: options.text,
-        reply_to: options.replyTo,
-      }),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      return {
-        success: false,
-        error: error.message || 'Failed to send email',
-      };
-    }
-
-    const data = await response.json();
-
-    return {
-      success: true,
-      messageId: data.id,
-    };
-  } catch (error) {
-    console.error('Email send error:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
-    };
-  }
-}
-
-/**
- * Queue email for sending (asynchronous)
- */
-export async function queueEmail(
+export async function createEmailTemplate(
   userId: string,
-  options: {
-    recipientEmail: string;
-    recipientName?: string;
-    templateType?: string;
-    subject: string;
-    htmlContent: string;
-    variables?: Record<string, unknown>;
-    relatedOrderId?: string;
-    scheduledFor?: Date;
-  }
-): Promise<EmailQueueItem | null> {
+  template: Partial<EmailTemplate>
+): Promise<EmailTemplate | null> {
   try {
     const { data, error } = await supabase
-      .from('email_queue')
+      .from('email_templates')
       .insert({
         user_id: userId,
-        recipient_email: options.recipientEmail,
-        recipient_name: options.recipientName,
-        subject: options.subject,
-        html_content: options.htmlContent,
-        variables: options.variables || {},
-        status: 'pending',
-        scheduled_for: options.scheduledFor || new Date(),
-        related_order_id: options.relatedOrderId,
+        name: template.name,
+        template_type: template.templateType,
+        subject_line: template.subjectLine,
+        preheader_text: template.preheaderText,
+        html_content: template.htmlContent,
+        plain_text_content: template.plainTextContent,
+        variables: template.variables || [],
+        is_active: true,
+        is_responsive: true,
+        created_at: new Date(),
+        updated_at: new Date(),
       })
       .select()
       .single();
 
-    if (error) {
-      console.error('Error queuing email:', error);
-      return null;
-    }
-
-    return data;
-  } catch (error) {
-    console.error('Queue email error:', error);
+    if (error) throw error;
+    return data as EmailTemplate;
+  } catch (err) {
+    console.error('Error creating email template:', err);
     return null;
   }
 }
 
-/**
- * Get email template and render with variables
- */
-export async function getAndRenderTemplate(
-  userId: string,
-  templateType: string,
-  variables: Record<string, unknown>
-): Promise<{ subject: string; html: string } | null> {
+export async function getEmailTemplates(userId: string): Promise<EmailTemplate[]> {
   try {
-    const { data: template, error } = await supabase
+    const { data, error } = await supabase
       .from('email_templates')
       .select('*')
       .eq('user_id', userId)
-      .eq('template_type', templateType)
       .eq('is_active', true)
-      .single();
+      .order('created_at', { ascending: false });
 
-    if (error || !template) {
-      console.error(`Template not found: ${templateType}`);
-      return null;
-    }
-
-    // Replace variables in HTML
-    let html = template.html_content;
-    let subject = template.subject;
-
-    Object.entries(variables).forEach(([key, value]) => {
-      const placeholder = `{{${key}}}`;
-      const stringValue = String(value);
-      html = html.replace(new RegExp(placeholder, 'g'), stringValue);
-      subject = subject.replace(new RegExp(placeholder, 'g'), stringValue);
-    });
-
-    return {
-      subject,
-      html,
-    };
-  } catch (error) {
-    console.error('Get template error:', error);
-    return null;
+    if (error) throw error;
+    return (data || []) as EmailTemplate[];
+  } catch (err) {
+    console.error('Error fetching email templates:', err);
+    return [];
   }
 }
 
-/**
- * Log email sending attempt
- */
+export async function updateEmailTemplate(
+  templateId: string,
+  updates: Partial<EmailTemplate>
+): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('email_templates')
+      .update({
+        name: updates.name,
+        subject_line: updates.subjectLine,
+        preheader_text: updates.preheaderText,
+        html_content: updates.htmlContent,
+        plain_text_content: updates.plainTextContent,
+        updated_at: new Date(),
+      })
+      .eq('id', templateId);
+
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    console.error('Error updating email template:', err);
+    return false;
+  }
+}
+
+// ============================================
+// EMAIL SENDING & QUEUING
+// ============================================
+
+export async function queueEmail(
+  userId: string,
+  email: Partial<EmailQueue>
+): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('email_queue')
+      .insert({
+        user_id: userId,
+        recipient_email: email.recipientEmail,
+        recipient_name: email.recipientName,
+        template_id: email.templateId,
+        subject_line: email.subjectLine,
+        html_content: email.htmlContent,
+        plain_text_content: email.plainTextContent,
+        variables: email.variables || {},
+        status: 'pending',
+        retry_count: 0,
+        max_retries: 5,
+        scheduled_for: email.scheduledFor,
+        related_order_id: email.relatedOrderId,
+        created_at: new Date(),
+        updated_at: new Date(),
+      });
+
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    console.error('Error queuing email:', err);
+    return false;
+  }
+}
+
 export async function logEmail(
   userId: string,
-  options: {
-    recipientEmail: string;
-    recipientName?: string;
-    subject: string;
-    templateType?: string;
-    status: 'pending' | 'sent' | 'failed';
-    providerId?: string;
-    relatedOrderId?: string;
-    relatedCustomerId?: string;
-    errorMessage?: string;
-  }
+  log: Partial<EmailLog>
 ): Promise<EmailLog | null> {
   try {
     const { data, error } = await supabase
       .from('email_logs')
       .insert({
         user_id: userId,
-        recipient_email: options.recipientEmail,
-        recipient_name: options.recipientName,
-        subject: options.subject,
-        template_type: options.templateType,
-        status: options.status,
-        provider: 'resend',
-        provider_id: options.providerId,
-        related_order_id: options.relatedOrderId,
-        related_customer_id: options.relatedCustomerId,
-        sent_at: options.status === 'sent' ? new Date() : null,
+        recipient_email: log.recipientEmail,
+        recipient_name: log.recipientName,
+        template_type: log.templateType,
+        subject_line: log.subjectLine,
+        email_body: log.emailBody,
+        status: log.status || 'queued',
+        provider: log.provider,
+        provider_message_id: log.providerMessageId,
+        click_count: 0,
+        open_count: 0,
+        related_order_id: log.relatedOrderId,
+        related_customer_id: log.relatedCustomerId,
+        created_at: new Date(),
+        updated_at: new Date(),
       })
       .select()
       .single();
 
-    if (error) {
-      console.error('Error logging email:', error);
-      return null;
-    }
-
-    return data;
-  } catch (error) {
-    console.error('Log email error:', error);
+    if (error) throw error;
+    return data as EmailLog;
+  } catch (err) {
+    console.error('Error logging email:', err);
     return null;
   }
 }
 
-/**
- * Get email preferences for user
- */
-export async function getUserEmailPreferences(userId: string) {
+export async function updateEmailLogStatus(
+  logId: string,
+  status: string,
+  deliveredAt?: Date,
+  openedAt?: Date,
+  clickedAt?: Date
+): Promise<boolean> {
+  try {
+    const updates: any = {
+      status,
+      updated_at: new Date(),
+    };
+
+    if (deliveredAt) updates.delivered_at = deliveredAt;
+    if (openedAt) updates.opened_at = openedAt;
+    if (clickedAt) updates.clicked_at = clickedAt;
+
+    const { error } = await supabase
+      .from('email_logs')
+      .update(updates)
+      .eq('id', logId);
+
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    console.error('Error updating email log status:', err);
+    return false;
+  }
+}
+
+// ============================================
+// EMAIL PREFERENCES
+// ============================================
+
+export async function getEmailPreferences(customerId: string): Promise<EmailPreferences | null> {
   try {
     const { data, error } = await supabase
       .from('email_preferences')
       .select('*')
-      .eq('user_id', userId)
+      .eq('customer_id', customerId)
       .single();
 
-    if (error) {
-      // Return defaults if not found
-      return {
-        dailySummaryEnabled: true,
-        newOrderNotification: true,
-        paymentConfirmation: true,
-        lowStockAlert: true,
-      };
-    }
-
-    return data;
-  } catch (error) {
-    console.error('Get preferences error:', error);
+    if (error && error.code === 'PGRST116') return null;
+    if (error) throw error;
+    return data as EmailPreferences;
+  } catch (err) {
+    console.error('Error fetching email preferences:', err);
     return null;
   }
 }
 
-/**
- * Send order confirmation email
- */
-export async function sendOrderConfirmationEmail(
+export async function updateEmailPreferences(
   userId: string,
-  order: any
+  customerId: string,
+  preferences: Partial<EmailPreferences>
 ): Promise<boolean> {
   try {
-    const template = await getAndRenderTemplate(userId, 'order_confirmation', {
-      customerName: order.customerName || 'Customer',
-      orderId: order.id,
-      orderTotal: `฿${Number(order.total || 0).toLocaleString('th-TH', {
-        maximumFractionDigits: 2,
-      })}`,
-      orderDate: new Date(order.createdAt).toLocaleDateString('th-TH'),
-    });
+    const { error } = await supabase
+      .from('email_preferences')
+      .update({
+        ...preferences,
+        updated_at: new Date(),
+      })
+      .eq('user_id', userId)
+      .eq('customer_id', customerId);
 
-    if (!template) {
-      console.warn('Order confirmation template not found');
-      return false;
-    }
-
-    const result = await sendEmail({
-      to: order.customerEmail || '',
-      subject: template.subject,
-      html: template.html,
-    });
-
-    if (result.success) {
-      await logEmail(userId, {
-        recipientEmail: order.customerEmail,
-        recipientName: order.customerName,
-        subject: template.subject,
-        templateType: 'order_confirmation',
-        status: 'sent',
-        providerId: result.messageId,
-        relatedOrderId: order.id,
-      });
-      return true;
-    }
-
-    return false;
-  } catch (error) {
-    console.error('Send order confirmation error:', error);
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    console.error('Error updating email preferences:', err);
     return false;
   }
 }
 
-/**
- * Send payment confirmation email
- */
-export async function sendPaymentConfirmationEmail(
+// ============================================
+// EMAIL CAMPAIGNS
+// ============================================
+
+export async function createEmailCampaign(
   userId: string,
-  payment: any
-): Promise<boolean> {
+  campaign: Partial<EmailCampaign>
+): Promise<EmailCampaign | null> {
   try {
-    const template = await getAndRenderTemplate(userId, 'payment_receipt', {
-      transactionId: payment.id,
-      amount: `฿${Number(payment.amountCents / 100).toLocaleString('th-TH', {
-        maximumFractionDigits: 2,
-      })}`,
-      date: new Date(payment.createdAt).toLocaleDateString('th-TH'),
-      status: payment.status,
-    });
+    const { data, error } = await supabase
+      .from('email_campaigns')
+      .insert({
+        user_id: userId,
+        campaign_name: campaign.campaignName,
+        description: campaign.description,
+        campaign_type: campaign.campaignType,
+        status: 'draft',
+        template_id: campaign.templateId,
+        subject_line: campaign.subjectLine,
+        preheader_text: campaign.preheaderText,
+        html_content: campaign.htmlContent,
+        plain_text_content: campaign.plainTextContent,
+        target_audience: campaign.targetAudience || 'all',
+        target_segment_id: campaign.targetSegmentId,
+        recipient_count: campaign.recipientCount || 0,
+        budget_limit: campaign.budgetLimit,
+        total_cost: 0,
+        sent_count: 0,
+        delivered_count: 0,
+        opened_count: 0,
+        clicked_count: 0,
+        bounced_count: 0,
+        complained_count: 0,
+        unsubscribed_count: 0,
+        conversion_count: 0,
+        revenue_generated: 0,
+        created_at: new Date(),
+        updated_at: new Date(),
+      })
+      .select()
+      .single();
 
-    if (!template) {
-      console.warn('Payment receipt template not found');
-      return false;
-    }
-
-    const result = await sendEmail({
-      to: payment.customerEmail || '',
-      subject: template.subject,
-      html: template.html,
-    });
-
-    if (result.success) {
-      await logEmail(userId, {
-        recipientEmail: payment.customerEmail,
-        subject: template.subject,
-        templateType: 'payment_receipt',
-        status: 'sent',
-        providerId: result.messageId,
-      });
-      return true;
-    }
-
-    return false;
-  } catch (error) {
-    console.error('Send payment confirmation error:', error);
-    return false;
+    if (error) throw error;
+    return data as EmailCampaign;
+  } catch (err) {
+    console.error('Error creating email campaign:', err);
+    return null;
   }
 }
 
-/**
- * Send low stock alert to shop owner
- */
-export async function sendLowStockAlert(
+export async function getEmailCampaigns(
   userId: string,
-  userEmail: string,
-  product: any,
-  currentStock: number,
-  threshold: number
-): Promise<boolean> {
+  status?: string
+): Promise<EmailCampaign[]> {
   try {
-    const template = await getAndRenderTemplate(userId, 'low_stock_alert', {
-      productName: product.name,
-      currentStock: currentStock,
-      threshold: threshold,
-      sku: product.sku,
-    });
-
-    if (!template) {
-      console.warn('Low stock alert template not found');
-      return false;
-    }
-
-    const result = await sendEmail({
-      to: userEmail,
-      subject: template.subject,
-      html: template.html,
-    });
-
-    if (result.success) {
-      await logEmail(userId, {
-        recipientEmail: userEmail,
-        subject: template.subject,
-        templateType: 'low_stock_alert',
-        status: 'sent',
-        providerId: result.messageId,
-      });
-      return true;
-    }
-
-    return false;
-  } catch (error) {
-    console.error('Send low stock alert error:', error);
-    return false;
-  }
-}
-
-/**
- * Process email queue (run periodically via cron job)
- */
-export async function processEmailQueue() {
-  try {
-    // Get pending emails
-    const { data: queuedEmails, error } = await supabase
-      .from('email_queue')
+    let query = supabase
+      .from('email_campaigns')
       .select('*')
-      .eq('status', 'pending')
-      .lt('scheduled_for', new Date().toISOString())
-      .limit(100);
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
 
-    if (error || !queuedEmails) {
-      console.error('Error fetching queued emails:', error);
-      return { processed: 0, failed: 0 };
+    if (status) {
+      query = query.eq('status', status);
     }
 
-    let processed = 0;
-    let failed = 0;
+    const { data, error } = await query;
 
-    for (const email of queuedEmails) {
-      try {
-        const result = await sendEmail({
-          to: email.recipient_email,
-          subject: email.subject,
-          html: email.html_content,
+    if (error) throw error;
+    return (data || []) as EmailCampaign[];
+  } catch (err) {
+    console.error('Error fetching email campaigns:', err);
+    return [];
+  }
+}
+
+export async function updateEmailCampaignStatus(
+  campaignId: string,
+  status: string
+): Promise<boolean> {
+  try {
+    const updates: any = {
+      status,
+      updated_at: new Date(),
+    };
+
+    if (status === 'active') {
+      updates.started_at = new Date();
+    } else if (status === 'completed') {
+      updates.completed_at = new Date();
+    }
+
+    const { error } = await supabase
+      .from('email_campaigns')
+      .update(updates)
+      .eq('id', campaignId);
+
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    console.error('Error updating email campaign status:', err);
+    return false;
+  }
+}
+
+// ============================================
+// EMAIL ANALYTICS
+// ============================================
+
+export async function recordEmailAnalytics(
+  userId: string,
+  analytics: Partial<EmailAnalytics>
+): Promise<EmailAnalytics | null> {
+  try {
+    const { data, error } = await supabase
+      .from('email_analytics')
+      .insert({
+        user_id: userId,
+        date: analytics.date || new Date(),
+        total_sent: analytics.totalSent || 0,
+        total_delivered: analytics.totalDelivered || 0,
+        total_bounced: analytics.totalBounced || 0,
+        total_complained: analytics.totalComplained || 0,
+        total_unsubscribed: analytics.totalUnsubscribed || 0,
+        total_opened: analytics.totalOpened || 0,
+        total_clicked: analytics.totalClicked || 0,
+        total_revenue: analytics.totalRevenue || 0,
+        total_conversions: analytics.totalConversions || 0,
+        unique_opens: analytics.uniqueOpens || 0,
+        unique_clicks: analytics.uniqueClicks || 0,
+        delivery_rate: analytics.deliveryRate,
+        bounce_rate: analytics.bounceRate,
+        complaint_rate: analytics.complaintRate,
+        open_rate: analytics.openRate,
+        click_rate: analytics.clickRate,
+        conversion_rate: analytics.conversionRate,
+        unique_recipients: analytics.uniqueRecipients || 0,
+        campaign_id: analytics.campaignId,
+        created_at: new Date(),
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data as EmailAnalytics;
+  } catch (err) {
+    console.error('Error recording email analytics:', err);
+    return null;
+  }
+}
+
+export async function getEmailAnalytics(
+  userId: string,
+  days: number = 30
+): Promise<EmailAnalytics[]> {
+  try {
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    const { data, error } = await supabase
+      .from('email_analytics')
+      .select('*')
+      .eq('user_id', userId)
+      .gte('date', startDate.toISOString())
+      .order('date', { ascending: false });
+
+    if (error) throw error;
+    return (data || []) as EmailAnalytics[];
+  } catch (err) {
+    console.error('Error fetching email analytics:', err);
+    return [];
+  }
+}
+
+// ============================================
+// EMAIL LOGS
+// ============================================
+
+export async function getEmailLogs(
+  userId: string,
+  status?: string,
+  limit: number = 50
+): Promise<EmailLog[]> {
+  try {
+    let query = supabase
+      .from('email_logs')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (status) {
+      query = query.eq('status', status);
+    }
+
+    const { data, error } = await query;
+
+    if (error) throw error;
+    return (data || []) as EmailLog[];
+  } catch (err) {
+    console.error('Error fetching email logs:', err);
+    return [];
+  }
+}
+
+// ============================================
+// BOUNCE MANAGEMENT
+// ============================================
+
+export async function recordBounce(
+  userId: string,
+  emailAddress: string,
+  bounceType: string,
+  bounceReason?: string
+): Promise<boolean> {
+  try {
+    const isPermanent = bounceType === 'hard_bounce' || bounceType === 'complaint';
+
+    const { data: existing } = await supabase
+      .from('email_bounces')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('email_address', emailAddress)
+      .single();
+
+    if (existing) {
+      const { error } = await supabase
+        .from('email_bounces')
+        .update({
+          bounce_count: existing.bounce_count + 1,
+          last_bounce_at: new Date(),
+          is_permanent: isPermanent,
+          updated_at: new Date(),
+        })
+        .eq('id', existing.id);
+
+      if (error) throw error;
+    } else {
+      const { error } = await supabase
+        .from('email_bounces')
+        .insert({
+          user_id: userId,
+          email_address: emailAddress,
+          bounce_type: bounceType,
+          bounce_reason: bounceReason,
+          is_permanent: isPermanent,
+          first_bounce_at: new Date(),
+          last_bounce_at: new Date(),
+          bounce_count: 1,
+          created_at: new Date(),
+          updated_at: new Date(),
         });
 
-        if (result.success) {
-          // Mark as sent
-          await supabase
-            .from('email_queue')
-            .update({
-              status: 'sent',
-              sent_at: new Date(),
-            })
-            .eq('id', email.id);
-
-          processed++;
-        } else {
-          // Update retry count
-          const newRetryCount = (email.retry_count || 0) + 1;
-
-          if (newRetryCount >= email.max_retries) {
-            await supabase
-              .from('email_queue')
-              .update({
-                status: 'failed',
-                error_message: result.error,
-              })
-              .eq('id', email.id);
-            failed++;
-          } else {
-            await supabase
-              .from('email_queue')
-              .update({
-                retry_count: newRetryCount,
-              })
-              .eq('id', email.id);
-          }
-        }
-      } catch (err) {
-        console.error(`Error processing email ${email.id}:`, err);
-        failed++;
-      }
+      if (error) throw error;
     }
 
-    return { processed, failed };
-  } catch (error) {
-    console.error('Process email queue error:', error);
-    return { processed: 0, failed: 0 };
+    return true;
+  } catch (err) {
+    console.error('Error recording bounce:', err);
+    return false;
+  }
+}
+
+// ============================================
+// COMPLIANCE
+// ============================================
+
+export async function recordConsentForEmail(
+  userId: string,
+  customerId: string,
+  emailAddress: string,
+  consentStatus: string,
+  consentMethod: string,
+  regulatoryFramework?: string
+): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('email_compliance')
+      .insert({
+        user_id: userId,
+        customer_id: customerId,
+        email_address: emailAddress,
+        consent_type: 'marketing',
+        consent_status: consentStatus,
+        consent_date: new Date(),
+        consent_method: consentMethod,
+        regulatory_framework: regulatoryFramework,
+        created_at: new Date(),
+        updated_at: new Date(),
+      });
+
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    console.error('Error recording email consent:', err);
+    return false;
+  }
+}
+
+// ============================================
+// PROVIDER MANAGEMENT
+// ============================================
+
+export async function getEmailProviders(userId: string): Promise<EmailProvider[]> {
+  try {
+    const { data, error } = await supabase
+      .from('email_providers')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return (data || []) as EmailProvider[];
+  } catch (err) {
+    console.error('Error fetching email providers:', err);
+    return [];
+  }
+}
+
+export async function getActiveEmailProvider(userId: string): Promise<EmailProvider | null> {
+  try {
+    const { data, error } = await supabase
+      .from('email_providers')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('is_active', true)
+      .single();
+
+    if (error && error.code === 'PGRST116') return null;
+    if (error) throw error;
+    return data as EmailProvider;
+  } catch (err) {
+    console.error('Error fetching active email provider:', err);
+    return null;
   }
 }
