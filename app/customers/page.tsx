@@ -5,7 +5,7 @@ import DashboardLayout from '@/components/DashboardLayout';
 import ExportButton from '@/components/ExportButton';
 import { formatCurrency, getTagColor } from '@/lib/utils';
 import { exportCustomersToExcel, exportCustomersToPDF, exportCustomersToCSV } from '@/lib/utils/exportUtils';
-import { Search, Plus, Mail, Phone, MapPin, ShoppingBag, DollarSign, Users, Star, Edit, Trash2 } from 'lucide-react';
+import { Search, Plus, Mail, Phone, MapPin, ShoppingBag, DollarSign, Users, Star, Edit, Trash2, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { th } from 'date-fns/locale';
 import type { Customer, CustomerTag } from '@/types';
@@ -14,12 +14,14 @@ import { useCustomers } from '@/lib/hooks/useCustomers';
 import { useToast } from '@/lib/hooks/useToast';
 import CustomerModal from '@/components/customers/CustomerModal';
 import DeleteCustomerModal from '@/components/customers/DeleteCustomerModal';
+import CustomerTimelineModal from '@/components/customers/CustomerTimelineModal';
 
 export default function CustomersPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [tagFilter, setTagFilter] = useState<CustomerTag | 'all'>('all');
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isTimelineModalOpen, setIsTimelineModalOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
 
   const { customers, loading, error, refresh } = useCustomers({
@@ -46,6 +48,11 @@ export default function CustomersPage() {
   const handleDeleteCustomer = (customer: Customer) => {
     setSelectedCustomer(customer);
     setIsDeleteModalOpen(true);
+  };
+
+  const handleViewTimeline = (customer: Customer) => {
+    setSelectedCustomer(customer);
+    setIsTimelineModalOpen(true);
   };
 
   const handleSuccess = () => {
@@ -241,7 +248,14 @@ export default function CustomersPage() {
                       </div>
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => handleViewTimeline(customer)}
+                      className="p-2 text-gray-600 hover:text-purple-600 dark:text-gray-400 dark:hover:text-purple-400 transition-colors"
+                      title="ดูประวัติ"
+                    >
+                      <Clock className="h-4 w-4" />
+                    </button>
                     <button
                       onClick={() => handleEditCustomer(customer)}
                       className="p-2 text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors"
@@ -328,6 +342,11 @@ export default function CustomersPage() {
           onClose={() => setIsDeleteModalOpen(false)}
           customer={selectedCustomer}
           onSuccess={handleSuccess}
+        />
+        <CustomerTimelineModal
+          isOpen={isTimelineModalOpen}
+          onClose={() => setIsTimelineModalOpen(false)}
+          customer={selectedCustomer}
         />
       </div>
     </DashboardLayout>
