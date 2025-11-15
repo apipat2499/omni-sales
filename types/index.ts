@@ -857,3 +857,145 @@ export interface CustomerAnalytics {
   createdAt: Date;
   updatedAt: Date;
 }
+
+// ============================================
+// ORDER MANAGEMENT TYPES
+// ============================================
+
+export interface OrderStatusHistory {
+  id: string;
+  orderId: string;
+  status: string;
+  reason?: string;
+  notes?: string;
+  changedBy?: string;
+  createdAt: Date;
+}
+
+export interface OrderPayment {
+  id: string;
+  orderId: string;
+  paymentMethod: string;
+  amount: number;
+  currency: string;
+  paymentStatus: 'pending' | 'completed' | 'failed' | 'refunded' | 'partial';
+  transactionId?: string;
+  gatewayResponse?: Record<string, any>;
+  paidAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface OrderShipping {
+  id: string;
+  orderId: string;
+  shippingMethod?: string;
+  carrier?: string;
+  trackingNumber?: string;
+  weightKg?: number;
+  dimensionsCm?: string;
+  shippingAddress: string;
+  shippingStatus: 'pending' | 'picked' | 'packed' | 'shipped' | 'in_transit' | 'delivered' | 'failed';
+  shippedAt?: Date;
+  deliveredAt?: Date;
+  estimatedDelivery?: Date;
+  signatureRequired: boolean;
+  specialInstructions?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface OrderReturn {
+  id: string;
+  orderId: string;
+  returnNumber: string;
+  returnReason: string;
+  reasonDetails?: string;
+  returnStatus: 'pending' | 'approved' | 'rejected' | 'received' | 'processed';
+  refundAmount?: number;
+  requestedAt: Date;
+  approvedAt?: Date;
+  receivedAt?: Date;
+  processedAt?: Date;
+  notes?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ReturnItem {
+  id: string;
+  returnId: string;
+  productId: string;
+  productName?: string;
+  quantity: number;
+  unitPrice?: number;
+  reason?: string;
+  condition?: 'unopened' | 'opened' | 'defective' | 'damaged';
+  createdAt: Date;
+}
+
+export interface Refund {
+  id: string;
+  orderId?: string;
+  returnId?: string;
+  amount: number;
+  reason: string;
+  refundMethod: 'original_payment' | 'store_credit' | 'bank_transfer';
+  refundStatus: 'pending' | 'processing' | 'completed' | 'failed';
+  transactionId?: string;
+  gatewayResponse?: Record<string, any>;
+  initiatedAt: Date;
+  completedAt?: Date;
+  notes?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface FulfillmentTask {
+  id: string;
+  orderId: string;
+  taskType: 'pick' | 'pack' | 'ship' | 'verify' | 'label';
+  taskStatus: 'pending' | 'in_progress' | 'completed' | 'failed';
+  assignedTo?: string;
+  priority?: 'low' | 'medium' | 'high' | 'urgent';
+  notes?: string;
+  completedAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface OrderDiscount {
+  id: string;
+  orderId: string;
+  couponCode?: string;
+  discountType: 'percentage' | 'fixed_amount';
+  discountValue: number;
+  discountAmount: number;
+  description?: string;
+  createdAt: Date;
+}
+
+export interface OrderWithDetails {
+  id: string;
+  customerId: string;
+  subtotal: number;
+  tax: number;
+  shipping: number;
+  total: number;
+  status: string;
+  channel: string;
+  paymentMethod?: string;
+  shippingAddress?: string;
+  notes?: string;
+  items: OrderItem[];
+  payments?: OrderPayment[];
+  shipping?: OrderShipping;
+  returns?: OrderReturn[];
+  refunds?: Refund[];
+  discounts?: OrderDiscount[];
+  statusHistory?: OrderStatusHistory[];
+  fulfillmentTasks?: FulfillmentTask[];
+  createdAt: Date;
+  updatedAt: Date;
+  deliveredAt?: Date;
+}

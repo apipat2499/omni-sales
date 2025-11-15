@@ -57,6 +57,131 @@ CREATE TABLE IF NOT EXISTS order_items (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- ============================================
+-- ORDER MANAGEMENT SYSTEM TABLES
+-- ============================================
+
+-- Order Status History (Audit Trail)
+CREATE TABLE IF NOT EXISTS order_status_history (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  status VARCHAR(50) NOT NULL,
+  reason VARCHAR(255),
+  notes TEXT,
+  changed_by UUID,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Order Payments
+CREATE TABLE IF NOT EXISTS order_payments (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  payment_method VARCHAR(100) NOT NULL,
+  amount DECIMAL(12, 2) NOT NULL,
+  currency VARCHAR(3) DEFAULT 'USD',
+  payment_status VARCHAR(50), -- pending, completed, failed, refunded, partial
+  transaction_id VARCHAR(255),
+  gateway_response JSONB,
+  paid_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Order Shipping
+CREATE TABLE IF NOT EXISTS order_shipping (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  shipping_method VARCHAR(100),
+  carrier VARCHAR(100),
+  tracking_number VARCHAR(255),
+  weight_kg DECIMAL(10, 2),
+  dimensions_cm VARCHAR(100),
+  shipping_address TEXT NOT NULL,
+  shipping_status VARCHAR(50), -- pending, picked, packed, shipped, in_transit, delivered, failed
+  shipped_at TIMESTAMP WITH TIME ZONE,
+  delivered_at TIMESTAMP WITH TIME ZONE,
+  estimated_delivery TIMESTAMP WITH TIME ZONE,
+  signature_required BOOLEAN DEFAULT false,
+  special_instructions TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Order Returns
+CREATE TABLE IF NOT EXISTS order_returns (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  return_number VARCHAR(100) UNIQUE,
+  return_reason VARCHAR(100),
+  reason_details TEXT,
+  return_status VARCHAR(50), -- pending, approved, rejected, received, processed
+  refund_amount DECIMAL(12, 2),
+  requested_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  approved_at TIMESTAMP WITH TIME ZONE,
+  received_at TIMESTAMP WITH TIME ZONE,
+  processed_at TIMESTAMP WITH TIME ZONE,
+  notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Return Items (Products Being Returned)
+CREATE TABLE IF NOT EXISTS return_items (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  return_id UUID NOT NULL REFERENCES order_returns(id) ON DELETE CASCADE,
+  product_id UUID NOT NULL,
+  product_name VARCHAR(255),
+  quantity INTEGER NOT NULL,
+  unit_price DECIMAL(10, 2),
+  reason VARCHAR(255),
+  condition VARCHAR(50), -- unopened, opened, defective, damaged
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Refunds
+CREATE TABLE IF NOT EXISTS refunds (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  order_id UUID REFERENCES orders(id) ON DELETE CASCADE,
+  return_id UUID REFERENCES order_returns(id) ON DELETE CASCADE,
+  amount DECIMAL(12, 2) NOT NULL,
+  reason VARCHAR(100),
+  refund_method VARCHAR(50), -- original_payment, store_credit, bank_transfer
+  refund_status VARCHAR(50), -- pending, processing, completed, failed
+  transaction_id VARCHAR(255),
+  gateway_response JSONB,
+  initiated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  completed_at TIMESTAMP WITH TIME ZONE,
+  notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Order Fulfillment Tasks
+CREATE TABLE IF NOT EXISTS fulfillment_tasks (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  task_type VARCHAR(50), -- pick, pack, ship, verify, label
+  task_status VARCHAR(50), -- pending, in_progress, completed, failed
+  assigned_to UUID,
+  priority VARCHAR(50), -- low, medium, high, urgent
+  notes TEXT,
+  completed_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Discount/Coupon Applications
+CREATE TABLE IF NOT EXISTS order_discounts (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  coupon_code VARCHAR(100),
+  discount_type VARCHAR(50), -- percentage, fixed_amount
+  discount_value DECIMAL(10, 2),
+  discount_amount DECIMAL(12, 2),
+  description TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Create Indexes
 CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);
 CREATE INDEX IF NOT EXISTS idx_products_sku ON products(sku);
@@ -67,6 +192,23 @@ CREATE INDEX IF NOT EXISTS idx_orders_channel ON orders(channel);
 CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders(created_at);
 CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id);
 CREATE INDEX IF NOT EXISTS idx_order_items_product_id ON order_items(product_id);
+
+-- Create Indexes for Order Management
+CREATE INDEX IF NOT EXISTS idx_order_status_history_order ON order_status_history(order_id);
+CREATE INDEX IF NOT EXISTS idx_order_payments_order ON order_payments(order_id);
+CREATE INDEX IF NOT EXISTS idx_order_payments_status ON order_payments(payment_status);
+CREATE INDEX IF NOT EXISTS idx_order_shipping_order ON order_shipping(order_id);
+CREATE INDEX IF NOT EXISTS idx_order_shipping_status ON order_shipping(shipping_status);
+CREATE INDEX IF NOT EXISTS idx_order_shipping_tracking ON order_shipping(tracking_number);
+CREATE INDEX IF NOT EXISTS idx_order_returns_order ON order_returns(order_id);
+CREATE INDEX IF NOT EXISTS idx_order_returns_status ON order_returns(return_status);
+CREATE INDEX IF NOT EXISTS idx_return_items_return ON return_items(return_id);
+CREATE INDEX IF NOT EXISTS idx_refunds_order ON refunds(order_id);
+CREATE INDEX IF NOT EXISTS idx_refunds_return ON refunds(return_id);
+CREATE INDEX IF NOT EXISTS idx_refunds_status ON refunds(refund_status);
+CREATE INDEX IF NOT EXISTS idx_fulfillment_tasks_order ON fulfillment_tasks(order_id);
+CREATE INDEX IF NOT EXISTS idx_fulfillment_tasks_status ON fulfillment_tasks(task_status);
+CREATE INDEX IF NOT EXISTS idx_order_discounts_order ON order_discounts(order_id);
 
 -- Create Views for Statistics
 CREATE OR REPLACE VIEW customer_stats AS

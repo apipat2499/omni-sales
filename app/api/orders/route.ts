@@ -1,103 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase/client';
-import type { Order } from '@/types';
 
-export async function GET(request: NextRequest) {
+export async function GET(req: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const search = searchParams.get('search');
-    const status = searchParams.get('status');
-    const channel = searchParams.get('channel');
+    const customerId = req.nextUrl.searchParams.get('customerId');
+    const status = req.nextUrl.searchParams.get('status');
+    const limit = parseInt(req.nextUrl.searchParams.get('limit') || '50');
+    const offset = parseInt(req.nextUrl.searchParams.get('offset') || '0');
 
-    // First, fetch orders with customer information
-    let ordersQuery = supabase
+    let query = supabase
       .from('orders')
-      .select(`
-        *,
-        customers!inner(name)
-      `);
+      .select('*, order_items (*), order_shipping (*)', { count: 'exact' });
 
-    // Apply search filter (order ID or customer name)
-    if (search) {
-      // We need to use OR condition for searching by order ID or customer name
-      ordersQuery = ordersQuery.or(
-        `id.ilike.%${search}%,customers.name.ilike.%${search}%`
-      );
+    if (customerId) {
+      query = query.eq('customer_id', customerId);
+    }
+    if (status) {
+      query = query.eq('status', status);
     }
 
-    // Apply status filter
-    if (status && status !== 'all') {
-      ordersQuery = ordersQuery.eq('status', status);
+    const { data: orders, error, count } = await query
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (error) {
+      return NextResponse.json({ error: 'Failed to fetch orders' }, { status: 500 });
     }
 
-    // Apply channel filter
-    if (channel && channel !== 'all') {
-      ordersQuery = ordersQuery.eq('channel', channel);
-    }
-
-    // Order by created date descending
-    ordersQuery = ordersQuery.order('created_at', { ascending: false });
-
-    const { data: ordersData, error: ordersError } = await ordersQuery;
-
-    if (ordersError) {
-      console.error('Error fetching orders:', ordersError);
-      return NextResponse.json(
-        { error: 'Failed to fetch orders', details: ordersError.message },
-        { status: 500 }
-      );
-    }
-
-    // For each order, fetch its order items
-    const ordersWithItems = await Promise.all(
-      (ordersData || []).map(async (order) => {
-        const { data: itemsData, error: itemsError } = await supabase
-          .from('order_items')
-          .select('product_id, product_name, quantity, price')
-          .eq('order_id', order.id);
-
-        if (itemsError) {
-          console.error(`Error fetching items for order ${order.id}:`, itemsError);
-          return null;
-        }
-
-        return {
-          id: order.id,
-          customerId: order.customer_id,
-          customerName: order.customers.name,
-          items: (itemsData || []).map((item) => ({
-            productId: item.product_id,
-            productName: item.product_name,
-            quantity: item.quantity,
-            price: parseFloat(item.price),
-          })),
-          subtotal: parseFloat(order.subtotal),
-          tax: parseFloat(order.tax),
-          shipping: parseFloat(order.shipping),
-          total: parseFloat(order.total),
-          status: order.status,
-          channel: order.channel,
-          paymentMethod: order.payment_method,
-          shippingAddress: order.shipping_address,
-          notes: order.notes,
-          createdAt: new Date(order.created_at),
-          updatedAt: new Date(order.updated_at),
-          deliveredAt: order.delivered_at ? new Date(order.delivered_at) : undefined,
-        };
-      })
-    );
-
-    // Filter out any null values from failed fetches
-    const orders: Order[] = ordersWithItems.filter(
-      (order): order is Order => order !== null
-    );
-
-    return NextResponse.json(orders, { status: 200 });
+    return NextResponse.json({ data: orders || [], total: count || 0, limit, offset });
   } catch (error) {
-    console.error('Unexpected error in GET /api/orders:', error);
-    return NextResponse.json(
-      { error: 'An unexpected error occurred' },
-      { status: 500 }
-    );
+    console.error('Error fetching orders:', error);
+    return NextResponse.json({ error: 'Failed to fetch orders' }, { status: 500 });
   }
 }
