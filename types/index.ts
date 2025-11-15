@@ -2477,3 +2477,221 @@ export interface PriceTest {
   conversionTest?: number;
   createdAt: Date;
 }
+
+// ============================================
+// INVENTORY MANAGEMENT TYPES
+// ============================================
+
+export type AdjustmentType = 'purchase_order' | 'sale' | 'return' | 'damage' | 'loss' | 'recount' | 'transfer';
+export type StockTransferStatus = 'pending' | 'shipped' | 'in_transit' | 'received' | 'cancelled';
+export type PurchaseOrderStatus = 'draft' | 'pending' | 'confirmed' | 'shipped' | 'received' | 'cancelled';
+export type CountStatus = 'pending' | 'in_progress' | 'completed' | 'reconciled';
+export type AlertStatus = 'active' | 'acknowledged' | 'resolved';
+
+export interface Warehouse {
+  id: string;
+  userId: string;
+  warehouseName: string;
+  warehouseCode?: string;
+  location?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  postalCode?: string;
+  capacity?: number;
+  isActive: boolean;
+  isPrimary: boolean;
+  managerName?: string;
+  contactPhone?: string;
+  contactEmail?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface StockLevel {
+  id: string;
+  userId: string;
+  productId: string;
+  warehouseId: string;
+  quantityOnHand: number;
+  quantityReserved: number;
+  quantityAvailable: number;
+  quantityDamaged: number;
+  reorderPoint?: number;
+  reorderQuantity?: number;
+  leadTimeDays?: number;
+  lastCountedAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface StockAdjustment {
+  id: string;
+  userId: string;
+  productId: string;
+  warehouseId: string;
+  adjustmentType?: AdjustmentType;
+  quantityChange: number;
+  reason?: string;
+  referenceType?: string;
+  referenceId?: string;
+  notes?: string;
+  adjustedBy?: string;
+  adjustedAt: Date;
+  createdAt: Date;
+}
+
+export interface StockTransfer {
+  id: string;
+  userId: string;
+  productId: string;
+  fromWarehouseId: string;
+  toWarehouseId: string;
+  quantity: number;
+  status?: StockTransferStatus;
+  transferDate?: Date;
+  shippedDate?: Date;
+  receivedDate?: Date;
+  shippedBy?: string;
+  receivedBy?: string;
+  trackingNumber?: string;
+  notes?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface LowStockAlert {
+  id: string;
+  userId: string;
+  productId: string;
+  warehouseId?: string;
+  alertType?: string;
+  currentQuantity?: number;
+  reorderPoint?: number;
+  alertStatus?: AlertStatus;
+  alertedAt: Date;
+  resolvedAt?: Date;
+  actionTaken?: string;
+  createdAt: Date;
+}
+
+export interface StockCount {
+  id: string;
+  userId: string;
+  warehouseId: string;
+  countDate?: Date;
+  countStatus?: CountStatus;
+  totalItemsCounted?: number;
+  discrepancyCount?: number;
+  countedBy?: string;
+  startedAt?: Date;
+  completedAt?: Date;
+  notes?: string;
+  createdAt: Date;
+}
+
+export interface StockCountItem {
+  id: string;
+  userId: string;
+  stockCountId: string;
+  productId: string;
+  expectedQuantity?: number;
+  countedQuantity?: number;
+  discrepancy?: number;
+  discrepancyReason?: string;
+  createdAt: Date;
+}
+
+export interface InventoryForecast {
+  id: string;
+  userId: string;
+  productId: string;
+  warehouseId?: string;
+  forecastDate?: Date;
+  forecastQuantity?: number;
+  confidenceLevel?: number;
+  basedOnDays?: number;
+  methodology?: string;
+  createdAt: Date;
+}
+
+export interface InventoryMovement {
+  id: string;
+  userId: string;
+  productId: string;
+  warehouseId: string;
+  movementDate?: Date;
+  movementType?: string;
+  quantityIn?: number;
+  quantityOut?: number;
+  balanceBefore?: number;
+  balanceAfter?: number;
+  referenceId?: string;
+  referenceType?: string;
+  createdAt: Date;
+}
+
+export interface Supplier {
+  id: string;
+  userId: string;
+  supplierName: string;
+  supplierCode?: string;
+  contactPerson?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  city?: string;
+  country?: string;
+  paymentTerms?: string;
+  leadTimeDays?: number;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface PurchaseOrder {
+  id: string;
+  userId: string;
+  supplierId: string;
+  warehouseId: string;
+  poNumber?: string;
+  poDate?: Date;
+  expectedDeliveryDate?: Date;
+  actualDeliveryDate?: Date;
+  status?: PurchaseOrderStatus;
+  totalAmount?: number;
+  notes?: string;
+  createdBy?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface PurchaseOrderItem {
+  id: string;
+  userId: string;
+  purchaseOrderId: string;
+  productId: string;
+  quantityOrdered?: number;
+  quantityReceived?: number;
+  unitPrice?: number;
+  lineTotal?: number;
+  createdAt: Date;
+}
+
+export interface InventoryAnalytics {
+  id: string;
+  userId: string;
+  date: Date;
+  warehouseId?: string;
+  totalItemsInStock?: number;
+  totalReservedItems?: number;
+  totalAvailableItems?: number;
+  totalDamagedItems?: number;
+  totalInventoryValue?: number;
+  lowStockItems?: number;
+  outOfStockItems?: number;
+  turnoverRate?: number;
+  stockoutPercentage?: number;
+  createdAt: Date;
+}

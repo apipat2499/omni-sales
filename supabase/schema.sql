@@ -3491,3 +3491,296 @@ CREATE POLICY "Allow all for demand_indicators" ON demand_indicators FOR ALL USI
 CREATE POLICY "Allow all for price_elasticity" ON price_elasticity FOR ALL USING (true);
 CREATE POLICY "Allow all for dynamic_pricing_analytics" ON dynamic_pricing_analytics FOR ALL USING (true);
 CREATE POLICY "Allow all for price_tests" ON price_tests FOR ALL USING (true);
+
+-- ============================================
+-- INVENTORY MANAGEMENT SYSTEM
+-- ============================================
+
+-- Warehouses
+CREATE TABLE IF NOT EXISTS warehouses (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  warehouse_name VARCHAR(255) NOT NULL,
+  warehouse_code VARCHAR(50),
+  location VARCHAR(255),
+  address TEXT,
+  city VARCHAR(100),
+  state VARCHAR(100),
+  country VARCHAR(100),
+  postal_code VARCHAR(20),
+  capacity INTEGER,
+  is_active BOOLEAN DEFAULT true,
+  is_primary BOOLEAN DEFAULT false,
+  manager_name VARCHAR(255),
+  contact_phone VARCHAR(20),
+  contact_email VARCHAR(255),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Stock Levels
+CREATE TABLE IF NOT EXISTS stock_levels (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  warehouse_id UUID NOT NULL REFERENCES warehouses(id) ON DELETE CASCADE,
+  quantity_on_hand INTEGER DEFAULT 0,
+  quantity_reserved INTEGER DEFAULT 0,
+  quantity_available INTEGER DEFAULT 0,
+  quantity_damaged INTEGER DEFAULT 0,
+  reorder_point INTEGER,
+  reorder_quantity INTEGER,
+  lead_time_days INTEGER,
+  last_counted_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Stock Adjustments
+CREATE TABLE IF NOT EXISTS stock_adjustments (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  warehouse_id UUID NOT NULL REFERENCES warehouses(id) ON DELETE CASCADE,
+  adjustment_type VARCHAR(100),
+  quantity_change INTEGER,
+  reason VARCHAR(255),
+  reference_type VARCHAR(100),
+  reference_id UUID,
+  notes TEXT,
+  adjusted_by VARCHAR(255),
+  adjusted_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Stock Transfers
+CREATE TABLE IF NOT EXISTS stock_transfers (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  from_warehouse_id UUID NOT NULL REFERENCES warehouses(id) ON DELETE CASCADE,
+  to_warehouse_id UUID NOT NULL REFERENCES warehouses(id) ON DELETE CASCADE,
+  quantity INTEGER,
+  status VARCHAR(50),
+  transfer_date TIMESTAMP WITH TIME ZONE,
+  shipped_date TIMESTAMP WITH TIME ZONE,
+  received_date TIMESTAMP WITH TIME ZONE,
+  shipped_by VARCHAR(255),
+  received_by VARCHAR(255),
+  tracking_number VARCHAR(255),
+  notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Low Stock Alerts
+CREATE TABLE IF NOT EXISTS low_stock_alerts (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  warehouse_id UUID REFERENCES warehouses(id) ON DELETE CASCADE,
+  alert_type VARCHAR(100),
+  current_quantity INTEGER,
+  reorder_point INTEGER,
+  alert_status VARCHAR(50),
+  alerted_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  resolved_at TIMESTAMP WITH TIME ZONE,
+  action_taken VARCHAR(255),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Stock Counts (Inventory Audits)
+CREATE TABLE IF NOT EXISTS stock_counts (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  warehouse_id UUID NOT NULL REFERENCES warehouses(id) ON DELETE CASCADE,
+  count_date DATE,
+  count_status VARCHAR(50),
+  total_items_counted INTEGER,
+  discrepancy_count INTEGER,
+  counted_by VARCHAR(255),
+  started_at TIMESTAMP WITH TIME ZONE,
+  completed_at TIMESTAMP WITH TIME ZONE,
+  notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Stock Count Items
+CREATE TABLE IF NOT EXISTS stock_count_items (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  stock_count_id UUID NOT NULL REFERENCES stock_counts(id) ON DELETE CASCADE,
+  product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  expected_quantity INTEGER,
+  counted_quantity INTEGER,
+  discrepancy INTEGER,
+  discrepancy_reason VARCHAR(255),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Inventory Forecasts
+CREATE TABLE IF NOT EXISTS inventory_forecasts (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  warehouse_id UUID REFERENCES warehouses(id) ON DELETE CASCADE,
+  forecast_date DATE,
+  forecast_quantity INTEGER,
+  confidence_level DECIMAL(5, 2),
+  based_on_days INTEGER,
+  methodology VARCHAR(100),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Inventory Movements (Historical Ledger)
+CREATE TABLE IF NOT EXISTS inventory_movements (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  warehouse_id UUID NOT NULL REFERENCES warehouses(id) ON DELETE CASCADE,
+  movement_date TIMESTAMP WITH TIME ZONE,
+  movement_type VARCHAR(100),
+  quantity_in INTEGER DEFAULT 0,
+  quantity_out INTEGER DEFAULT 0,
+  balance_before INTEGER,
+  balance_after INTEGER,
+  reference_id UUID,
+  reference_type VARCHAR(100),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Supplier Information
+CREATE TABLE IF NOT EXISTS suppliers (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  supplier_name VARCHAR(255) NOT NULL,
+  supplier_code VARCHAR(50),
+  contact_person VARCHAR(255),
+  email VARCHAR(255),
+  phone VARCHAR(20),
+  address TEXT,
+  city VARCHAR(100),
+  country VARCHAR(100),
+  payment_terms VARCHAR(100),
+  lead_time_days INTEGER,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Purchase Orders
+CREATE TABLE IF NOT EXISTS purchase_orders (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  supplier_id UUID NOT NULL REFERENCES suppliers(id) ON DELETE CASCADE,
+  warehouse_id UUID NOT NULL REFERENCES warehouses(id) ON DELETE CASCADE,
+  po_number VARCHAR(50),
+  po_date DATE,
+  expected_delivery_date DATE,
+  actual_delivery_date DATE,
+  status VARCHAR(50),
+  total_amount DECIMAL(12, 2),
+  notes TEXT,
+  created_by VARCHAR(255),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- PO Items
+CREATE TABLE IF NOT EXISTS purchase_order_items (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  purchase_order_id UUID NOT NULL REFERENCES purchase_orders(id) ON DELETE CASCADE,
+  product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  quantity_ordered INTEGER,
+  quantity_received INTEGER,
+  unit_price DECIMAL(10, 2),
+  line_total DECIMAL(12, 2),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Inventory Analytics
+CREATE TABLE IF NOT EXISTS inventory_analytics (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  date DATE,
+  warehouse_id UUID REFERENCES warehouses(id) ON DELETE CASCADE,
+  total_items_in_stock INTEGER,
+  total_reserved_items INTEGER,
+  total_available_items INTEGER,
+  total_damaged_items INTEGER,
+  total_inventory_value DECIMAL(12, 2),
+  low_stock_items INTEGER,
+  out_of_stock_items INTEGER,
+  turnover_rate DECIMAL(5, 2),
+  stockout_percentage DECIMAL(5, 2),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create Indexes for Inventory
+CREATE INDEX IF NOT EXISTS idx_warehouses_user ON warehouses(user_id);
+CREATE INDEX IF NOT EXISTS idx_warehouses_active ON warehouses(user_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_stock_levels_product ON stock_levels(product_id);
+CREATE INDEX IF NOT EXISTS idx_stock_levels_warehouse ON stock_levels(warehouse_id);
+CREATE INDEX IF NOT EXISTS idx_stock_levels_user ON stock_levels(user_id);
+CREATE INDEX IF NOT EXISTS idx_stock_adjustments_product ON stock_adjustments(product_id);
+CREATE INDEX IF NOT EXISTS idx_stock_adjustments_warehouse ON stock_adjustments(warehouse_id);
+CREATE INDEX IF NOT EXISTS idx_stock_adjustments_date ON stock_adjustments(adjusted_at DESC);
+CREATE INDEX IF NOT EXISTS idx_stock_transfers_status ON stock_transfers(status);
+CREATE INDEX IF NOT EXISTS idx_stock_transfers_product ON stock_transfers(product_id);
+CREATE INDEX IF NOT EXISTS idx_low_stock_alerts_product ON low_stock_alerts(product_id);
+CREATE INDEX IF NOT EXISTS idx_low_stock_alerts_status ON low_stock_alerts(user_id, alert_status);
+CREATE INDEX IF NOT EXISTS idx_stock_counts_warehouse ON stock_counts(warehouse_id);
+CREATE INDEX IF NOT EXISTS idx_stock_count_items_product ON stock_count_items(product_id);
+CREATE INDEX IF NOT EXISTS idx_inventory_movements_product_date ON inventory_movements(product_id, movement_date DESC);
+CREATE INDEX IF NOT EXISTS idx_inventory_forecasts_product ON inventory_forecasts(product_id);
+CREATE INDEX IF NOT EXISTS idx_purchase_orders_supplier ON purchase_orders(supplier_id);
+CREATE INDEX IF NOT EXISTS idx_purchase_orders_status ON purchase_orders(status);
+CREATE INDEX IF NOT EXISTS idx_purchase_order_items_po ON purchase_order_items(purchase_order_id);
+CREATE INDEX IF NOT EXISTS idx_inventory_analytics_warehouse_date ON inventory_analytics(warehouse_id, date DESC);
+
+-- Create Triggers for Inventory
+CREATE TRIGGER update_warehouses_updated_at BEFORE UPDATE ON warehouses
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_stock_levels_updated_at BEFORE UPDATE ON stock_levels
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_stock_transfers_updated_at BEFORE UPDATE ON stock_transfers
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_suppliers_updated_at BEFORE UPDATE ON suppliers
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_purchase_orders_updated_at BEFORE UPDATE ON purchase_orders
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Enable RLS for Inventory Tables
+ALTER TABLE warehouses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE stock_levels ENABLE ROW LEVEL SECURITY;
+ALTER TABLE stock_adjustments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE stock_transfers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE low_stock_alerts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE stock_counts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE stock_count_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE inventory_forecasts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE inventory_movements ENABLE ROW LEVEL SECURITY;
+ALTER TABLE suppliers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE purchase_orders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE purchase_order_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE inventory_analytics ENABLE ROW LEVEL SECURITY;
+
+-- Create Policies for Inventory Tables
+CREATE POLICY "Allow all for warehouses" ON warehouses FOR ALL USING (true);
+CREATE POLICY "Allow all for stock_levels" ON stock_levels FOR ALL USING (true);
+CREATE POLICY "Allow all for stock_adjustments" ON stock_adjustments FOR ALL USING (true);
+CREATE POLICY "Allow all for stock_transfers" ON stock_transfers FOR ALL USING (true);
+CREATE POLICY "Allow all for low_stock_alerts" ON low_stock_alerts FOR ALL USING (true);
+CREATE POLICY "Allow all for stock_counts" ON stock_counts FOR ALL USING (true);
+CREATE POLICY "Allow all for stock_count_items" ON stock_count_items FOR ALL USING (true);
+CREATE POLICY "Allow all for inventory_forecasts" ON inventory_forecasts FOR ALL USING (true);
+CREATE POLICY "Allow all for inventory_movements" ON inventory_movements FOR ALL USING (true);
+CREATE POLICY "Allow all for suppliers" ON suppliers FOR ALL USING (true);
+CREATE POLICY "Allow all for purchase_orders" ON purchase_orders FOR ALL USING (true);
+CREATE POLICY "Allow all for purchase_order_items" ON purchase_order_items FOR ALL USING (true);
+CREATE POLICY "Allow all for inventory_analytics" ON inventory_analytics FOR ALL USING (true);

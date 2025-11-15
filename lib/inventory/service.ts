@@ -1,457 +1,378 @@
-import { supabase } from '@/lib/supabase/client';
-import { InventoryLevel, StockMovement } from '@/types';
+import { createClient } from '@supabase/supabase-js';
+import { Warehouse, StockLevel, StockAdjustment, StockTransfer, LowStockAlert, InventoryMovement, Supplier, PurchaseOrder, InventoryAnalytics } from '@/types';
 
-/**
- * Inventory Management Service
- * Handles stock tracking, movements, and transfers
- */
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+);
 
-// Stock Movement Types
-export const MOVEMENT_TYPES = {
-  SALES: 'sales',
-  RETURN: 'return',
-  ADJUSTMENT: 'adjustment',
-  TRANSFER_OUT: 'transfer_out',
-  TRANSFER_IN: 'transfer_in',
-  RECEIVED: 'received',
-  DAMAGED: 'damaged',
-  EXPIRED: 'expired',
-  STOCKTAKE: 'stocktake',
-};
-
-/**
- * Record a stock movement
- */
-export async function recordStockMovement(
-  userId: string,
-  movement: {
-    productId: string;
-    warehouseId?: string;
-    movementType: string;
-    quantityChange: number;
-    reason?: string;
-    notes?: string;
-    createdBy?: string;
-    referenceType?: string;
-    referenceId?: string;
-  }
-): Promise<StockMovement | null> {
+// WAREHOUSE MANAGEMENT
+export async function createWarehouse(userId: string, warehouse: Partial<Warehouse>): Promise<Warehouse | null> {
   try {
-    // Get current inventory level
-    const { data: currentInventory } = await supabase
-      .from('inventory')
-      .select('quantity_on_hand, quantity_reserved')
-      .eq('user_id', userId)
-      .eq('product_id', movement.productId)
-      .eq('warehouse_id', movement.warehouseId || null)
-      .single();
-
-    const quantityBefore = currentInventory?.quantity_on_hand || 0;
-    const quantityAfter = quantityBefore + movement.quantityChange;
-
-    // Record movement
     const { data, error } = await supabase
-      .from('stock_movements')
+      .from('warehouses')
       .insert({
         user_id: userId,
-        product_id: movement.productId,
-        warehouse_id: movement.warehouseId,
-        movement_type: movement.movementType,
-        quantity_change: movement.quantityChange,
-        quantity_before: quantityBefore,
-        quantity_after: Math.max(0, quantityAfter),
-        reason: movement.reason,
-        notes: movement.notes,
-        created_by: movement.createdBy,
-        reference_type: movement.referenceType,
-        reference_id: movement.referenceId,
+        warehouse_name: warehouse.warehouseName,
+        warehouse_code: warehouse.warehouseCode,
+        location: warehouse.location,
+        address: warehouse.address,
+        city: warehouse.city,
+        state: warehouse.state,
+        country: warehouse.country,
+        postal_code: warehouse.postalCode,
+        capacity: warehouse.capacity,
+        is_active: true,
+        is_primary: warehouse.isPrimary || false,
+        manager_name: warehouse.managerName,
+        contact_phone: warehouse.contactPhone,
+        contact_email: warehouse.contactEmail,
+        created_at: new Date(),
+        updated_at: new Date(),
       })
       .select()
       .single();
 
-    if (error) {
-      console.error('Error recording stock movement:', error);
-      return null;
-    }
-
-    // Update inventory level
-    await updateInventoryLevel(
-      userId,
-      movement.productId,
-      movement.warehouseId,
-      quantityAfter
-    );
-
-    return data;
-  } catch (error) {
-    console.error('Record movement error:', error);
+    if (error) throw error;
+    return data as Warehouse;
+  } catch (err) {
+    console.error('Error creating warehouse:', err);
     return null;
   }
 }
 
-/**
- * Update inventory quantity
- */
-async function updateInventoryLevel(
-  userId: string,
-  productId: string,
-  warehouseId: string | undefined,
-  newQuantity: number
-) {
-  const { error } = await supabase
-    .from('inventory')
-    .upsert({
-      user_id: userId,
-      product_id: productId,
-      warehouse_id: warehouseId,
-      quantity_on_hand: Math.max(0, newQuantity),
-      last_movement_at: new Date(),
-    });
-
-  if (error) {
-    console.error('Error updating inventory:', error);
-  }
-}
-
-/**
- * Get low stock items
- */
-export async function getLowStockItems(userId: string, warehouseId?: string) {
+export async function getWarehouses(userId: string): Promise<Warehouse[]> {
   try {
-    let query = supabase
-      .from('inventory')
-      .select(
-        `
-        *,
-        products (
-          id,
-          name,
-          sku,
-          category,
-          cost
-        )
-      `
-      )
+    const { data, error } = await supabase
+      .from('warehouses')
+      .select('*')
       .eq('user_id', userId)
-      .lte('quantity_available', supabase.raw('reorder_point'));
+      .eq('is_active', true)
+      .order('is_primary', { ascending: false });
 
-    if (warehouseId) {
-      query = query.eq('warehouse_id', warehouseId);
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-      console.error('Error getting low stock items:', error);
-      return [];
-    }
-
-    return data || [];
-  } catch (error) {
-    console.error('Get low stock error:', error);
+    if (error) throw error;
+    return (data || []) as Warehouse[];
+  } catch (err) {
+    console.error('Error fetching warehouses:', err);
     return [];
   }
 }
 
-/**
- * Get inventory value
- */
-export async function getInventoryValue(userId: string): Promise<number> {
+// STOCK LEVEL MANAGEMENT
+export async function getStockLevel(productId: string, warehouseId: string): Promise<StockLevel | null> {
   try {
     const { data, error } = await supabase
-      .from('inventory')
-      .select(
-        `
-        quantity_on_hand,
-        products (
-          cost
-        )
-      `
-      )
-      .eq('user_id', userId);
+      .from('stock_levels')
+      .select('*')
+      .eq('product_id', productId)
+      .eq('warehouse_id', warehouseId)
+      .single();
 
-    if (error) {
-      console.error('Error calculating inventory value:', error);
-      return 0;
-    }
-
-    const totalValue = data?.reduce((sum, item) => {
-      const itemValue =
-        (item.quantity_on_hand || 0) *
-        (Number(item.products?.cost) || 0);
-      return sum + itemValue;
-    }, 0) || 0;
-
-    return totalValue;
-  } catch (error) {
-    console.error('Get inventory value error:', error);
-    return 0;
+    if (error && error.code === 'PGRST116') return null;
+    if (error) throw error;
+    return data as StockLevel;
+  } catch (err) {
+    console.error('Error fetching stock level:', err);
+    return null;
   }
 }
 
-/**
- * Transfer stock between warehouses
- */
-export async function transferStock(
-  userId: string,
-  transfer: {
-    productId: string;
-    fromWarehouseId: string;
-    toWarehouseId: string;
-    quantity: number;
-    notes?: string;
-  }
-): Promise<boolean> {
+export async function getProductStock(productId: string): Promise<StockLevel[]> {
   try {
-    // Record outgoing movement
-    await recordStockMovement(userId, {
-      productId: transfer.productId,
-      warehouseId: transfer.fromWarehouseId,
-      movementType: MOVEMENT_TYPES.TRANSFER_OUT,
-      quantityChange: -transfer.quantity,
-      notes: `Transfer to warehouse: ${transfer.notes || ''}`,
-      referenceType: 'transfer',
-    });
+    const { data, error } = await supabase
+      .from('stock_levels')
+      .select('*')
+      .eq('product_id', productId);
 
-    // Record incoming movement
-    await recordStockMovement(userId, {
-      productId: transfer.productId,
-      warehouseId: transfer.toWarehouseId,
-      movementType: MOVEMENT_TYPES.TRANSFER_IN,
-      quantityChange: transfer.quantity,
-      notes: `Transfer from warehouse: ${transfer.notes || ''}`,
-      referenceType: 'transfer',
-    });
+    if (error) throw error;
+    return (data || []) as StockLevel[];
+  } catch (err) {
+    console.error('Error fetching product stock:', err);
+    return [];
+  }
+}
 
-    // Create transfer record
-    const { error } = await supabase.from('stock_transfers').insert({
+export async function updateStockLevel(userId: string, productId: string, warehouseId: string, quantityChange: number, reason: string, referenceType?: string, referenceId?: string): Promise<boolean> {
+  try {
+    const currentStock = await getStockLevel(productId, warehouseId);
+
+    if (!currentStock) {
+      const { error } = await supabase.from('stock_levels').insert({
+        user_id: userId,
+        product_id: productId,
+        warehouse_id: warehouseId,
+        quantity_on_hand: Math.max(0, quantityChange),
+        quantity_available: Math.max(0, quantityChange),
+        created_at: new Date(),
+        updated_at: new Date(),
+      });
+      if (error) throw error;
+    } else {
+      const newQuantity = Math.max(0, currentStock.quantityOnHand + quantityChange);
+      const newAvailable = Math.max(0, newQuantity - currentStock.quantityReserved);
+      const { error } = await supabase.from('stock_levels').update({
+        quantity_on_hand: newQuantity,
+        quantity_available: newAvailable,
+        updated_at: new Date(),
+      }).eq('id', currentStock.id);
+      if (error) throw error;
+    }
+
+    await recordStockAdjustment(userId, productId, warehouseId, quantityChange, reason, referenceType, referenceId);
+    return true;
+  } catch (err) {
+    console.error('Error updating stock level:', err);
+    return false;
+  }
+}
+
+// STOCK ADJUSTMENTS
+export async function recordStockAdjustment(userId: string, productId: string, warehouseId: string, quantityChange: number, reason: string, referenceType?: string, referenceId?: string): Promise<StockAdjustment | null> {
+  try {
+    const { data, error } = await supabase.from('stock_adjustments').insert({
+      user_id: userId,
+      product_id: productId,
+      warehouse_id: warehouseId,
+      adjustment_type: 'manual',
+      quantity_change: quantityChange,
+      reason: reason,
+      reference_type: referenceType,
+      reference_id: referenceId,
+      adjusted_by: 'system',
+      adjusted_at: new Date(),
+      created_at: new Date(),
+    }).select().single();
+
+    if (error) throw error;
+    return data as StockAdjustment;
+  } catch (err) {
+    console.error('Error recording stock adjustment:', err);
+    return null;
+  }
+}
+
+export async function getStockAdjustments(productId: string, days: number = 30): Promise<StockAdjustment[]> {
+  try {
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    const { data, error } = await supabase.from('stock_adjustments').select('*').eq('product_id', productId).gte('adjusted_at', startDate.toISOString()).order('adjusted_at', { ascending: false });
+
+    if (error) throw error;
+    return (data || []) as StockAdjustment[];
+  } catch (err) {
+    console.error('Error fetching stock adjustments:', err);
+    return [];
+  }
+}
+
+// STOCK TRANSFERS
+export async function createStockTransfer(userId: string, transfer: Partial<StockTransfer>): Promise<StockTransfer | null> {
+  try {
+    const { data, error } = await supabase.from('stock_transfers').insert({
       user_id: userId,
       product_id: transfer.productId,
       from_warehouse_id: transfer.fromWarehouseId,
       to_warehouse_id: transfer.toWarehouseId,
       quantity: transfer.quantity,
       status: 'pending',
+      transfer_date: new Date(),
       notes: transfer.notes,
-    });
+      created_at: new Date(),
+      updated_at: new Date(),
+    }).select().single();
 
-    if (error) {
-      console.error('Error creating transfer:', error);
-      return false;
-    }
+    if (error) throw error;
 
-    return true;
-  } catch (error) {
-    console.error('Transfer stock error:', error);
-    return false;
-  }
-}
-
-/**
- * Get stock movement history
- */
-export async function getStockMovementHistory(
-  userId: string,
-  productId?: string,
-  limit: number = 100
-) {
-  try {
-    let query = supabase
-      .from('stock_movements')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(limit);
-
-    if (productId) {
-      query = query.eq('product_id', productId);
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-      console.error('Error getting movement history:', error);
-      return [];
-    }
-
-    return data || [];
-  } catch (error) {
-    console.error('Get history error:', error);
-    return [];
-  }
-}
-
-/**
- * Get reorder suggestions
- */
-export async function getReorderSuggestions(userId: string) {
-  try {
-    const { data: reorderPoints, error } = await supabase
-      .from('reorder_points')
-      .select(
-        `
-        *,
-        inventory (
-          quantity_on_hand,
-          quantity_available
-        ),
-        products (
-          name,
-          sku,
-          cost
-        )
-      `
-      )
-      .eq('user_id', userId)
-      .eq('auto_reorder', true)
-      .eq('is_active', true);
-
-    if (error) {
-      console.error('Error getting reorder suggestions:', error);
-      return [];
-    }
-
-    // Filter items that need reordering
-    const suggestions = reorderPoints?.filter((rp) => {
-      const invLevel = rp.inventory as any;
-      return invLevel?.quantity_available <= rp.min_stock;
-    }) || [];
-
-    return suggestions;
-  } catch (error) {
-    console.error('Get reorder suggestions error:', error);
-    return [];
-  }
-}
-
-/**
- * Create barcode
- */
-export async function createBarcode(
-  userId: string,
-  barcode: string,
-  productId: string,
-  barcodeType: string = 'ean13'
-): Promise<boolean> {
-  try {
-    const { error } = await supabase.from('barcodes').insert({
-      user_id: userId,
-      product_id: productId,
-      barcode,
-      barcode_type: barcodeType,
-      is_active: true,
-    });
-
-    if (error) {
-      console.error('Error creating barcode:', error);
-      return false;
-    }
-
-    return true;
-  } catch (error) {
-    console.error('Create barcode error:', error);
-    return false;
-  }
-}
-
-/**
- * Get product by barcode
- */
-export async function getProductByBarcode(
-  userId: string,
-  barcode: string
-) {
-  try {
-    const { data, error } = await supabase
-      .from('barcodes')
-      .select(
-        `
-        *,
-        products (*)
-      `
-      )
-      .eq('user_id', userId)
-      .eq('barcode', barcode)
-      .eq('is_active', true)
-      .single();
-
-    if (error) {
-      return null;
-    }
-
-    return data;
-  } catch (error) {
-    console.error('Get product by barcode error:', error);
+    await updateStockLevel(userId, transfer.productId!, transfer.fromWarehouseId!, -(transfer.quantity || 0), 'Stock transfer out', 'transfer', data.id);
+    return data as StockTransfer;
+  } catch (err) {
+    console.error('Error creating stock transfer:', err);
     return null;
   }
 }
 
-/**
- * Calculate inventory turnover
- */
-export async function calculateTurnoverRate(
-  userId: string,
-  days: number = 30
-): Promise<number> {
+export async function completeStockTransfer(transferId: string, userId: string, productId: string, toWarehouseId: string, quantity: number): Promise<boolean> {
   try {
-    // Get total COGS (cost of goods sold)
-    const { data: movements } = await supabase
-      .from('stock_movements')
-      .select(
-        `
-        quantity_change,
-        products (cost)
-      `
-      )
-      .eq('user_id', userId)
-      .eq('movement_type', MOVEMENT_TYPES.SALES)
-      .gte('created_at', new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString());
+    const { error: updateError } = await supabase.from('stock_transfers').update({
+      status: 'received',
+      received_date: new Date(),
+      received_by: 'system',
+      updated_at: new Date(),
+    }).eq('id', transferId);
 
-    const totalCogs = movements?.reduce((sum, m) => {
-      const value = Math.abs(m.quantity_change) * Number(m.products?.cost || 0);
-      return sum + value;
-    }, 0) || 0;
-
-    // Get average inventory value
-    const avgInventoryValue = await getInventoryValue(userId);
-
-    // Turnover = COGS / Average Inventory
-    return avgInventoryValue > 0 ? totalCogs / avgInventoryValue : 0;
-  } catch (error) {
-    console.error('Calculate turnover error:', error);
-    return 0;
+    if (updateError) throw updateError;
+    await updateStockLevel(userId, productId, toWarehouseId, quantity, 'Stock transfer in', 'transfer', transferId);
+    return true;
+  } catch (err) {
+    console.error('Error completing stock transfer:', err);
+    return false;
   }
 }
 
-/**
- * Forecast inventory needs
- */
-export async function forecastInventoryNeeds(
-  userId: string,
-  productId: string,
-  days: number = 30
-): Promise<number> {
+export async function getStockTransfers(userId: string): Promise<StockTransfer[]> {
   try {
-    // Get recent sales data
-    const { data: movements } = await supabase
-      .from('stock_movements')
-      .select('quantity_change')
-      .eq('user_id', userId)
-      .eq('product_id', productId)
-      .eq('movement_type', MOVEMENT_TYPES.SALES)
-      .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
+    const { data, error } = await supabase.from('stock_transfers').select('*').eq('user_id', userId).eq('status', 'pending').order('transfer_date', { ascending: false });
 
-    if (!movements || movements.length === 0) {
-      return 0;
+    if (error) throw error;
+    return (data || []) as StockTransfer[];
+  } catch (err) {
+    console.error('Error fetching stock transfers:', err);
+    return [];
+  }
+}
+
+// LOW STOCK ALERTS
+export async function checkLowStockAlerts(userId: string): Promise<LowStockAlert[]> {
+  try {
+    const { data, error } = await supabase.from('stock_levels').select('*').eq('user_id', userId);
+
+    if (error) throw error;
+
+    const alerts = [];
+    for (const stock of data || []) {
+      if (stock.quantity_on_hand <= stock.reorder_point) {
+        const { data: existingAlert } = await supabase.from('low_stock_alerts').select('*').eq('product_id', stock.product_id).eq('alert_status', 'active').single();
+
+        if (!existingAlert) {
+          const { data: alert } = await supabase.from('low_stock_alerts').insert({
+            user_id: userId,
+            product_id: stock.product_id,
+            warehouse_id: stock.warehouse_id,
+            alert_type: 'low_stock',
+            current_quantity: stock.quantity_on_hand,
+            reorder_point: stock.reorder_point,
+            alert_status: 'active',
+            alerted_at: new Date(),
+            created_at: new Date(),
+          }).select().single();
+
+          if (alert) alerts.push(alert);
+        }
+      }
     }
 
-    // Calculate average daily sales
-    const totalSold = movements.reduce((sum, m) => sum + Math.abs(m.quantity_change), 0);
-    const averageDailySales = totalSold / 30;
+    return alerts as LowStockAlert[];
+  } catch (err) {
+    console.error('Error checking low stock alerts:', err);
+    return [];
+  }
+}
 
-    // Forecast for specified days
-    return Math.ceil(averageDailySales * days);
-  } catch (error) {
-    console.error('Forecast error:', error);
+// SUPPLIERS & PURCHASE ORDERS
+export async function createSupplier(userId: string, supplier: Partial<Supplier>): Promise<Supplier | null> {
+  try {
+    const { data, error } = await supabase.from('suppliers').insert({
+      user_id: userId,
+      supplier_name: supplier.supplierName,
+      supplier_code: supplier.supplierCode,
+      contact_person: supplier.contactPerson,
+      email: supplier.email,
+      phone: supplier.phone,
+      address: supplier.address,
+      city: supplier.city,
+      country: supplier.country,
+      payment_terms: supplier.paymentTerms,
+      lead_time_days: supplier.leadTimeDays,
+      is_active: true,
+      created_at: new Date(),
+      updated_at: new Date(),
+    }).select().single();
+
+    if (error) throw error;
+    return data as Supplier;
+  } catch (err) {
+    console.error('Error creating supplier:', err);
+    return null;
+  }
+}
+
+export async function getSuppliers(userId: string): Promise<Supplier[]> {
+  try {
+    const { data, error } = await supabase.from('suppliers').select('*').eq('user_id', userId).eq('is_active', true);
+
+    if (error) throw error;
+    return (data || []) as Supplier[];
+  } catch (err) {
+    console.error('Error fetching suppliers:', err);
+    return [];
+  }
+}
+
+export async function createPurchaseOrder(userId: string, po: Partial<PurchaseOrder>): Promise<PurchaseOrder | null> {
+  try {
+    const { data, error } = await supabase.from('purchase_orders').insert({
+      user_id: userId,
+      supplier_id: po.supplierId,
+      warehouse_id: po.warehouseId,
+      po_number: po.poNumber,
+      po_date: new Date(),
+      expected_delivery_date: po.expectedDeliveryDate,
+      status: 'draft',
+      notes: po.notes,
+      created_by: 'system',
+      created_at: new Date(),
+      updated_at: new Date(),
+    }).select().single();
+
+    if (error) throw error;
+    return data as PurchaseOrder;
+  } catch (err) {
+    console.error('Error creating purchase order:', err);
+    return null;
+  }
+}
+
+// INVENTORY ANALYTICS
+export async function recordInventoryAnalytics(userId: string, analytics: Partial<InventoryAnalytics>): Promise<InventoryAnalytics | null> {
+  try {
+    const { data, error } = await supabase.from('inventory_analytics').insert({
+      user_id: userId,
+      date: analytics.date || new Date(),
+      warehouse_id: analytics.warehouseId,
+      total_items_in_stock: analytics.totalItemsInStock || 0,
+      total_reserved_items: analytics.totalReservedItems || 0,
+      total_available_items: analytics.totalAvailableItems || 0,
+      total_damaged_items: analytics.totalDamagedItems || 0,
+      total_inventory_value: analytics.totalInventoryValue,
+      low_stock_items: analytics.lowStockItems || 0,
+      out_of_stock_items: analytics.outOfStockItems || 0,
+      turnover_rate: analytics.turnoverRate,
+      stockout_percentage: analytics.stockoutPercentage,
+      created_at: new Date(),
+    }).select().single();
+
+    if (error) throw error;
+    return data as InventoryAnalytics;
+  } catch (err) {
+    console.error('Error recording inventory analytics:', err);
+    return null;
+  }
+}
+
+export async function getInventoryAnalytics(userId: string, days: number = 30): Promise<InventoryAnalytics[]> {
+  try {
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    const { data, error } = await supabase.from('inventory_analytics').select('*').eq('user_id', userId).gte('date', startDate.toISOString()).order('date', { ascending: false });
+
+    if (error) throw error;
+    return (data || []) as InventoryAnalytics[];
+  } catch (err) {
+    console.error('Error fetching inventory analytics:', err);
+    return [];
+  }
+}
+
+export async function getTotalInventoryValue(userId: string): Promise<number> {
+  try {
+    const { data, error } = await supabase.from('stock_levels').select('quantity_on_hand').eq('user_id', userId);
+
+    if (error) throw error;
+    return (data || []).reduce((sum, stock) => sum + (stock.quantity_on_hand || 0), 0);
+  } catch (err) {
+    console.error('Error calculating inventory value:', err);
     return 0;
   }
 }
