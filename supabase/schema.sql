@@ -5288,3 +5288,241 @@ CREATE POLICY "Allow all for sms_campaign_recipients" ON sms_campaign_recipients
 CREATE POLICY "Allow all for push_campaign_recipients" ON push_campaign_recipients FOR ALL USING (true);
 CREATE POLICY "Allow all for notification_preferences" ON notification_preferences FOR ALL USING (true);
 CREATE POLICY "Allow all for notification_events" ON notification_events FOR ALL USING (true);
+
+-- Loyalty Program Tables
+-- Loyalty Programs
+CREATE TABLE IF NOT EXISTS loyalty_programs (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  program_name VARCHAR(255) NOT NULL,
+  description TEXT,
+  program_type VARCHAR(50) NOT NULL,
+  currency VARCHAR(10) DEFAULT 'points',
+  status VARCHAR(50) NOT NULL DEFAULT 'active',
+  points_per_dollar DECIMAL(10, 4) NOT NULL DEFAULT 1.0,
+  points_expiration_days INT,
+  min_redemption_points INT DEFAULT 100,
+  tier_system_enabled BOOLEAN DEFAULT true,
+  referral_enabled BOOLEAN DEFAULT false,
+  referral_points_awarded INT,
+  birthday_bonus_points INT,
+  program_rules JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Member Tiers
+CREATE TABLE IF NOT EXISTS loyalty_tiers (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  program_id UUID NOT NULL REFERENCES loyalty_programs(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL,
+  tier_name VARCHAR(100) NOT NULL,
+  tier_level INT NOT NULL,
+  min_points_required INT NOT NULL,
+  max_points_required INT,
+  points_multiplier DECIMAL(5, 2) DEFAULT 1.0,
+  benefits JSONB DEFAULT '[]'::jsonb,
+  exclusive_rewards BOOLEAN DEFAULT false,
+  birthday_bonus_multiplier DECIMAL(5, 2) DEFAULT 1.0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Loyalty Members
+CREATE TABLE IF NOT EXISTS loyalty_members (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  program_id UUID NOT NULL REFERENCES loyalty_programs(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL,
+  customer_id VARCHAR(255),
+  customer_name VARCHAR(255),
+  email VARCHAR(255),
+  phone VARCHAR(20),
+  current_tier_id UUID REFERENCES loyalty_tiers(id),
+  current_points INT DEFAULT 0,
+  lifetime_points INT DEFAULT 0,
+  redemption_count INT DEFAULT 0,
+  total_spent DECIMAL(15, 2) DEFAULT 0,
+  membership_status VARCHAR(50) DEFAULT 'active',
+  enrollment_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  last_activity_date TIMESTAMP WITH TIME ZONE,
+  referral_code VARCHAR(50) UNIQUE,
+  referred_by VARCHAR(255),
+  member_metadata JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Points Transactions
+CREATE TABLE IF NOT EXISTS loyalty_points_transactions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  program_id UUID NOT NULL REFERENCES loyalty_programs(id) ON DELETE CASCADE,
+  member_id UUID NOT NULL REFERENCES loyalty_members(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL,
+  transaction_type VARCHAR(50) NOT NULL,
+  points_amount INT NOT NULL,
+  points_balance_after INT,
+  source VARCHAR(100),
+  reference_id VARCHAR(255),
+  reference_type VARCHAR(50),
+  description TEXT,
+  expiration_date TIMESTAMP WITH TIME ZONE,
+  status VARCHAR(50) DEFAULT 'completed',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Rewards Catalog
+CREATE TABLE IF NOT EXISTS loyalty_rewards (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  program_id UUID NOT NULL REFERENCES loyalty_programs(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL,
+  reward_name VARCHAR(255) NOT NULL,
+  description TEXT,
+  reward_type VARCHAR(50) NOT NULL,
+  points_cost INT NOT NULL,
+  quantity_available INT,
+  quantity_remaining INT,
+  reward_image_url TEXT,
+  reward_code VARCHAR(100),
+  tier_exclusive_id UUID REFERENCES loyalty_tiers(id),
+  active BOOLEAN DEFAULT true,
+  start_date TIMESTAMP WITH TIME ZONE,
+  end_date TIMESTAMP WITH TIME ZONE,
+  reward_terms JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Redemptions
+CREATE TABLE IF NOT EXISTS loyalty_redemptions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  program_id UUID NOT NULL REFERENCES loyalty_programs(id) ON DELETE CASCADE,
+  member_id UUID NOT NULL REFERENCES loyalty_members(id) ON DELETE CASCADE,
+  reward_id UUID REFERENCES loyalty_rewards(id),
+  user_id UUID NOT NULL,
+  points_redeemed INT NOT NULL,
+  redemption_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  fulfillment_status VARCHAR(50) DEFAULT 'pending',
+  fulfillment_date TIMESTAMP WITH TIME ZONE,
+  reward_code_generated VARCHAR(100),
+  delivery_method VARCHAR(50),
+  shipping_address TEXT,
+  tracking_number VARCHAR(100),
+  redemption_notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Tier Progression History
+CREATE TABLE IF NOT EXISTS loyalty_tier_progression (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  program_id UUID NOT NULL REFERENCES loyalty_programs(id) ON DELETE CASCADE,
+  member_id UUID NOT NULL REFERENCES loyalty_members(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL,
+  previous_tier_id UUID REFERENCES loyalty_tiers(id),
+  new_tier_id UUID NOT NULL REFERENCES loyalty_tiers(id),
+  promotion_reason VARCHAR(100),
+  promotion_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Program Analytics
+CREATE TABLE IF NOT EXISTS loyalty_program_analytics (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  program_id UUID NOT NULL REFERENCES loyalty_programs(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL,
+  analytics_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  total_members INT DEFAULT 0,
+  active_members INT DEFAULT 0,
+  total_points_issued INT DEFAULT 0,
+  total_points_redeemed INT DEFAULT 0,
+  total_points_outstanding INT DEFAULT 0,
+  average_member_points DECIMAL(15, 2) DEFAULT 0,
+  redemption_rate DECIMAL(5, 2) DEFAULT 0,
+  tier_distribution JSONB DEFAULT '{}'::jsonb,
+  new_members INT DEFAULT 0,
+  churned_members INT DEFAULT 0,
+  total_spending DECIMAL(15, 2) DEFAULT 0,
+  average_spending_per_member DECIMAL(15, 2) DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Member Activity Log
+CREATE TABLE IF NOT EXISTS loyalty_member_activity (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  program_id UUID NOT NULL REFERENCES loyalty_programs(id) ON DELETE CASCADE,
+  member_id UUID NOT NULL REFERENCES loyalty_members(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL,
+  activity_type VARCHAR(50) NOT NULL,
+  activity_description TEXT,
+  points_involved INT DEFAULT 0,
+  activity_metadata JSONB DEFAULT '{}'::jsonb,
+  activity_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create Indexes for Loyalty Program
+CREATE INDEX IF NOT EXISTS idx_loyalty_programs_user ON loyalty_programs(user_id);
+CREATE INDEX IF NOT EXISTS idx_loyalty_programs_status ON loyalty_programs(status);
+CREATE INDEX IF NOT EXISTS idx_loyalty_tiers_program ON loyalty_tiers(program_id);
+CREATE INDEX IF NOT EXISTS idx_loyalty_tiers_level ON loyalty_tiers(tier_level);
+CREATE INDEX IF NOT EXISTS idx_loyalty_members_program_user ON loyalty_members(program_id, user_id);
+CREATE INDEX IF NOT EXISTS idx_loyalty_members_customer ON loyalty_members(customer_id);
+CREATE INDEX IF NOT EXISTS idx_loyalty_members_email ON loyalty_members(email);
+CREATE INDEX IF NOT EXISTS idx_loyalty_members_referral_code ON loyalty_members(referral_code);
+CREATE INDEX IF NOT EXISTS idx_loyalty_members_status ON loyalty_members(membership_status);
+CREATE INDEX IF NOT EXISTS idx_loyalty_points_transactions_member ON loyalty_points_transactions(member_id);
+CREATE INDEX IF NOT EXISTS idx_loyalty_points_transactions_type ON loyalty_points_transactions(transaction_type);
+CREATE INDEX IF NOT EXISTS idx_loyalty_points_transactions_date ON loyalty_points_transactions(created_at);
+CREATE INDEX IF NOT EXISTS idx_loyalty_rewards_program ON loyalty_rewards(program_id);
+CREATE INDEX IF NOT EXISTS idx_loyalty_rewards_active ON loyalty_rewards(active);
+CREATE INDEX IF NOT EXISTS idx_loyalty_rewards_cost ON loyalty_rewards(points_cost);
+CREATE INDEX IF NOT EXISTS idx_loyalty_redemptions_member ON loyalty_redemptions(member_id);
+CREATE INDEX IF NOT EXISTS idx_loyalty_redemptions_status ON loyalty_redemptions(fulfillment_status);
+CREATE INDEX IF NOT EXISTS idx_loyalty_redemptions_date ON loyalty_redemptions(redemption_date);
+CREATE INDEX IF NOT EXISTS idx_loyalty_tier_progression_member ON loyalty_tier_progression(member_id);
+CREATE INDEX IF NOT EXISTS idx_loyalty_tier_progression_date ON loyalty_tier_progression(promotion_date);
+CREATE INDEX IF NOT EXISTS idx_loyalty_program_analytics_program_date ON loyalty_program_analytics(program_id, analytics_date);
+CREATE INDEX IF NOT EXISTS idx_loyalty_member_activity_member ON loyalty_member_activity(member_id);
+CREATE INDEX IF NOT EXISTS idx_loyalty_member_activity_type ON loyalty_member_activity(activity_type);
+
+-- Composite Indexes for Performance
+CREATE INDEX IF NOT EXISTS idx_loyalty_members_program_status ON loyalty_members(program_id, membership_status);
+CREATE INDEX IF NOT EXISTS idx_loyalty_points_user_date ON loyalty_points_transactions(user_id, created_at);
+
+-- Create Triggers for Loyalty Program
+CREATE TRIGGER update_loyalty_programs_updated_at BEFORE UPDATE ON loyalty_programs
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_loyalty_tiers_updated_at BEFORE UPDATE ON loyalty_tiers
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_loyalty_members_updated_at BEFORE UPDATE ON loyalty_members
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_loyalty_rewards_updated_at BEFORE UPDATE ON loyalty_rewards
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_loyalty_redemptions_updated_at BEFORE UPDATE ON loyalty_redemptions
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Enable RLS for Loyalty Program Tables
+ALTER TABLE loyalty_programs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE loyalty_tiers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE loyalty_members ENABLE ROW LEVEL SECURITY;
+ALTER TABLE loyalty_points_transactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE loyalty_rewards ENABLE ROW LEVEL SECURITY;
+ALTER TABLE loyalty_redemptions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE loyalty_tier_progression ENABLE ROW LEVEL SECURITY;
+ALTER TABLE loyalty_program_analytics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE loyalty_member_activity ENABLE ROW LEVEL SECURITY;
+
+-- Create Policies for Loyalty Program Tables
+CREATE POLICY "Allow all for loyalty_programs" ON loyalty_programs FOR ALL USING (true);
+CREATE POLICY "Allow all for loyalty_tiers" ON loyalty_tiers FOR ALL USING (true);
+CREATE POLICY "Allow all for loyalty_members" ON loyalty_members FOR ALL USING (true);
+CREATE POLICY "Allow all for loyalty_points_transactions" ON loyalty_points_transactions FOR ALL USING (true);
+CREATE POLICY "Allow all for loyalty_rewards" ON loyalty_rewards FOR ALL USING (true);
+CREATE POLICY "Allow all for loyalty_redemptions" ON loyalty_redemptions FOR ALL USING (true);
+CREATE POLICY "Allow all for loyalty_tier_progression" ON loyalty_tier_progression FOR ALL USING (true);
+CREATE POLICY "Allow all for loyalty_program_analytics" ON loyalty_program_analytics FOR ALL USING (true);
+CREATE POLICY "Allow all for loyalty_member_activity" ON loyalty_member_activity FOR ALL USING (true);

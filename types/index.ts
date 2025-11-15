@@ -3862,3 +3862,189 @@ export interface NotificationDashboardData {
   pushProviderCount: number;
   campaignsByStatus: Record<string, number>;
 }
+
+// Loyalty Program Types
+export type ProgramType = 'points' | 'tiered' | 'hybrid' | 'cash_back';
+export type TransactionType = 'purchase' | 'referral' | 'birthday_bonus' | 'manual_adjustment' | 'redemption' | 'expiration';
+export type RewardType = 'discount' | 'free_product' | 'free_shipping' | 'exclusive_access' | 'cash_back';
+export type MembershipStatus = 'active' | 'inactive' | 'suspended' | 'expired';
+export type FulfillmentStatus = 'pending' | 'approved' | 'shipped' | 'delivered' | 'redeemed' | 'cancelled';
+
+export interface LoyaltyProgram {
+  id: string;
+  userId: string;
+  programName: string;
+  description?: string;
+  programType: ProgramType;
+  currency: string;
+  status: 'active' | 'inactive';
+  pointsPerDollar: number;
+  pointsExpirationDays?: number;
+  minRedemptionPoints: number;
+  tierSystemEnabled: boolean;
+  referralEnabled: boolean;
+  referralPointsAwarded?: number;
+  birthdayBonusPoints?: number;
+  programRules: Record<string, any>;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface LoyaltyTier {
+  id: string;
+  programId: string;
+  userId: string;
+  tierName: string;
+  tierLevel: number;
+  minPointsRequired: number;
+  maxPointsRequired?: number;
+  pointsMultiplier: number;
+  benefits: string[];
+  exclusiveRewards: boolean;
+  birthdayBonusMultiplier: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface LoyaltyMember {
+  id: string;
+  programId: string;
+  userId: string;
+  customerId?: string;
+  customerName?: string;
+  email?: string;
+  phone?: string;
+  currentTierId?: string;
+  currentPoints: number;
+  lifetimePoints: number;
+  redemptionCount: number;
+  totalSpent: number;
+  membershipStatus: MembershipStatus;
+  enrollmentDate: Date;
+  lastActivityDate?: Date;
+  referralCode?: string;
+  referredBy?: string;
+  memberMetadata: Record<string, any>;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface LoyaltyPointsTransaction {
+  id: string;
+  programId: string;
+  memberId: string;
+  userId: string;
+  transactionType: TransactionType;
+  pointsAmount: number;
+  pointsBalanceAfter?: number;
+  source?: string;
+  referenceId?: string;
+  referenceType?: string;
+  description?: string;
+  expirationDate?: Date;
+  status: 'completed' | 'pending' | 'failed';
+  createdAt: Date;
+}
+
+export interface LoyaltyReward {
+  id: string;
+  programId: string;
+  userId: string;
+  rewardName: string;
+  description?: string;
+  rewardType: RewardType;
+  pointsCost: number;
+  quantityAvailable?: number;
+  quantityRemaining?: number;
+  rewardImageUrl?: string;
+  rewardCode?: string;
+  tierExclusiveId?: string;
+  active: boolean;
+  startDate?: Date;
+  endDate?: Date;
+  rewardTerms: Record<string, any>;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface LoyaltyRedemption {
+  id: string;
+  programId: string;
+  memberId: string;
+  rewardId?: string;
+  userId: string;
+  pointsRedeemed: number;
+  redemptionDate: Date;
+  fulfillmentStatus: FulfillmentStatus;
+  fulfillmentDate?: Date;
+  rewardCodeGenerated?: string;
+  deliveryMethod?: string;
+  shippingAddress?: string;
+  trackingNumber?: string;
+  redemptionNotes?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface LoyaltyTierProgression {
+  id: string;
+  programId: string;
+  memberId: string;
+  userId: string;
+  previousTierId?: string;
+  newTierId: string;
+  promotionReason?: string;
+  promotionDate: Date;
+  createdAt: Date;
+}
+
+export interface LoyaltyProgramAnalytics {
+  id: string;
+  programId: string;
+  userId: string;
+  analyticsDate: Date;
+  totalMembers: number;
+  activeMembers: number;
+  totalPointsIssued: number;
+  totalPointsRedeemed: number;
+  totalPointsOutstanding: number;
+  averageMemberPoints: number;
+  redemptionRate: number;
+  tierDistribution: Record<string, number>;
+  newMembers: number;
+  churnedMembers: number;
+  totalSpending: number;
+  averageSpendingPerMember: number;
+  createdAt: Date;
+}
+
+export interface LoyaltyMemberActivity {
+  id: string;
+  programId: string;
+  memberId: string;
+  userId: string;
+  activityType: string;
+  activityDescription?: string;
+  pointsInvolved?: number;
+  activityMetadata: Record<string, any>;
+  activityDate: Date;
+  createdAt: Date;
+}
+
+export interface LoyaltyDashboardData {
+  totalPrograms: number;
+  activePrograms: number;
+  totalMembers: number;
+  activeMembers: number;
+  totalPointsOutstanding: number;
+  totalPointsRedeemed: number;
+  averagePointsPerMember: number;
+  redemptionRate: number;
+  recentMembers: LoyaltyMember[];
+  topMembers: LoyaltyMember[];
+  upcomingRewards: LoyaltyReward[];
+  tierDistribution: Record<string, number>;
+  programsByStatus: Record<string, number>;
+  membershipTrendLastMonth: number[];
+  redemptionTrendLastMonth: number[];
+}
