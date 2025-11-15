@@ -15,6 +15,7 @@ import {
   LogOut,
   Loader2,
   AlertTriangle,
+  Camera,
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -26,6 +27,7 @@ const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Products', href: '/products', icon: Package },
   { name: 'Low Stock', href: '/low-stock', icon: AlertTriangle },
+  { name: 'Scanner', href: '/scanner', icon: Camera },
   { name: 'Orders', href: '/orders', icon: ShoppingCart },
   { name: 'Customers', href: '/customers', icon: Users },
   { name: 'Reports', href: '/reports', icon: BarChart3 },
