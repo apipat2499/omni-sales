@@ -3455,3 +3455,232 @@ export interface CRMDashboardData {
   leadsBySource: Record<string, number>;
   healthScoreDistribution: Record<string, number>;
 }
+
+// ==========================================
+// Feature #22: Email Marketing & Campaign Management Types
+// ==========================================
+
+export type EmailCampaignStatus = 'draft' | 'scheduled' | 'sending' | 'sent' | 'paused' | 'failed';
+export type EmailRecipientStatus = 'pending' | 'sent' | 'delivered' | 'opened' | 'clicked' | 'bounced' | 'unsubscribed' | 'complained';
+export type EmailEventType = 'sent' | 'delivered' | 'opened' | 'clicked' | 'bounced' | 'unsubscribed' | 'complained';
+export type BounceType = 'hard_bounce' | 'soft_bounce' | 'complaint';
+export type AutomationType = 'welcome' | 'abandoned_cart' | 'post_purchase' | 'win_back' | 'birthday';
+export type TemplateType = 'newsletter' | 'promotional' | 'transactional' | 'automation' | 'custom';
+
+export interface EmailTemplate {
+  id: string;
+  userId: string;
+  templateName: string;
+  templateType?: TemplateType;
+  subject: string;
+  htmlContent: string;
+  plainTextContent?: string;
+  previewText?: string;
+  variables?: Record<string, any>;
+  tags?: string[];
+  isActive: boolean;
+  createdBy?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface EmailCampaign {
+  id: string;
+  userId: string;
+  campaignName: string;
+  description?: string;
+  templateId?: string;
+  campaignType?: string;
+  status: EmailCampaignStatus;
+  fromEmail: string;
+  fromName?: string;
+  replyToEmail?: string;
+  subjectLine: string;
+  previewText?: string;
+  scheduledDate?: Date;
+  sentDate?: Date;
+  segmentId?: string;
+  audienceFilters?: Record<string, any>;
+  personalizationEnabled: boolean;
+  abTestEnabled: boolean;
+  abTestVariant?: string;
+  totalRecipients: number;
+  sentCount: number;
+  deliveredCount: number;
+  openCount: number;
+  clickCount: number;
+  conversionCount: number;
+  bounceCount: number;
+  unsubscribeCount: number;
+  complaintCount: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface EmailCampaignRecipient {
+  id: string;
+  userId: string;
+  campaignId: string;
+  customerId?: string;
+  recipientEmail: string;
+  recipientName?: string;
+  status: EmailRecipientStatus;
+  sentAt?: Date;
+  deliveredAt?: Date;
+  openedAt?: Date;
+  firstClickAt?: Date;
+  lastClickAt?: Date;
+  bounceType?: BounceType;
+  bounceReason?: string;
+  suppressionReason?: string;
+  personalizationData?: Record<string, any>;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface EmailLink {
+  id: string;
+  userId: string;
+  campaignId: string;
+  linkUrl: string;
+  linkText?: string;
+  linkPosition?: number;
+  clickCount: number;
+  uniqueClickCount: number;
+  createdAt: Date;
+}
+
+export interface EmailLinkClick {
+  id: string;
+  userId: string;
+  linkId: string;
+  recipientId?: string;
+  ipAddress?: string;
+  userAgent?: string;
+  clickedAt: Date;
+  createdAt: Date;
+}
+
+export interface EmailSegment {
+  id: string;
+  userId: string;
+  segmentName: string;
+  description?: string;
+  segmentCriteria?: Record<string, any>;
+  memberCount: number;
+  isDynamic: boolean;
+  isActive: boolean;
+  lastUpdated?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface EmailSuppressionList {
+  id: string;
+  userId: string;
+  email: string;
+  suppressionType?: string;
+  reason?: string;
+  suppressedDate: Date;
+  unsuppressedDate?: Date;
+  createdAt: Date;
+}
+
+export interface EmailUnsubscribePreferences {
+  id: string;
+  userId: string;
+  customerId?: string;
+  email: string;
+  unsubscribeAll: boolean;
+  marketingEmails: boolean;
+  transactionalEmails: boolean;
+  promotionalEmails: boolean;
+  newsletter: boolean;
+  productUpdates: boolean;
+  preferenceUpdatedAt: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface EmailAutomation {
+  id: string;
+  userId: string;
+  automationName: string;
+  automationType?: AutomationType;
+  triggerType?: string;
+  triggerCriteria?: Record<string, any>;
+  status: 'active' | 'paused' | 'inactive';
+  emails?: Record<string, any>;
+  delaySettings?: Record<string, any>;
+  maxRecipients?: number;
+  currentRecipients: number;
+  conversionTrackingEnabled: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface EmailAutomationLog {
+  id: string;
+  userId: string;
+  automationId: string;
+  customerId?: string;
+  triggerEvent?: string;
+  executionTimestamp: Date;
+  emailsSent: number;
+  status: 'success' | 'failed' | 'pending';
+  errorMessage?: string;
+  createdAt: Date;
+}
+
+export interface EmailAnalytics {
+  id: string;
+  userId: string;
+  campaignId?: string;
+  analyticsDate: Date;
+  totalSent: number;
+  totalDelivered: number;
+  totalOpened: number;
+  totalClicked: number;
+  totalConverted: number;
+  totalBounced: number;
+  totalUnsubscribed: number;
+  totalComplaints: number;
+  openRate: number;
+  clickRate: number;
+  conversionRate: number;
+  bounceRate: number;
+  unsubscribeRate: number;
+  complaintRate: number;
+  revenueGenerated: number;
+  roi: number;
+  createdAt: Date;
+}
+
+export interface EmailEvent {
+  id: string;
+  userId: string;
+  campaignId?: string;
+  recipientId?: string;
+  eventType: EmailEventType;
+  eventTimestamp: Date;
+  eventData?: Record<string, any>;
+  ipAddress?: string;
+  userAgent?: string;
+  createdAt: Date;
+}
+
+export interface EmailMarketingDashboardData {
+  totalCampaigns: number;
+  activeCampaigns: number;
+  totalSubscribers: number;
+  suppressed: number;
+  avgOpenRate: number;
+  avgClickRate: number;
+  avgConversionRate: number;
+  recentCampaigns: EmailCampaign[];
+  topPerformingCampaigns: EmailCampaign[];
+  automationCount: number;
+  templateCount: number;
+  segmentCount: number;
+  campaignsByStatus: Record<string, number>;
+}

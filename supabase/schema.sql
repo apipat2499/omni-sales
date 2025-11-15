@@ -4769,3 +4769,287 @@ CREATE POLICY "Allow all for crm_email_addresses" ON crm_email_addresses FOR ALL
 CREATE POLICY "Allow all for crm_phone_numbers" ON crm_phone_numbers FOR ALL USING (true);
 CREATE POLICY "Allow all for crm_deal_stages" ON crm_deal_stages FOR ALL USING (true);
 CREATE POLICY "Allow all for crm_customer_health_scores" ON crm_customer_health_scores FOR ALL USING (true);
+
+-- ==========================================
+-- Feature #22: Email Marketing & Campaign Management System
+-- ==========================================
+
+-- Email Templates (Reusable email templates)
+CREATE TABLE IF NOT EXISTS email_templates (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id VARCHAR(255) NOT NULL,
+  template_name VARCHAR(255) NOT NULL,
+  template_type VARCHAR(50),
+  subject VARCHAR(255) NOT NULL,
+  html_content TEXT NOT NULL,
+  plain_text_content TEXT,
+  preview_text VARCHAR(255),
+  variables JSONB,
+  tags TEXT[] DEFAULT '{}',
+  is_active BOOLEAN DEFAULT true,
+  created_by VARCHAR(255),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Email Campaigns (Campaign definitions and settings)
+CREATE TABLE IF NOT EXISTS email_campaigns (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id VARCHAR(255) NOT NULL,
+  campaign_name VARCHAR(255) NOT NULL,
+  description TEXT,
+  template_id UUID REFERENCES email_templates(id) ON DELETE SET NULL,
+  campaign_type VARCHAR(50),
+  status VARCHAR(50) NOT NULL DEFAULT 'draft',
+  from_email VARCHAR(255) NOT NULL,
+  from_name VARCHAR(255),
+  reply_to_email VARCHAR(255),
+  subject_line VARCHAR(255) NOT NULL,
+  preview_text VARCHAR(255),
+  scheduled_date TIMESTAMP WITH TIME ZONE,
+  sent_date TIMESTAMP WITH TIME ZONE,
+  segment_id UUID,
+  audience_filters JSONB,
+  personalization_enabled BOOLEAN DEFAULT true,
+  ab_test_enabled BOOLEAN DEFAULT false,
+  ab_test_variant VARCHAR(50),
+  total_recipients INT DEFAULT 0,
+  sent_count INT DEFAULT 0,
+  delivered_count INT DEFAULT 0,
+  open_count INT DEFAULT 0,
+  click_count INT DEFAULT 0,
+  conversion_count INT DEFAULT 0,
+  bounce_count INT DEFAULT 0,
+  unsubscribe_count INT DEFAULT 0,
+  complaint_count INT DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Email Campaign Recipients (Track individual campaign deliveries)
+CREATE TABLE IF NOT EXISTS email_campaign_recipients (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id VARCHAR(255) NOT NULL,
+  campaign_id UUID REFERENCES email_campaigns(id) ON DELETE CASCADE,
+  customer_id UUID REFERENCES customers(id) ON DELETE CASCADE,
+  recipient_email VARCHAR(255) NOT NULL,
+  recipient_name VARCHAR(255),
+  status VARCHAR(50) DEFAULT 'pending',
+  sent_at TIMESTAMP WITH TIME ZONE,
+  delivered_at TIMESTAMP WITH TIME ZONE,
+  opened_at TIMESTAMP WITH TIME ZONE,
+  first_click_at TIMESTAMP WITH TIME ZONE,
+  last_click_at TIMESTAMP WITH TIME ZONE,
+  bounce_type VARCHAR(50),
+  bounce_reason TEXT,
+  suppression_reason VARCHAR(100),
+  personalization_data JSONB,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Email Links (Track links in campaigns)
+CREATE TABLE IF NOT EXISTS email_links (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id VARCHAR(255) NOT NULL,
+  campaign_id UUID REFERENCES email_campaigns(id) ON DELETE CASCADE,
+  link_url VARCHAR(500) NOT NULL,
+  link_text VARCHAR(255),
+  link_position INT,
+  click_count INT DEFAULT 0,
+  unique_click_count INT DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Email Link Clicks (Track individual link clicks)
+CREATE TABLE IF NOT EXISTS email_link_clicks (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id VARCHAR(255) NOT NULL,
+  link_id UUID REFERENCES email_links(id) ON DELETE CASCADE,
+  recipient_id UUID REFERENCES email_campaign_recipients(id) ON DELETE CASCADE,
+  ip_address VARCHAR(50),
+  user_agent TEXT,
+  clicked_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Email Segments (Dynamic email list segments)
+CREATE TABLE IF NOT EXISTS email_segments (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id VARCHAR(255) NOT NULL,
+  segment_name VARCHAR(255) NOT NULL,
+  description TEXT,
+  segment_criteria JSONB,
+  member_count INT DEFAULT 0,
+  is_dynamic BOOLEAN DEFAULT true,
+  is_active BOOLEAN DEFAULT true,
+  last_updated TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Email Suppression List (Unsubscribed and bounced emails)
+CREATE TABLE IF NOT EXISTS email_suppression_list (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id VARCHAR(255) NOT NULL,
+  email VARCHAR(255) NOT NULL,
+  suppression_type VARCHAR(50),
+  reason TEXT,
+  suppressed_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  unsuppressed_date TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Email Unsubscribe Preferences (Customer email preferences)
+CREATE TABLE IF NOT EXISTS email_unsubscribe_preferences (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id VARCHAR(255) NOT NULL,
+  customer_id UUID REFERENCES customers(id) ON DELETE CASCADE,
+  email VARCHAR(255) NOT NULL,
+  unsubscribe_all BOOLEAN DEFAULT false,
+  marketing_emails BOOLEAN DEFAULT true,
+  transactional_emails BOOLEAN DEFAULT true,
+  promotional_emails BOOLEAN DEFAULT true,
+  newsletter BOOLEAN DEFAULT true,
+  product_updates BOOLEAN DEFAULT true,
+  preference_updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Email Automations (Automated email workflows)
+CREATE TABLE IF NOT EXISTS email_automations (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id VARCHAR(255) NOT NULL,
+  automation_name VARCHAR(255) NOT NULL,
+  automation_type VARCHAR(50),
+  trigger_type VARCHAR(50),
+  trigger_criteria JSONB,
+  status VARCHAR(50) DEFAULT 'active',
+  emails JSONB,
+  delay_settings JSONB,
+  max_recipients INT,
+  current_recipients INT DEFAULT 0,
+  conversion_tracking_enabled BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Email Automation Logs (Track automation execution)
+CREATE TABLE IF NOT EXISTS email_automation_logs (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id VARCHAR(255) NOT NULL,
+  automation_id UUID REFERENCES email_automations(id) ON DELETE CASCADE,
+  customer_id UUID REFERENCES customers(id) ON DELETE CASCADE,
+  trigger_event VARCHAR(100),
+  execution_timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  emails_sent INT DEFAULT 0,
+  status VARCHAR(50),
+  error_message TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Email Analytics (Campaign performance metrics)
+CREATE TABLE IF NOT EXISTS email_analytics (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id VARCHAR(255) NOT NULL,
+  campaign_id UUID REFERENCES email_campaigns(id) ON DELETE CASCADE,
+  analytics_date DATE NOT NULL,
+  total_sent INT DEFAULT 0,
+  total_delivered INT DEFAULT 0,
+  total_opened INT DEFAULT 0,
+  total_clicked INT DEFAULT 0,
+  total_converted INT DEFAULT 0,
+  total_bounced INT DEFAULT 0,
+  total_unsubscribed INT DEFAULT 0,
+  total_complaints INT DEFAULT 0,
+  open_rate DECIMAL(5, 2) DEFAULT 0,
+  click_rate DECIMAL(5, 2) DEFAULT 0,
+  conversion_rate DECIMAL(5, 2) DEFAULT 0,
+  bounce_rate DECIMAL(5, 2) DEFAULT 0,
+  unsubscribe_rate DECIMAL(5, 2) DEFAULT 0,
+  complaint_rate DECIMAL(5, 2) DEFAULT 0,
+  revenue_generated DECIMAL(15, 2) DEFAULT 0,
+  roi DECIMAL(10, 2) DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Email Events (Individual email events for detailed tracking)
+CREATE TABLE IF NOT EXISTS email_events (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id VARCHAR(255) NOT NULL,
+  campaign_id UUID REFERENCES email_campaigns(id) ON DELETE CASCADE,
+  recipient_id UUID REFERENCES email_campaign_recipients(id) ON DELETE CASCADE,
+  event_type VARCHAR(50) NOT NULL,
+  event_timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  event_data JSONB,
+  ip_address VARCHAR(50),
+  user_agent TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create Indexes for Email Marketing
+CREATE INDEX IF NOT EXISTS idx_email_templates_user ON email_templates(user_id);
+CREATE INDEX IF NOT EXISTS idx_email_campaigns_user_status ON email_campaigns(user_id, status);
+CREATE INDEX IF NOT EXISTS idx_email_campaigns_scheduled ON email_campaigns(scheduled_date);
+CREATE INDEX IF NOT EXISTS idx_email_campaign_recipients_campaign ON email_campaign_recipients(campaign_id);
+CREATE INDEX IF NOT EXISTS idx_email_campaign_recipients_customer ON email_campaign_recipients(customer_id);
+CREATE INDEX IF NOT EXISTS idx_email_campaign_recipients_status ON email_campaign_recipients(status);
+CREATE INDEX IF NOT EXISTS idx_email_links_campaign ON email_links(campaign_id);
+CREATE INDEX IF NOT EXISTS idx_email_link_clicks_link ON email_link_clicks(link_id);
+CREATE INDEX IF NOT EXISTS idx_email_link_clicks_recipient ON email_link_clicks(recipient_id);
+CREATE INDEX IF NOT EXISTS idx_email_segments_user ON email_segments(user_id);
+CREATE INDEX IF NOT EXISTS idx_email_suppression_list_email ON email_suppression_list(email);
+CREATE INDEX IF NOT EXISTS idx_email_suppression_list_user ON email_suppression_list(user_id);
+CREATE INDEX IF NOT EXISTS idx_email_unsubscribe_preferences_customer ON email_unsubscribe_preferences(customer_id);
+CREATE INDEX IF NOT EXISTS idx_email_automations_user_status ON email_automations(user_id, status);
+CREATE INDEX IF NOT EXISTS idx_email_automation_logs_automation ON email_automation_logs(automation_id);
+CREATE INDEX IF NOT EXISTS idx_email_analytics_campaign_date ON email_analytics(campaign_id, analytics_date);
+CREATE INDEX IF NOT EXISTS idx_email_events_campaign_type ON email_events(campaign_id, event_type);
+
+-- Create Triggers for Email Marketing
+CREATE TRIGGER update_email_templates_updated_at BEFORE UPDATE ON email_templates
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_email_campaigns_updated_at BEFORE UPDATE ON email_campaigns
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_email_campaign_recipients_updated_at BEFORE UPDATE ON email_campaign_recipients
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_email_segments_updated_at BEFORE UPDATE ON email_segments
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_email_unsubscribe_preferences_updated_at BEFORE UPDATE ON email_unsubscribe_preferences
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_email_automations_updated_at BEFORE UPDATE ON email_automations
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Enable RLS for Email Marketing Tables
+ALTER TABLE email_templates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE email_campaigns ENABLE ROW LEVEL SECURITY;
+ALTER TABLE email_campaign_recipients ENABLE ROW LEVEL SECURITY;
+ALTER TABLE email_links ENABLE ROW LEVEL SECURITY;
+ALTER TABLE email_link_clicks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE email_segments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE email_suppression_list ENABLE ROW LEVEL SECURITY;
+ALTER TABLE email_unsubscribe_preferences ENABLE ROW LEVEL SECURITY;
+ALTER TABLE email_automations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE email_automation_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE email_analytics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE email_events ENABLE ROW LEVEL SECURITY;
+
+-- Create Policies for Email Marketing Tables
+CREATE POLICY "Allow all for email_templates" ON email_templates FOR ALL USING (true);
+CREATE POLICY "Allow all for email_campaigns" ON email_campaigns FOR ALL USING (true);
+CREATE POLICY "Allow all for email_campaign_recipients" ON email_campaign_recipients FOR ALL USING (true);
+CREATE POLICY "Allow all for email_links" ON email_links FOR ALL USING (true);
+CREATE POLICY "Allow all for email_link_clicks" ON email_link_clicks FOR ALL USING (true);
+CREATE POLICY "Allow all for email_segments" ON email_segments FOR ALL USING (true);
+CREATE POLICY "Allow all for email_suppression_list" ON email_suppression_list FOR ALL USING (true);
+CREATE POLICY "Allow all for email_unsubscribe_preferences" ON email_unsubscribe_preferences FOR ALL USING (true);
+CREATE POLICY "Allow all for email_automations" ON email_automations FOR ALL USING (true);
+CREATE POLICY "Allow all for email_automation_logs" ON email_automation_logs FOR ALL USING (true);
+CREATE POLICY "Allow all for email_analytics" ON email_analytics FOR ALL USING (true);
+CREATE POLICY "Allow all for email_events" ON email_events FOR ALL USING (true);

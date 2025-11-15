@@ -1,485 +1,210 @@
-# Email Marketing & Campaigns Documentation
+# Email Marketing & Campaign Management System
 
 ## Overview
 
-The Email Marketing & Campaigns System provides merchants with a comprehensive solution for managing email communications with customers. Features include template management, scheduled campaigns, delivery tracking, bounce management, compliance tracking, and detailed analytics.
+The Email Marketing & Campaign Management System is a comprehensive solution for creating, managing, and automating email campaigns within the Omni-Sales platform. It provides multi-tenant support with complete campaign lifecycle management, audience segmentation, template management, and advanced automation workflows.
 
 ## Database Schema
 
-### Core Tables
+The email marketing system uses 12 PostgreSQL tables with advanced features including JSON storage for flexible data structures, comprehensive indexing for performance, and Row-Level Security (RLS) for multi-tenant isolation.
 
-#### `email_providers`
-Email service provider configuration (SendGrid, AWS SES, Mailgun, MailerLite, Brevo).
+## Core Tables
 
-**Columns:**
-- `id` (uuid, PK)
-- `user_id` (uuid, FK)
-- `provider_name` (varchar) - SendGrid, AWS SES, Mailgun, MailerLite, Brevo
-- `is_active` (boolean)
-- `api_key` (varchar, encrypted)
-- `api_secret` (varchar, encrypted)
-- `from_email` (varchar)
-- `from_name` (varchar)
-- `reply_to_email` (varchar)
-- `monthly_quota` (integer)
-- `current_usage` (integer)
-- `bounce_rate` (decimal)
-- `spam_rate` (decimal)
-- `reputation_score` (decimal)
-- `supported_countries` (text[])
-- `metadata` (jsonb)
-- `connected_at` (timestamp)
-- `created_at` (timestamp)
-- `updated_at` (timestamp)
+### 1. email_templates
+Stores reusable email templates with support for personalization variables and multiple content formats.
+- Columns: id, user_id, template_name, html_content, text_content, subject_line, variables, description, created_at, updated_at
+- Use Cases: Store multiple campaign templates, maintain template versions, enable variable substitution
 
-#### `email_templates`
-Reusable email templates with HTML and plain text support.
+### 2. email_campaigns
+Main campaign definition table storing all campaign metadata and configuration.
+- Columns: id, user_id, campaign_name, template_id, description, status, scheduled_send_time, sent_at, audience_filter, ab_test_enabled, ab_test_config, created_at, updated_at
+- Statuses: draft, scheduled, sending, sent, paused, failed
+- Use Cases: Create campaigns from templates, schedule campaigns, A/B test, track lifecycle
 
-**Columns:**
-- `id` (uuid, PK)
-- `user_id` (uuid, FK)
-- `name` (varchar) - Template name
-- `template_type` (varchar) - order_confirmation, shipping_update, newsletter, promotional, welcome, password_reset, etc
-- `subject_line` (varchar)
-- `preheader_text` (varchar)
-- `html_content` (text) - Full HTML email body
-- `plain_text_content` (text) - Plain text fallback
-- `variables` (text[]) - {{customer_name}}, {{order_id}}, {{discount_code}}, etc
-- `category` (varchar)
-- `thumbnail_url` (varchar)
-- `is_default` (boolean)
-- `is_active` (boolean)
-- `is_responsive` (boolean)
-- `preview_data` (jsonb)
-- `created_at` (timestamp)
-- `updated_at` (timestamp)
+### 3. email_campaign_recipients
+Individual delivery tracking for each campaign recipient, recording delivery status and engagement metrics.
+- Columns: id, campaign_id, email_address, recipient_name, user_id, status, delivered_at, bounce_type, bounce_reason, opened_at, click_count, personalization_data, created_at, updated_at
+- Statuses: queued, sending, delivered, bounced, suppressed, unsubscribed, complained
+- Use Cases: Track individual delivery status, manage bounces, personalization, calculate rates
 
-#### `email_triggers`
-Automatic triggers for sending emails based on events.
+### 4. email_links
+URL tracking setup for campaigns, storing which URLs are tracked and their click counts.
+- Columns: id, campaign_id, original_url, tracking_url, link_label, click_count, created_at
+- Use Cases: Enable URL-level click tracking, identify effective CTAs, click attribution
 
-**Columns:**
-- `id` (uuid, PK)
-- `user_id` (uuid, FK)
-- `trigger_name` (varchar)
-- `trigger_event` (varchar) - order_placed, payment_received, order_shipped, cart_abandoned, signup, birthday, etc
-- `template_id` (uuid, FK)
-- `is_enabled` (boolean)
-- `delay_minutes` (integer) - Send after N minutes
-- `recipient_type` (varchar) - customer, merchant, both
-- `conditions` (jsonb) - Additional conditions
-- `max_frequency_hours` (integer)
-- `metadata` (jsonb)
-- `created_at` (timestamp)
-- `updated_at` (timestamp)
+### 5. email_link_clicks
+Detailed click event tracking, recording each individual click with user and timestamp information.
+- Columns: id, link_id, recipient_id, campaign_id, user_id, clicked_at, device_type, browser_info, created_at
+- Use Cases: Track engagement with CTAs, analyze click patterns, automation triggers
 
-#### `email_logs`
-Complete record of all sent emails with tracking data.
+### 6. email_segments
+Dynamic audience segments for targeting specific recipient groups in campaigns.
+- Columns: id, user_id, segment_name, description, filter_criteria, recipient_count, last_calculated_at, is_dynamic, created_at, updated_at
+- Use Cases: Define target audiences, create dynamic segments, support complex targeting
 
-**Columns:**
-- `id` (uuid, PK)
-- `user_id` (uuid, FK)
-- `recipient_email` (varchar)
-- `recipient_name` (varchar)
-- `template_type` (varchar)
-- `subject_line` (varchar)
-- `email_body` (text)
-- `status` (varchar) - pending, queued, sent, delivered, bounced, complained, opened, clicked
-- `provider` (varchar)
-- `provider_message_id` (varchar)
-- `delivery_status` (varchar)
-- `bounce_type` (varchar) - hard_bounce, soft_bounce, complaint
-- `bounce_reason` (text)
-- `failure_reason` (text)
-- `failure_code` (varchar)
-- `click_count` (integer)
-- `open_count` (integer)
-- `related_order_id` (uuid)
-- `related_customer_id` (uuid)
-- `metadata` (jsonb)
-- `sent_at` (timestamp)
-- `delivered_at` (timestamp)
-- `opened_at` (timestamp)
-- `clicked_at` (timestamp)
-- `bounced_at` (timestamp)
-- `created_at` (timestamp)
-- `updated_at` (timestamp)
+### 7. email_suppression_list
+Manages suppressed and unsubscribed email addresses to prevent sending to opted-out users.
+- Columns: id, user_id, email_address, reason, campaign_id, suppressed_at, suppressed_reason_detail, created_at
+- Reasons: unsubscribed, hard_bounce, complaint, manual
+- Use Cases: Prevent sending to unsubscribed addresses, manage bounces, compliance
 
-#### `email_queue`
-Queue for asynchronous email sending.
+### 8. email_unsubscribe_preferences
+Granular unsubscribe preferences allowing users to manage subscription at category level.
+- Columns: id, user_id, email_address, campaign_category, is_subscribed, updated_at, created_at
+- Categories: promotions, newsletters, product_updates, transactional
+- Use Cases: Preference centers, category-based unsubscribes, email best practices
 
-**Columns:**
-- `id` (uuid, PK)
-- `user_id` (uuid, FK)
-- `recipient_email` (varchar)
-- `recipient_name` (varchar)
-- `template_id` (uuid, FK)
-- `subject_line` (varchar)
-- `html_content` (text)
-- `plain_text_content` (text)
-- `variables` (jsonb)
-- `status` (varchar) - pending, processing, sent, failed
-- `retry_count` (integer)
-- `max_retries` (integer)
-- `scheduled_for` (timestamp)
-- `sent_at` (timestamp)
-- `error_message` (text)
-- `related_order_id` (uuid)
-- `created_at` (timestamp)
-- `updated_at` (timestamp)
+### 9. email_automations
+Defines automated email workflows triggered by specific events or schedules.
+- Columns: id, user_id, automation_name, description, automation_type, trigger_type, trigger_criteria, status, template_sequence, max_emails_per_user, created_at, updated_at
+- Types: welcome_series, abandoned_cart, win_back, birthday, re_engagement, drip_campaign, event_triggered
+- Use Cases: Welcome series, cart recovery, re-engagement, birthday campaigns
 
-#### `email_preferences`
-Customer email notification preferences.
+### 10. email_automation_logs
+Execution history of automated campaigns, tracking when automations ran and for which recipients.
+- Columns: id, automation_id, campaign_id, user_id, trigger_event_id, recipients_count, executed_at, next_run_scheduled, status, error_message, created_at
+- Use Cases: Track execution history, debug failures, monitor performance
 
-**Columns:**
-- `id` (uuid, PK)
-- `user_id` (uuid, FK)
-- `customer_id` (uuid, FK)
-- `email_address` (varchar)
-- `email_verified` (boolean)
-- `verified_at` (timestamp)
-- `all_emails` (boolean)
-- `order_notifications` (boolean)
-- `order_confirmation` (boolean)
-- `shipping_updates` (boolean)
-- `delivery_confirmation` (boolean)
-- `payment_reminders` (boolean)
-- `promotional_offers` (boolean)
-- `newsletter` (boolean)
-- `product_recommendations` (boolean)
-- `weekly_digest` (boolean)
-- `birthday_offers` (boolean)
-- `flash_sales` (boolean)
-- `abandoned_cart` (boolean)
-- `is_opted_in` (boolean)
-- `opted_in_date` (timestamp)
-- `opted_out_date` (timestamp)
-- `opted_out_reason` (varchar)
-- `do_not_contact` (boolean)
-- `unsubscribe_token` (varchar)
-- `created_at` (timestamp)
-- `updated_at` (timestamp)
+### 11. email_analytics
+Aggregated campaign performance metrics for dashboard and reporting.
+- Columns: id, campaign_id, user_id, total_recipients, delivered_count, bounce_count, open_count, click_count, unsubscribe_count, complaint_count, conversion_count, open_rate, click_rate, bounce_rate, conversion_rate, calculated_at, created_at
+- Use Cases: Dashboard KPIs, campaign reports, performance comparison
 
-#### `email_campaigns`
-Bulk email campaigns for marketing and promotions.
+### 12. email_events
+Detailed event log for all email activities providing audit trail and data for analytics.
+- Columns: id, campaign_id, recipient_id, user_id, event_type, event_timestamp, metadata, created_at
+- Event Types: sent, delivered, open, click, bounce, complaint, unsubscribe, suppressed
+- Use Cases: Audit trail, engagement tracking, compliance, event processing
 
-**Columns:**
-- `id` (uuid, PK)
-- `user_id` (uuid, FK)
-- `campaign_name` (varchar)
-- `description` (text)
-- `campaign_type` (varchar) - newsletter, promotional, transactional, welcome, educational, seasonal, cart_recovery
-- `status` (varchar) - draft, scheduled, active, paused, completed, cancelled
-- `template_id` (uuid, FK)
-- `subject_line` (varchar)
-- `preheader_text` (varchar)
-- `html_content` (text)
-- `plain_text_content` (text)
-- `target_audience` (varchar) - all, segment, vip, at_risk, new_customers, birthday, inactive
-- `target_segment_id` (uuid)
-- `recipient_count` (integer)
-- `segment_filter` (jsonb)
-- `scheduled_for` (timestamp)
-- `started_at` (timestamp)
-- `completed_at` (timestamp)
-- `budget_limit` (decimal)
-- `total_cost` (decimal)
-- `sent_count` (integer)
-- `delivered_count` (integer)
-- `opened_count` (integer)
-- `clicked_count` (integer)
-- `bounced_count` (integer)
-- `complained_count` (integer)
-- `unsubscribed_count` (integer)
-- `conversion_count` (integer)
-- `revenue_generated` (decimal)
-- `open_rate` (decimal)
-- `click_rate` (decimal)
-- `conversion_rate` (decimal)
-- `created_at` (timestamp)
-- `updated_at` (timestamp)
-
-#### `email_analytics`
-Daily email metrics and statistics.
-
-**Columns:**
-- `id` (uuid, PK)
-- `user_id` (uuid, FK)
-- `date` (timestamp)
-- `total_sent` (integer)
-- `total_delivered` (integer)
-- `total_bounced` (integer)
-- `total_complained` (integer)
-- `total_unsubscribed` (integer)
-- `total_opened` (integer)
-- `total_clicked` (integer)
-- `total_revenue` (decimal)
-- `total_conversions` (integer)
-- `unique_opens` (integer)
-- `unique_clicks` (integer)
-- `delivery_rate` (decimal)
-- `bounce_rate` (decimal)
-- `complaint_rate` (decimal)
-- `open_rate` (decimal)
-- `click_rate` (decimal)
-- `conversion_rate` (decimal)
-- `revenue_per_email` (decimal)
-- `unique_recipients` (integer)
-- `campaign_id` (uuid)
-- `created_at` (timestamp)
-
-#### `email_bounces`
-Track undeliverable email addresses.
-
-**Columns:**
-- `id` (uuid, PK)
-- `user_id` (uuid, FK)
-- `email_address` (varchar)
-- `bounce_type` (varchar) - hard_bounce, soft_bounce, complaint
-- `bounce_reason` (text)
-- `is_permanent` (boolean)
-- `first_bounce_at` (timestamp)
-- `last_bounce_at` (timestamp)
-- `bounce_count` (integer)
-- `suppression_status` (varchar) - active, inactive
-- `created_at` (timestamp)
-- `updated_at` (timestamp)
-
-#### `email_compliance`
-GDPR, CAN-SPAM, and regulatory compliance tracking.
-
-**Columns:**
-- `id` (uuid, PK)
-- `user_id` (uuid, FK)
-- `customer_id` (uuid)
-- `email_address` (varchar)
-- `consent_type` (varchar) - marketing, transactional, newsletter, promotional
-- `consent_status` (varchar) - opted_in, opted_out, pending, revoked, unsupported
-- `consent_date` (timestamp)
-- `consent_method` (varchar) - web_form, email, import, api, import_without_consent
-- `ip_address` (varchar)
-- `user_agent` (varchar)
-- `regulatory_framework` (varchar) - CAN-SPAM, GDPR, CASL, PECR
-- `double_opt_in_date` (timestamp)
-- `list_id` (varchar)
-- `notes` (text)
-- `created_at` (timestamp)
-- `updated_at` (timestamp)
-
-## TypeScript Types
-
-All types defined in `/types/index.ts`:
-- `EmailProvider`
-- `EmailTemplate`
-- `EmailTrigger`
-- `EmailLog`
-- `EmailQueue`
-- `EmailPreferences`
-- `EmailCampaign`
-- `EmailAnalytics`
-- `EmailBounce`
-- `EmailCompliance`
-
-## Service Functions
-
-Location: `/lib/email/service.ts`
+## Service Layer Functions
 
 ### Template Management
+- **getTemplates(userId)**: Retrieves all email templates for a user
+- **createTemplate(userId, templateData)**: Creates a new email template
 
-#### `createEmailTemplate(userId, template): Promise<EmailTemplate | null>`
-Create email template.
+### Campaign Management
+- **getCampaigns(userId)**: Retrieves all campaigns for a user
+- **createCampaign(userId, campaignData)**: Creates a new email campaign
+- **updateCampaign(userId, campaignId, updates)**: Updates existing campaign
+- **sendCampaign(userId, campaignId)**: Sends a campaign immediately
 
-#### `getEmailTemplates(userId): Promise<EmailTemplate[]>`
-Fetch active email templates.
+### Recipient Management
+- **getRecipients(userId, campaignId)**: Gets all recipients for a campaign
+- **addCampaignRecipients(userId, campaignId, recipients)**: Adds recipients to campaign
 
-#### `updateEmailTemplate(templateId, updates): Promise<boolean>`
-Update template.
+### Segment Management
+- **getSegments(userId)**: Retrieves all segments for a user
+- **createSegment(userId, segmentData)**: Creates a new audience segment
 
-### Sending
+### Automation Management
+- **getAutomations(userId)**: Retrieves all automations for a user
+- **createAutomation(userId, automationData)**: Creates a new automated workflow
 
-#### `queueEmail(userId, email): Promise<boolean>`
-Queue email for sending.
-
-#### `logEmail(userId, log): Promise<EmailLog | null>`
-Log email attempt.
-
-#### `updateEmailLogStatus(logId, status, deliveredAt?, openedAt?, clickedAt?): Promise<boolean>`
-Update email delivery status.
-
-### Preferences
-
-#### `getEmailPreferences(customerId): Promise<EmailPreferences | null>`
-Get customer email preferences.
-
-#### `updateEmailPreferences(userId, customerId, preferences): Promise<boolean>`
-Update customer preferences.
-
-### Campaigns
-
-#### `createEmailCampaign(userId, campaign): Promise<EmailCampaign | null>`
-Create bulk email campaign.
-
-#### `getEmailCampaigns(userId, status?): Promise<EmailCampaign[]>`
-Fetch campaigns by status.
-
-#### `updateEmailCampaignStatus(campaignId, status): Promise<boolean>`
-Update campaign status.
-
-### Analytics
-
-#### `recordEmailAnalytics(userId, analytics): Promise<EmailAnalytics | null>`
-Record daily metrics.
-
-#### `getEmailAnalytics(userId, days?): Promise<EmailAnalytics[]>`
-Fetch historical analytics.
-
-### Logs
-
-#### `getEmailLogs(userId, status?, limit?): Promise<EmailLog[]>`
-Retrieve email logs.
-
-### Bounce Management
-
-#### `recordBounce(userId, emailAddress, bounceType, bounceReason?): Promise<boolean>`
-Track undeliverable emails.
-
-### Compliance
-
-#### `recordConsentForEmail(userId, customerId, emailAddress, consentStatus, consentMethod, regulatoryFramework?): Promise<boolean>`
-Record customer consent.
-
-### Provider Management
-
-#### `getEmailProviders(userId): Promise<EmailProvider[]>`
-Fetch email providers.
-
-#### `getActiveEmailProvider(userId): Promise<EmailProvider | null>`
-Fetch active provider.
+### Dashboard & Analytics
+- **getEmailMarketingDashboardData(userId)**: Retrieves comprehensive dashboard metrics
+  - Returns: totalCampaigns, activeCampaigns, totalSubscribers, suppressed, avgOpenRate, avgClickRate, avgConversionRate, recentCampaigns, topPerformingCampaigns, automationCount, templateCount, segmentCount, campaignsByStatus
 
 ## API Endpoints
 
-### Templates
+### GET /api/email/dashboard
+Retrieves email marketing dashboard data with all KPI metrics.
+- Query: userId (required)
+- Returns: Dashboard data with metrics and campaigns
 
-**GET** `/api/email/templates?userId=...`
-List email templates.
+### POST /api/email/campaigns
+Creates a new email campaign.
+- Body: userId, campaign_name, template_id, description, scheduled_send_time, audience_filter, ab_test_enabled, ab_test_config
 
-**POST** `/api/email/templates`
-Create template.
+### GET /api/email/campaigns
+Retrieves all campaigns for a user.
+- Query: userId (required), status (optional)
+- Returns: Array of campaigns with total count
 
-### Send Email
+### GET /api/email/recipients
+Retrieves all recipients for a campaign.
+- Query: userId (required), campaignId (required), status (optional)
+- Returns: Array of recipients with total count
 
-**POST** `/api/email/send`
-Queue email for sending.
-
-### Campaigns
-
-**GET** `/api/email/campaigns?userId=...&status=...`
-List campaigns.
-
-**POST** `/api/email/campaigns`
-Create campaign.
-
-## UI Components
-
-### Email Dashboard (`/app/email/page.tsx`)
-
-Features:
-- Template management (create, edit, delete)
-- Campaign management
-- Email logs and delivery tracking
-- Analytics dashboard
-- KPI cards (templates, campaigns, sent, open rate)
-
-## Features
-
-✅ **Template Management** - Reusable email templates
-✅ **Template Variables** - Dynamic content insertion
-✅ **Message Scheduling** - Send at specific times
-✅ **Bulk Campaigns** - Send to customer segments
-✅ **Delivery Tracking** - Real-time email status
-✅ **Bounce Management** - Track undeliverable emails
-✅ **Analytics** - Open rates, click rates, costs
-✅ **Compliance** - GDPR, CAN-SPAM, CASL, PECR
-✅ **Opt-in/Out** - Customer preferences
-✅ **Multi-Provider** - SendGrid, AWS SES, Mailgun, MailerLite, Brevo
+### GET /api/email/analytics
+Retrieves analytics for a specific campaign.
+- Query: userId (required), campaignId (required)
+- Returns: Campaign analytics with rates and metrics
 
 ## Best Practices
 
-- Use responsive email templates
-- Test all templates before sending
-- Include unsubscribe link in all marketing emails
-- Respect customer preferences
-- Monitor bounce rates
-- Track open and click rates
-- Use A/B testing for subject lines
-- Segment customers for targeted campaigns
-- Maintain clean email lists
-- Monitor sender reputation score
+### Email Campaign Design
+1. **Subject Line Optimization** - Keep under 50 chars, personalize, A/B test
+2. **Template Design** - Responsive, plain text fallback, proper contrast, cross-client testing
+3. **Content Strategy** - 80/20 rule, clear CTAs, concise, include unsubscribe
 
-## Compliance
+### Audience Management
+4. **Segmentation** - Segment by engagement, create dynamic segments, clean inactive, respect preferences
+5. **Suppression List** - Auto-suppress bounces, honor unsubscribes, review complaints, maintain compliance
 
-- **CAN-SPAM** - Identify as advertisement, include opt-out
-- **GDPR** - Explicit consent required, respect preferences
-- **CASL** - Detailed consent records
-- **PECR** - Prior consent for marketing
-- Maintain double opt-in records
-- Store consent method and date
-- Allow easy unsubscription
-- Process unsubscribe requests within 10 business days
+### Campaign Execution
+6. **Scheduling** - Test before sending, optimal times (10am-2pm), avoid Friday bulk sends, monitor bounces
+7. **Automation** - Welcome series (3-5 emails), re-engagement (6 months), abandoned cart (1-5 days), monitor performance
 
-## Performance
+### Analytics and Optimization
+8. **Key Metrics** - Open Rate: 20-40%, Click Rate: 2-5%, Bounce: <2%, Unsubscribe: monitor, Complaint: <0.1%
+9. **Testing** - A/B test subjects, send times, content; use click data for CTAs; test frequency; improve segmentation
+10. **Compliance** - Include physical address, honor preferences, authenticate email (SPF/DKIM/DMARC), follow regulations
 
-- Batch email processing
-- Queue-based asynchronous sending
-- Index on email address and status
-- Archive old logs monthly
-- Cache analytics data
-- Optimize query performance
-- Implement exponential backoff for retries
-- Rate limiting per provider
+## Compliance Considerations
+
+### CAN-SPAM Act (USA)
+- Clear advertisement identification
+- Valid physical postal address
+- Clear unsubscribe mechanism
+- Honor requests within 10 days
+
+### GDPR (EU)
+- Explicit consent for promotional emails
+- Easy consent withdrawal
+- Maintain consent records
+- Enable data subject rights
+
+### CASL (Canada)
+- Express or implied consent
+- Clear sender identification
+- Functioning unsubscribe
+- Contact information required
 
 ## Troubleshooting
 
-### Emails Not Sending
-
-- Check provider configuration
-- Verify email format
-- Check API keys/credentials
-- Verify sender email is authorized
-- Check queue for pending items
-
-### High Bounce Rate
-
-- Verify email addresses
-- Remove hard bounces from list
-- Check customer data quality
-- Clean email list regularly
-
-### Delivery Issues
-
-- Check provider status
-- Review failure codes
-- Monitor retry attempts
-- Check rate limiting
+### High Bounce Rates
+- Hard Bounces: Remove invalid addresses
+- Soft Bounces: Monitor and retry
+- Action: Review list quality, validate emails
 
 ### Low Open Rates
+- Subject line too generic: Test more compelling subjects
+- Suboptimal send time: Try different windows
+- Cold engagement: Segment and skip cold recipients
 
-- Test subject lines
-- Optimize send times
-- Improve template design
-- Segment better
-- Review content relevance
+### High Unsubscribe Rates
+- Content not relevant: Review segmentation
+- Too frequent: Reduce frequency
+- No value: Improve content quality
 
-## Integrations
+### Deliverability Issues
+- Check SPF/DKIM/DMARC authentication
+- Monitor sender reputation
+- Use dedicated IP
+- Authenticate templates
 
-- **SendGrid** - Full support
-- **AWS SES** - Full support
-- **Mailgun** - Full support
-- **MailerLite** - Full support
-- **Brevo** - Full support
+## System Limits
+- Campaign Size: Up to 1,000,000 recipients
+- Template Size: Up to 10MB HTML
+- Automation Sequences: Up to 50 emails
+- Concurrent Sends: Provider limited
+- Attachments: Not currently supported
 
-## Migration & Data Import
-
-- Support bulk email import
-- Consent verification on import
-- Duplicate detection
-- List segmentation on import
+## Version History
+**v1.0 - Initial Release**
+- Core campaign management
+- Template system
+- Segmentation
+- Basic automation
+- Dashboard and analytics
+- Compliance features
