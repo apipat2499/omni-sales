@@ -1,30 +1,21 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/client';
+import { NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/client';
 
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
+    const supabase = createClient();
+
     const { error } = await supabase
       .from('notifications')
-      .update({ is_read: true })
-      .eq('is_read', false);
+      .update({ read: true, read_at: new Date().toISOString() })
+      .eq('read', false);
 
     if (error) {
-      console.error('Error marking all notifications as read:', error);
-      return NextResponse.json(
-        { error: 'Failed to mark all notifications as read', details: error.message },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: 'Failed to mark notifications as read' }, { status: 500 });
     }
 
-    return NextResponse.json(
-      { message: 'All notifications marked as read' },
-      { status: 200 }
-    );
+    return NextResponse.json({ message: 'All notifications marked as read' });
   } catch (error) {
-    console.error('Unexpected error in POST /api/notifications/mark-all-read:', error);
-    return NextResponse.json(
-      { error: 'An unexpected error occurred' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
