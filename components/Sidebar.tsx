@@ -17,6 +17,7 @@ import {
   AlertTriangle,
   Camera,
   Tag,
+  Truck,
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -32,6 +33,7 @@ const navigation = [
   { name: 'Orders', href: '/orders', icon: ShoppingCart },
   { name: 'Customers', href: '/customers', icon: Users },
   { name: 'Promotions', href: '/promotions', icon: Tag },
+  { name: 'Suppliers', href: '/suppliers', icon: Truck },
   { name: 'Reports', href: '/reports', icon: BarChart3 },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
