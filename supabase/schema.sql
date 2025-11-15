@@ -647,6 +647,189 @@ CREATE POLICY "Allow all for report_files" ON report_files FOR ALL USING (true);
 CREATE POLICY "Allow all for anomalies" ON anomalies FOR ALL USING (true);
 
 -- Original Policies
+-- Email & Notification Tables
+
+-- Email Templates (Order confirmation, payment receipt, etc)
+CREATE TABLE IF NOT EXISTS email_templates (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  template_type VARCHAR(50) NOT NULL,
+  subject VARCHAR(255) NOT NULL,
+  html_content TEXT NOT NULL,
+  text_content TEXT,
+  variables TEXT[] DEFAULT '{}',
+  is_default BOOLEAN DEFAULT false,
+  is_active BOOLEAN DEFAULT true,
+  preview_data JSONB DEFAULT '{}',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(user_id, template_type)
+);
+
+-- Email Logs (Track all sent emails)
+CREATE TABLE IF NOT EXISTS email_logs (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  recipient_email VARCHAR(255) NOT NULL,
+  recipient_name VARCHAR(255),
+  subject VARCHAR(255) NOT NULL,
+  template_type VARCHAR(50),
+  status VARCHAR(50) NOT NULL DEFAULT 'pending',
+  provider VARCHAR(50),
+  provider_id VARCHAR(255),
+  opened BOOLEAN DEFAULT false,
+  clicked BOOLEAN DEFAULT false,
+  opened_at TIMESTAMP WITH TIME ZONE,
+  clicked_at TIMESTAMP WITH TIME ZONE,
+  bounced BOOLEAN DEFAULT false,
+  bounced_reason TEXT,
+  related_order_id UUID REFERENCES orders(id),
+  related_customer_id UUID REFERENCES customers(id),
+  metadata JSONB DEFAULT '{}',
+  sent_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Email Triggers (When to send emails)
+CREATE TABLE IF NOT EXISTS email_triggers (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  trigger_name VARCHAR(100) NOT NULL,
+  trigger_event VARCHAR(100) NOT NULL,
+  template_id UUID REFERENCES email_templates(id),
+  is_enabled BOOLEAN DEFAULT true,
+  delay_minutes INTEGER DEFAULT 0,
+  recipient_type VARCHAR(50) NOT NULL,
+  conditions JSONB DEFAULT '{}',
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Email Queue (For sending emails asynchronously)
+CREATE TABLE IF NOT EXISTS email_queue (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  recipient_email VARCHAR(255) NOT NULL,
+  recipient_name VARCHAR(255),
+  template_id UUID REFERENCES email_templates(id),
+  subject VARCHAR(255) NOT NULL,
+  html_content TEXT NOT NULL,
+  variables JSONB DEFAULT '{}',
+  status VARCHAR(50) NOT NULL DEFAULT 'pending',
+  retry_count INTEGER DEFAULT 0,
+  max_retries INTEGER DEFAULT 3,
+  scheduled_for TIMESTAMP WITH TIME ZONE,
+  sent_at TIMESTAMP WITH TIME ZONE,
+  error_message TEXT,
+  related_order_id UUID REFERENCES orders(id),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Email Preferences (User settings for notifications)
+CREATE TABLE IF NOT EXISTS email_preferences (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL UNIQUE,
+  daily_summary_enabled BOOLEAN DEFAULT true,
+  daily_summary_time VARCHAR(5) DEFAULT '08:00',
+  new_order_notification BOOLEAN DEFAULT true,
+  payment_confirmation BOOLEAN DEFAULT true,
+  low_stock_alert BOOLEAN DEFAULT true,
+  low_stock_threshold INTEGER DEFAULT 10,
+  customer_emails_enabled BOOLEAN DEFAULT true,
+  marketing_emails BOOLEAN DEFAULT false,
+  weekly_analytics BOOLEAN DEFAULT true,
+  monthly_report BOOLEAN DEFAULT true,
+  promotional_emails BOOLEAN DEFAULT false,
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Email Subscriptions (For customers to manage their preferences)
+CREATE TABLE IF NOT EXISTS email_subscriptions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  customer_id UUID REFERENCES customers(id) ON DELETE CASCADE,
+  email VARCHAR(255) NOT NULL,
+  subscription_type VARCHAR(100) NOT NULL,
+  is_subscribed BOOLEAN DEFAULT true,
+  unsubscribed_at TIMESTAMP WITH TIME ZONE,
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(customer_id, subscription_type)
+);
+
+-- Email Bounces & Complaints (For list management)
+CREATE TABLE IF NOT EXISTS email_bounces (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  email VARCHAR(255) NOT NULL,
+  bounce_type VARCHAR(50) NOT NULL,
+  bounce_reason TEXT,
+  is_permanent BOOLEAN DEFAULT false,
+  first_bounce_at TIMESTAMP WITH TIME ZONE,
+  last_bounce_at TIMESTAMP WITH TIME ZONE,
+  bounce_count INTEGER DEFAULT 1,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(email)
+);
+
+-- Create Indexes for Email Tables
+CREATE INDEX IF NOT EXISTS idx_email_templates_user_type ON email_templates(user_id, template_type);
+CREATE INDEX IF NOT EXISTS idx_email_logs_user_status ON email_logs(user_id, status);
+CREATE INDEX IF NOT EXISTS idx_email_logs_recipient ON email_logs(recipient_email);
+CREATE INDEX IF NOT EXISTS idx_email_logs_created_at ON email_logs(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_email_triggers_user_event ON email_triggers(user_id, trigger_event);
+CREATE INDEX IF NOT EXISTS idx_email_queue_status ON email_queue(status);
+CREATE INDEX IF NOT EXISTS idx_email_queue_scheduled_at ON email_queue(scheduled_for);
+CREATE INDEX IF NOT EXISTS idx_email_preferences_user ON email_preferences(user_id);
+CREATE INDEX IF NOT EXISTS idx_email_subscriptions_customer ON email_subscriptions(customer_id);
+CREATE INDEX IF NOT EXISTS idx_email_bounces_email ON email_bounces(email);
+
+-- Create Triggers for Email Tables
+CREATE TRIGGER update_email_templates_updated_at BEFORE UPDATE ON email_templates
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_email_logs_updated_at BEFORE UPDATE ON email_logs
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_email_triggers_updated_at BEFORE UPDATE ON email_triggers
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_email_queue_updated_at BEFORE UPDATE ON email_queue
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_email_preferences_updated_at BEFORE UPDATE ON email_preferences
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_email_subscriptions_updated_at BEFORE UPDATE ON email_subscriptions
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_email_bounces_updated_at BEFORE UPDATE ON email_bounces
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Enable RLS for Email Tables
+ALTER TABLE email_templates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE email_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE email_triggers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE email_queue ENABLE ROW LEVEL SECURITY;
+ALTER TABLE email_preferences ENABLE ROW LEVEL SECURITY;
+ALTER TABLE email_subscriptions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE email_bounces ENABLE ROW LEVEL SECURITY;
+
+-- Create Policies for Email Tables
+CREATE POLICY "Allow all for email_templates" ON email_templates FOR ALL USING (true);
+CREATE POLICY "Allow all for email_logs" ON email_logs FOR ALL USING (true);
+CREATE POLICY "Allow all for email_triggers" ON email_triggers FOR ALL USING (true);
+CREATE POLICY "Allow all for email_queue" ON email_queue FOR ALL USING (true);
+CREATE POLICY "Allow all for email_preferences" ON email_preferences FOR ALL USING (true);
+CREATE POLICY "Allow all for email_subscriptions" ON email_subscriptions FOR ALL USING (true);
+CREATE POLICY "Allow all for email_bounces" ON email_bounces FOR ALL USING (true);
+
 CREATE POLICY "Allow all for products" ON products FOR ALL USING (true);
 CREATE POLICY "Allow all for customers" ON customers FOR ALL USING (true);
 CREATE POLICY "Allow all for orders" ON orders FOR ALL USING (true);

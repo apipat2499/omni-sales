@@ -422,3 +422,106 @@ export interface AnalyticsDashboard {
   customerSegments: Record<string, number>;
   anomalies: Anomaly[];
 }
+
+export type EmailTemplateType =
+  | 'order_confirmation'
+  | 'payment_receipt'
+  | 'order_shipped'
+  | 'order_delivered'
+  | 'low_stock_alert'
+  | 'daily_summary'
+  | 'weekly_report'
+  | 'abandoned_cart'
+  | 'customer_welcome'
+  | 'payment_failed';
+
+export interface EmailTemplate {
+  id: string;
+  userId: string;
+  name: string;
+  templateType: EmailTemplateType;
+  subject: string;
+  htmlContent: string;
+  textContent?: string;
+  variables?: string[];
+  isDefault?: boolean;
+  isActive?: boolean;
+  previewData?: Record<string, unknown>;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface EmailLog {
+  id: string;
+  userId: string;
+  recipientEmail: string;
+  recipientName?: string;
+  subject: string;
+  templateType?: EmailTemplateType;
+  status: 'pending' | 'sent' | 'failed' | 'bounced' | 'complained';
+  provider?: string;
+  providerId?: string;
+  opened?: boolean;
+  clicked?: boolean;
+  openedAt?: Date;
+  clickedAt?: Date;
+  bounced?: boolean;
+  bouncedReason?: string;
+  relatedOrderId?: string;
+  relatedCustomerId?: string;
+  sentAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface EmailPreferences {
+  id: string;
+  userId: string;
+  dailySummaryEnabled?: boolean;
+  dailySummaryTime?: string;
+  newOrderNotification?: boolean;
+  paymentConfirmation?: boolean;
+  lowStockAlert?: boolean;
+  lowStockThreshold?: number;
+  customerEmailsEnabled?: boolean;
+  marketingEmails?: boolean;
+  weeklyAnalytics?: boolean;
+  monthlyReport?: boolean;
+  promotionalEmails?: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface EmailTrigger {
+  id: string;
+  userId: string;
+  triggerName: string;
+  triggerEvent: string;
+  templateId: string;
+  isEnabled?: boolean;
+  delayMinutes?: number;
+  recipientType: string;
+  conditions?: Record<string, unknown>;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface EmailQueueItem {
+  id: string;
+  userId: string;
+  recipientEmail: string;
+  recipientName?: string;
+  templateId?: string;
+  subject: string;
+  htmlContent: string;
+  variables?: Record<string, unknown>;
+  status: 'pending' | 'sent' | 'failed';
+  retryCount?: number;
+  maxRetries?: number;
+  scheduledFor?: Date;
+  sentAt?: Date;
+  errorMessage?: string;
+  relatedOrderId?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
