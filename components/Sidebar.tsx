@@ -14,10 +14,12 @@ import {
   Store,
   LogOut,
   Loader2,
+  Tag,
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import ThemeToggle from './ThemeToggle';
+import NotificationsCenter from './NotificationsCenter';
 import { useAuth } from '@/lib/auth/AuthContext';
 
 const navigation = [
@@ -25,6 +27,7 @@ const navigation = [
   { name: 'Products', href: '/products', icon: Package },
   { name: 'Orders', href: '/orders', icon: ShoppingCart },
   { name: 'Customers', href: '/customers', icon: Users },
+  { name: 'Discounts', href: '/discounts', icon: Tag },
   { name: 'Reports', href: '/reports', icon: BarChart3 },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
@@ -59,6 +62,7 @@ export default function Sidebar() {
             <span className="text-xl font-bold text-gray-900 dark:text-white">Omni Sales</span>
           </div>
           <div className="flex items-center gap-2">
+            <NotificationsCenter />
             <ThemeToggle />
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -96,7 +100,8 @@ export default function Sidebar() {
               <Store className="h-8 w-8 text-blue-600 dark:text-blue-400" />
               <span className="text-2xl font-bold text-gray-900 dark:text-white">Omni Sales</span>
             </div>
-            <div className="hidden lg:block">
+            <div className="hidden lg:flex items-center gap-2">
+              <NotificationsCenter />
               <ThemeToggle />
             </div>
           </div>

@@ -1,7 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
+import { useNotificationPreferences } from '@/lib/hooks/useNotifications';
+import { useToast } from '@/lib/hooks/useToast';
 import { User, Building, Bell, Lock, Palette, CreditCard, Save } from 'lucide-react';
 
 export default function SettingsPage() {
@@ -378,42 +380,147 @@ function BillingSettings() {
 }
 
 function NotificationSettings() {
+  const { preferences, loading, updatePreferences } = useNotificationPreferences();
+  const { showToast } = useToast();
+  const [formData, setFormData] = useState({
+    emailEnabled: true,
+    emailOnOrderCreated: true,
+    emailOnOrderShipped: true,
+    emailOnOrderDelivered: true,
+    emailOnLowStock: true,
+    emailOnOutOfStock: true,
+    lowStockThreshold: 10,
+  });
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (preferences) {
+      setFormData({
+        emailEnabled: preferences.emailEnabled,
+        emailOnOrderCreated: preferences.emailOnOrderCreated,
+        emailOnOrderShipped: preferences.emailOnOrderShipped,
+        emailOnOrderDelivered: preferences.emailOnOrderDelivered,
+        emailOnLowStock: preferences.emailOnLowStock,
+        emailOnOutOfStock: preferences.emailOnOutOfStock,
+        lowStockThreshold: preferences.lowStockThreshold,
+      });
+    }
+  }, [preferences]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await updatePreferences(formData);
+      showToast('บันทึกการตั้งค่าสำเร็จ', 'success');
+    } catch (error: any) {
+      showToast(error.message || 'เกิดข้อผิดพลาด', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return <div className="text-center py-8 text-gray-500">กำลังโหลด...</div>;
+  }
+
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">การแจ้งเตือน</h2>
-        <p className="text-sm text-gray-600 dark:text-gray-400">จัดการการแจ้งเตือนที่คุณต้องการรับ</p>
+        <p className="text-sm text-gray-600 dark:text-gray-400">จัดการการแจ้งเตือนทางอีเมลที่คุณต้องการรับ</p>
       </div>
 
+      {/* Master Email Toggle */}
+      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+        <label className="flex items-start gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={formData.emailEnabled}
+            onChange={(e) => setFormData({ ...formData, emailEnabled: e.target.checked })}
+            className="mt-1 w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+          />
+          <div className="flex-1">
+            <div className="font-medium text-gray-900 dark:text-white">เปิดใช้งานอีเมลแจ้งเตือน</div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">รับการแจ้งเตือนทางอีเมลสำหรับกิจกรรมต่างๆ ในระบบ</div>
+          </div>
+        </label>
+      </div>
+
+      {/* Email Notifications */}
       <div className="space-y-4">
+        <h3 className="font-semibold text-gray-900 dark:text-white">การแจ้งเตือนคำสั่งซื้อ</h3>
+
         <ToggleSetting
-          label="แจ้งเตือนคำสั่งซื้อใหม่"
-          description="รับการแจ้งเตือนเมื่อมีคำสั่งซื้อใหม่"
-          defaultChecked
+          label="คำสั่งซื้อใหม่"
+          description="รับอีเมลเมื่อมีคำสั่งซื้อใหม่"
+          checked={formData.emailOnOrderCreated}
+          disabled={!formData.emailEnabled}
+          onChange={(checked) => setFormData({ ...formData, emailOnOrderCreated: checked })}
         />
+
         <ToggleSetting
-          label="แจ้งเตือนสต็อกสินค้าเหลือน้อย"
-          description="รับการแจ้งเตือนเมื่อสต็อกสินค้าต่ำกว่า 10 ชิ้น"
-          defaultChecked
+          label="คำสั่งซื้อถูกจัดส่ง"
+          description="รับอีเมลเมื่อคำสั่งซื้อถูกจัดส่ง"
+          checked={formData.emailOnOrderShipped}
+          disabled={!formData.emailEnabled}
+          onChange={(checked) => setFormData({ ...formData, emailOnOrderShipped: checked })}
         />
+
         <ToggleSetting
-          label="แจ้งเตือนลูกค้าใหม่"
-          description="รับการแจ้งเตือนเมื่อมีลูกค้าใหม่สมัครสมาชิก"
-        />
-        <ToggleSetting
-          label="สรุปรายงานรายวัน"
-          description="รับอีเมลสรุปยอดขายประจำวัน"
-          defaultChecked
-        />
-        <ToggleSetting
-          label="สรุปรายงานรายสัปดาห์"
-          description="รับอีเมลสรุปยอดขายประจำสัปดาห์"
+          label="คำสั่งซื้อส่งถึงแล้ว"
+          description="รับอีเมลเมื่อคำสั่งซื้อถูกส่งถึงลูกค้า"
+          checked={formData.emailOnOrderDelivered}
+          disabled={!formData.emailEnabled}
+          onChange={(checked) => setFormData({ ...formData, emailOnOrderDelivered: checked })}
         />
       </div>
 
-      <button className="flex items-center gap-2 px-6 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600">
+      {/* Inventory Notifications */}
+      <div className="space-y-4 pt-6 border-t border-gray-200 dark:border-gray-700">
+        <h3 className="font-semibold text-gray-900 dark:text-white">การแจ้งเตือนสินค้า</h3>
+
+        <ToggleSetting
+          label="สต็อกสินค้าเหลือน้อย"
+          description="รับอีเมลเมื่อสต็อกสินค้าต่ำกว่าเกณฑ์ที่กำหนด"
+          checked={formData.emailOnLowStock}
+          disabled={!formData.emailEnabled}
+          onChange={(checked) => setFormData({ ...formData, emailOnLowStock: checked })}
+        />
+
+        <ToggleSetting
+          label="สินค้าหมดสต็อก"
+          description="รับอีเมลเมื่อสินค้าหมดสต็อก"
+          checked={formData.emailOnOutOfStock}
+          disabled={!formData.emailEnabled}
+          onChange={(checked) => setFormData({ ...formData, emailOnOutOfStock: checked })}
+        />
+
+        <div className="pl-9">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            เกณฑ์สต็อกต่ำ (ชิ้น)
+          </label>
+          <input
+            type="number"
+            min="1"
+            max="100"
+            value={formData.lowStockThreshold}
+            onChange={(e) => setFormData({ ...formData, lowStockThreshold: parseInt(e.target.value) || 10 })}
+            disabled={!formData.emailEnabled}
+            className="w-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50"
+          />
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            แจ้งเตือนเมื่อสต็อกต่ำกว่าจำนวนนี้
+          </p>
+        </div>
+      </div>
+
+      <button
+        onClick={handleSave}
+        disabled={saving || !formData.emailEnabled}
+        className="flex items-center gap-2 px-6 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
         <Save className="h-5 w-5" />
-        บันทึกการเปลี่ยนแปลง
+        {saving ? 'กำลังบันทึก...' : 'บันทึกการเปลี่ยนแปลง'}
       </button>
     </div>
   );
@@ -524,21 +631,31 @@ function AppearanceSettings() {
 function ToggleSetting({
   label,
   description,
-  defaultChecked = false,
+  checked,
+  disabled = false,
+  onChange,
 }: {
   label: string;
   description: string;
-  defaultChecked?: boolean;
+  checked?: boolean;
+  disabled?: boolean;
+  onChange?: (checked: boolean) => void;
 }) {
   return (
-    <div className="flex items-center justify-between py-3">
+    <div className={`flex items-center justify-between py-3 ${disabled ? 'opacity-50' : ''}`}>
       <div>
         <p className="font-medium text-gray-900 dark:text-white">{label}</p>
         <p className="text-sm text-gray-600 dark:text-gray-400">{description}</p>
       </div>
-      <label className="relative inline-flex items-center cursor-pointer">
-        <input type="checkbox" defaultChecked={defaultChecked} className="sr-only peer" />
-        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+      <label className={`relative inline-flex items-center ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+        <input
+          type="checkbox"
+          checked={checked}
+          disabled={disabled}
+          onChange={(e) => onChange?.(e.target.checked)}
+          className="sr-only peer"
+        />
+        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600 peer-disabled:opacity-50 peer-disabled:cursor-not-allowed"></div>
       </label>
     </div>
   );
