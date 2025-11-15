@@ -13,8 +13,8 @@ export default function RevenueChart() {
   }));
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-      <h2 className="text-lg font-bold text-gray-900 mb-4">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+      <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
         รายได้ 14 วันล่าสุด
       </h2>
       <div className="h-80">
@@ -33,9 +33,10 @@ export default function RevenueChart() {
             />
             <Tooltip
               contentStyle={{
-                backgroundColor: 'white',
-                border: '1px solid #e5e7eb',
+                backgroundColor: 'var(--tooltip-bg, white)',
+                border: '1px solid var(--tooltip-border, #e5e7eb)',
                 borderRadius: '8px',
+                color: 'var(--tooltip-text, #111827)',
               }}
               formatter={(value: number, name: string) => [
                 name === 'revenue' ? formatCurrency(value) : value,

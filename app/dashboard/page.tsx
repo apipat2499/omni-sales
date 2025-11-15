@@ -9,8 +9,8 @@ export default function DashboardPage() {
     <DashboardLayout>
       <div className="p-6 space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600 mt-1">ภาพรวมธุรกิจของคุณ</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">ภาพรวมธุรกิจของคุณ</p>
         </div>
 
         <StatsCards />

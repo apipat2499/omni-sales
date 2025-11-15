@@ -14,17 +14,17 @@ import {
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
       {/* Hero Section */}
       <header className="container mx-auto px-4 py-6">
         <nav className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Store className="h-8 w-8 text-blue-600" />
-            <span className="text-2xl font-bold text-gray-900">Omni Sales</span>
+            <Store className="h-8 w-8 text-blue-600 dark:text-blue-500" />
+            <span className="text-2xl font-bold text-gray-900 dark:text-white">Omni Sales</span>
           </div>
           <Link
             href="/dashboard"
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            className="px-6 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors font-medium"
           >
             เข้าสู่ระบบ
           </Link>
@@ -34,17 +34,17 @@ export default function Home() {
       <main>
         {/* Hero */}
         <section className="container mx-auto px-4 py-20 text-center">
-          <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
+          <h1 className="text-5xl md:text-6xl font-bold text-gray-900 dark:text-white mb-6">
             ระบบจัดการขาย
-            <span className="text-blue-600"> Omnichannel</span>
+            <span className="text-blue-600 dark:text-blue-500"> Omnichannel</span>
           </h1>
-          <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
+          <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-2xl mx-auto">
             จัดการธุรกิจออนไลน์และออฟไลน์ในที่เดียว ติดตามยอดขาย สินค้า และลูกค้าได้แบบ Real-time
           </p>
           <div className="flex gap-4 justify-center">
             <Link
               href="/dashboard"
-              className="px-8 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-lg flex items-center gap-2"
+              className="px-8 py-4 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors font-medium text-lg flex items-center gap-2"
             >
               เริ่มใช้งาน
               <ArrowRight className="h-5 w-5" />
@@ -54,7 +54,7 @@ export default function Home() {
 
         {/* Features */}
         <section className="container mx-auto px-4 py-20">
-          <h2 className="text-4xl font-bold text-center text-gray-900 mb-16">
+          <h2 className="text-4xl font-bold text-center text-gray-900 dark:text-white mb-16">
             ฟีเจอร์หลัก
           </h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -92,8 +92,8 @@ export default function Home() {
         </section>
 
         {/* Channels */}
-        <section className="container mx-auto px-4 py-20 bg-white/50 backdrop-blur rounded-3xl my-10">
-          <h2 className="text-4xl font-bold text-center text-gray-900 mb-16">
+        <section className="container mx-auto px-4 py-20 bg-white/50 dark:bg-gray-800/50 backdrop-blur rounded-3xl my-10">
+          <h2 className="text-4xl font-bold text-center text-gray-900 dark:text-white mb-16">
             รองรับทุกช่องทางการขาย
           </h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -122,7 +122,7 @@ export default function Home() {
 
         {/* Benefits */}
         <section className="container mx-auto px-4 py-20">
-          <h2 className="text-4xl font-bold text-center text-gray-900 mb-16">
+          <h2 className="text-4xl font-bold text-center text-gray-900 dark:text-white mb-16">
             ทำไมต้องเลือกเรา
           </h2>
           <div className="max-w-3xl mx-auto space-y-6">
@@ -156,7 +156,7 @@ export default function Home() {
       </main>
 
       {/* Footer */}
-      <footer className="container mx-auto px-4 py-8 text-center text-gray-600">
+      <footer className="container mx-auto px-4 py-8 text-center text-gray-600 dark:text-gray-400">
         <p>&copy; 2024 Omni Sales. All rights reserved.</p>
       </footer>
     </div>
@@ -173,10 +173,10 @@ function FeatureCard({
   description: string;
 }) {
   return (
-    <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow">
+    <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow border border-gray-200 dark:border-gray-700">
       <div className="mb-4">{icon}</div>
-      <h3 className="text-xl font-bold text-gray-900 mb-2">{title}</h3>
-      <p className="text-gray-600">{description}</p>
+      <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{title}</h3>
+      <p className="text-gray-600 dark:text-gray-300">{description}</p>
     </div>
   );
 }
@@ -193,8 +193,8 @@ function ChannelCard({
   return (
     <div className="text-center">
       <div className="flex justify-center mb-4">{icon}</div>
-      <h3 className="text-lg font-bold text-gray-900 mb-1">{title}</h3>
-      <p className="text-gray-600 text-sm">{description}</p>
+      <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">{title}</h3>
+      <p className="text-gray-600 dark:text-gray-300 text-sm">{description}</p>
     </div>
   );
 }
@@ -202,8 +202,8 @@ function ChannelCard({
 function BenefitItem({ text }: { text: string }) {
   return (
     <div className="flex items-start gap-3">
-      <CheckCircle2 className="h-6 w-6 text-green-600 flex-shrink-0 mt-0.5" />
-      <p className="text-lg text-gray-700">{text}</p>
+      <CheckCircle2 className="h-6 w-6 text-green-600 dark:text-green-500 flex-shrink-0 mt-0.5" />
+      <p className="text-lg text-gray-700 dark:text-gray-300">{text}</p>
     </div>
   );
 }

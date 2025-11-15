@@ -9,17 +9,17 @@ export default function RecentOrders() {
   const recentOrders = mockOrders.slice(0, 5);
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-      <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+      <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-bold text-gray-900">คำสั่งซื้อล่าสุด</h2>
-          <p className="text-sm text-gray-600 mt-1">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white">คำสั่งซื้อล่าสุด</h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
             รายการคำสั่งซื้อล่าสุดในระบบ
           </p>
         </div>
         <Link
           href="/orders"
-          className="flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700"
+          className="flex items-center gap-1 text-sm font-medium text-blue-600 dark:text-blue-500 hover:text-blue-700 dark:hover:text-blue-400"
         >
           ดูทั้งหมด
           <ArrowRight className="h-4 w-4" />
@@ -27,35 +27,35 @@ export default function RecentOrders() {
       </div>
       <div className="overflow-x-auto">
         <table className="w-full">
-          <thead className="bg-gray-50 border-b border-gray-200">
+          <thead className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-700">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 รหัสออเดอร์
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 ลูกค้า
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 ช่องทาง
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 ยอดรวม
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 สถานะ
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 วันที่
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
             {recentOrders.map((order) => (
-              <tr key={order.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+              <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                   #{order.id.toUpperCase()}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
                   {order.customerName}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -63,7 +63,7 @@ export default function RecentOrders() {
                     {order.channel}
                   </span>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 dark:text-white">
                   {formatCurrency(order.total)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -71,7 +71,7 @@ export default function RecentOrders() {
                     {order.status}
                   </span>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
                   {format(order.createdAt, 'dd MMM yyyy', { locale: th })}
                 </td>
               </tr>

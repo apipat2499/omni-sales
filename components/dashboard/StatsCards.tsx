@@ -61,25 +61,25 @@ function StatCard({
   const isPositive = change >= 0;
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
       <div className="flex items-center justify-between">
         <div className="flex-1">
-          <p className="text-sm font-medium text-gray-600">{title}</p>
-          <p className="text-2xl font-bold text-gray-900 mt-2">{value}</p>
+          <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{title}</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white mt-2">{value}</p>
           <div className="flex items-center gap-1 mt-2">
             {isPositive ? (
-              <TrendingUp className="h-4 w-4 text-green-600" />
+              <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-500" />
             ) : (
-              <TrendingDown className="h-4 w-4 text-red-600" />
+              <TrendingDown className="h-4 w-4 text-red-600 dark:text-red-500" />
             )}
             <span
               className={`text-sm font-medium ${
-                isPositive ? 'text-green-600' : 'text-red-600'
+                isPositive ? 'text-green-600 dark:text-green-500' : 'text-red-600 dark:text-red-500'
               }`}
             >
               {formatPercent(change)}
             </span>
-            <span className="text-sm text-gray-500">เทียบเดือนที่แล้ว</span>
+            <span className="text-sm text-gray-500 dark:text-gray-400">เทียบเดือนที่แล้ว</span>
           </div>
         </div>
         <div className={`${iconBg} ${iconColor} p-3 rounded-lg`}>

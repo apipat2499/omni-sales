@@ -41,13 +41,24 @@
   - ตั้งค่ารูปแบบ
 - 📱 **Responsive Design** - ใช้งานได้บนทุกอุปกรณ์
 - 🎨 **Modern UI** - ออกแบบสวยงามด้วย TailwindCSS
+- 🌙 **Dark Mode** - รองรับโหมดมืดอัตโนมัติ
+  - Theme toggle button ในทุกหน้า
+  - บันทึกค่าการตั้งค่าใน localStorage
+  - รองรับ system preference
+- 💾 **Database Integration** - เชื่อมต่อ Supabase
+  - Database schema พร้อม tables, views, triggers
+  - API routes สำหรับ CRUD operations
+  - Row Level Security (RLS)
+- ✏️ **CRUD Operations - Products** - จัดการสินค้าแบบครบวงจร
+  - เพิ่มสินค้าใหม่ผ่าน Modal
+  - แก้ไขข้อมูลสินค้า
+  - ลบสินค้าพร้อม confirmation
+  - Real-time data จาก Supabase
 
 ### 🚧 ฟีเจอร์ที่รอพัฒนา
 
-- 🌙 Dark Mode
 - 🔐 Authentication System (Supabase Auth)
-- 💾 Database Integration (Supabase)
-- ✏️ CRUD Operations (Create, Update, Delete)
+- ✏️ CRUD Operations for Orders & Customers
 - 📴 PWA & Offline Support
 
 ## 🛠️ Tech Stack

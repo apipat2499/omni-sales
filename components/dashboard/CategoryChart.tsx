@@ -8,8 +8,8 @@ const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#6b7280'
 
 export default function CategoryChart() {
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-      <h2 className="text-lg font-bold text-gray-900 mb-4">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+      <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
         ยอดขายตามหมวดหมู่
       </h2>
       <div className="h-80">
