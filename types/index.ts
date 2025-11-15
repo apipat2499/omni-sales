@@ -101,3 +101,18 @@ export interface CategorySales {
   value: number;
   percentage: number;
 }
+
+export type StockMovementType = 'sale' | 'adjustment' | 'return' | 'restock';
+
+export interface StockMovement {
+  id: string;
+  productId: string;
+  orderId?: string;
+  type: StockMovementType;
+  quantity: number;
+  previousStock: number;
+  newStock: number;
+  notes?: string;
+  createdBy?: string;
+  createdAt: Date;
+}

@@ -57,6 +57,20 @@ CREATE TABLE IF NOT EXISTS order_items (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Stock Movements Table (for tracking inventory changes)
+CREATE TABLE IF NOT EXISTS stock_movements (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  product_id UUID REFERENCES products(id) ON DELETE CASCADE,
+  order_id UUID REFERENCES orders(id) ON DELETE SET NULL,
+  type VARCHAR(50) NOT NULL, -- 'sale', 'adjustment', 'return', 'restock'
+  quantity INTEGER NOT NULL, -- positive for additions, negative for deductions
+  previous_stock INTEGER NOT NULL,
+  new_stock INTEGER NOT NULL,
+  notes TEXT,
+  created_by UUID, -- user who made the change (for future auth)
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Create Indexes
 CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);
 CREATE INDEX IF NOT EXISTS idx_products_sku ON products(sku);
@@ -67,6 +81,10 @@ CREATE INDEX IF NOT EXISTS idx_orders_channel ON orders(channel);
 CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders(created_at);
 CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id);
 CREATE INDEX IF NOT EXISTS idx_order_items_product_id ON order_items(product_id);
+CREATE INDEX IF NOT EXISTS idx_stock_movements_product_id ON stock_movements(product_id);
+CREATE INDEX IF NOT EXISTS idx_stock_movements_order_id ON stock_movements(order_id);
+CREATE INDEX IF NOT EXISTS idx_stock_movements_type ON stock_movements(type);
+CREATE INDEX IF NOT EXISTS idx_stock_movements_created_at ON stock_movements(created_at);
 
 -- Create Views for Statistics
 CREATE OR REPLACE VIEW customer_stats AS
@@ -110,9 +128,11 @@ ALTER TABLE products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE order_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE stock_movements ENABLE ROW LEVEL SECURITY;
 
 -- Create Policies (Allow all for now - adjust based on auth requirements)
 CREATE POLICY "Allow all for products" ON products FOR ALL USING (true);
 CREATE POLICY "Allow all for customers" ON customers FOR ALL USING (true);
 CREATE POLICY "Allow all for orders" ON orders FOR ALL USING (true);
 CREATE POLICY "Allow all for order_items" ON order_items FOR ALL USING (true);
+CREATE POLICY "Allow all for stock_movements" ON stock_movements FOR ALL USING (true);
