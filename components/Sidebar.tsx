@@ -18,6 +18,7 @@ import {
   Camera,
   Tag,
   Truck,
+  TrendingUp,
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -27,6 +28,7 @@ import { useLowStock } from '@/lib/hooks/useLowStock';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Analytics', href: '/analytics', icon: TrendingUp },
   { name: 'Products', href: '/products', icon: Package },
   { name: 'Low Stock', href: '/low-stock', icon: AlertTriangle },
   { name: 'Scanner', href: '/scanner', icon: Camera },
