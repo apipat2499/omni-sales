@@ -2695,3 +2695,160 @@ export interface InventoryAnalytics {
   stockoutPercentage?: number;
   createdAt: Date;
 }
+
+// ============================================
+// RETURNS & RMA MANAGEMENT TYPES
+// ============================================
+
+export interface ReturnReason {
+  id: string;
+  reasonCode: string;
+  reasonName: string;
+  description?: string;
+  isActive: boolean;
+  refundable: boolean;
+  requiresInspection: boolean;
+  createdAt: Date;
+}
+
+export type ReturnStatus = 'pending' | 'authorized' | 'awaiting_return' | 'received' | 'inspecting' | 'processed' | 'rejected' | 'cancelled';
+export type ReturnCondition = 'unopened' | 'like_new' | 'good' | 'fair' | 'poor' | 'damaged';
+export type RefundStatus = 'pending' | 'approved' | 'processed' | 'completed' | 'failed' | 'cancelled';
+export type InspectionStatus = 'pending' | 'in_progress' | 'completed' | 'failed';
+export type ItemInspectionResult = 'pass' | 'fail' | 'partial' | 'pending';
+export type ShippingStatus = 'pending' | 'label_created' | 'shipped' | 'in_transit' | 'delivered' | 'failed';
+
+export interface Return {
+  id: string;
+  userId: string;
+  orderId: string;
+  customerId: string;
+  rmaNumber: string;
+  returnReasonId?: string;
+  reasonDetails?: string;
+  returnStatus: ReturnStatus;
+  returnCondition?: ReturnCondition;
+  subReason?: string;
+  customerNotes?: string;
+  authorizationCode?: string;
+  authorizedAt?: Date;
+  authorizedBy?: string;
+  returnShippingAddress?: string;
+  returnShippingMethod?: string;
+  returnCarrier?: string;
+  returnTrackingNumber?: string;
+  expectedReturnDate?: Date;
+  returnReceivedDate?: Date;
+  refundAmount?: number;
+  refundStatus: RefundStatus;
+  refundMethod?: string;
+  refundProcessedAt?: Date;
+  restockingFeeApplied?: number;
+  restockingFeePercentage?: number;
+  notes?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ReturnItem {
+  id: string;
+  returnId: string;
+  orderItemId: string;
+  productId: string;
+  productName: string;
+  quantityReturned: number;
+  quantityApproved?: number;
+  unitPrice?: number;
+  itemCondition?: ReturnCondition;
+  itemNotes?: string;
+  inspectionNotes?: string;
+  inspectionStatus: InspectionStatus;
+  createdAt: Date;
+}
+
+export interface ReturnInspection {
+  id: string;
+  returnItemId: string;
+  inspectionDate?: Date;
+  inspectorName?: string;
+  conditionAssessment?: string;
+  isResellable?: boolean;
+  damagesFound?: string;
+  photosUrl?: string[];
+  inspectionResult?: ItemInspectionResult;
+  notes?: string;
+  createdAt: Date;
+}
+
+export interface RefundTransaction {
+  id: string;
+  userId: string;
+  returnId: string;
+  orderPaymentId?: string;
+  refundAmount: number;
+  refundMethod?: string;
+  paymentMethod?: string;
+  transactionId?: string;
+  gatewayResponse?: Record<string, any>;
+  refundStatus?: RefundStatus;
+  refundReason?: string;
+  processedAt?: Date;
+  expectedReceiptDate?: Date;
+  actualReceiptDate?: Date;
+  notes?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ReturnShipping {
+  id: string;
+  returnId: string;
+  outboundTrackingNumber?: string;
+  outboundCarrier?: string;
+  outboundShippedDate?: Date;
+  inboundTrackingNumber?: string;
+  inboundCarrier?: string;
+  inboundShippedDate?: Date;
+  inboundDeliveryDate?: Date;
+  warehouseReceivedDate?: Date;
+  shippingLabelUrl?: string;
+  returnInstructionsUrl?: string;
+  shippingCost?: number;
+  isPrepaid: boolean;
+  shippingStatus?: ShippingStatus;
+  notes?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ReturnAnalytics {
+  id: string;
+  userId: string;
+  periodStartDate?: Date;
+  periodEndDate?: Date;
+  totalReturns: number;
+  totalReturnValue?: number;
+  totalRefunded?: number;
+  returnRate?: number;
+  averageDaysToReturn?: number;
+  averageDaysToRefund?: number;
+  resellableItems?: number;
+  unreparableItems?: number;
+  restockingFeesCollected?: number;
+  topReturnReason?: string;
+  refundMethodBreakdown?: Record<string, any>;
+  returnByCategory?: Record<string, any>;
+  createdAt: Date;
+}
+
+export interface ReturnStatistics {
+  totalReturns: number;
+  totalReturnValue: number;
+  returnRate: number;
+  averageRefundAmount: number;
+  averageDaysToRefund: number;
+  resellablePercentage: number;
+  mostCommonReason: string;
+  pendingReturns: number;
+  pendingRefunds: number;
+}

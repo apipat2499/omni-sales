@@ -3784,3 +3784,193 @@ CREATE POLICY "Allow all for suppliers" ON suppliers FOR ALL USING (true);
 CREATE POLICY "Allow all for purchase_orders" ON purchase_orders FOR ALL USING (true);
 CREATE POLICY "Allow all for purchase_order_items" ON purchase_order_items FOR ALL USING (true);
 CREATE POLICY "Allow all for inventory_analytics" ON inventory_analytics FOR ALL USING (true);
+
+-- ============================================
+-- RETURNS & RMA MANAGEMENT SYSTEM TABLES
+-- ============================================
+
+-- Return Reasons Reference Table
+CREATE TABLE IF NOT EXISTS return_reasons (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  reason_code VARCHAR(50) UNIQUE NOT NULL,
+  reason_name VARCHAR(255) NOT NULL,
+  description TEXT,
+  is_active BOOLEAN DEFAULT true,
+  refundable BOOLEAN DEFAULT true,
+  requires_inspection BOOLEAN DEFAULT false,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Main Returns/RMA Table
+CREATE TABLE IF NOT EXISTS returns (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  rma_number VARCHAR(50) UNIQUE NOT NULL,
+  return_reason_id UUID REFERENCES return_reasons(id),
+  reason_details TEXT,
+  return_status VARCHAR(50) DEFAULT 'pending',
+  return_condition VARCHAR(50),
+  sub_reason TEXT,
+  customer_notes TEXT,
+  authorization_code VARCHAR(50),
+  authorized_at TIMESTAMP WITH TIME ZONE,
+  authorized_by UUID,
+  return_shipping_address TEXT,
+  return_shipping_method VARCHAR(100),
+  return_carrier VARCHAR(100),
+  return_tracking_number VARCHAR(255),
+  expected_return_date DATE,
+  return_received_date TIMESTAMP WITH TIME ZONE,
+  refund_amount DECIMAL(12, 2),
+  refund_status VARCHAR(50) DEFAULT 'pending',
+  refund_method VARCHAR(100),
+  refund_processed_at TIMESTAMP WITH TIME ZONE,
+  restocking_fee_applied DECIMAL(12, 2),
+  restocking_fee_percentage DECIMAL(5, 2),
+  notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Return Items
+CREATE TABLE IF NOT EXISTS return_items (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  return_id UUID NOT NULL REFERENCES returns(id) ON DELETE CASCADE,
+  order_item_id UUID NOT NULL REFERENCES order_items(id) ON DELETE CASCADE,
+  product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  product_name VARCHAR(255) NOT NULL,
+  quantity_returned INTEGER NOT NULL,
+  quantity_approved INTEGER,
+  unit_price DECIMAL(10, 2),
+  item_condition VARCHAR(50),
+  item_notes TEXT,
+  inspection_notes TEXT,
+  inspection_status VARCHAR(50) DEFAULT 'pending',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Return Inspections
+CREATE TABLE IF NOT EXISTS return_inspections (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  return_item_id UUID NOT NULL REFERENCES return_items(id) ON DELETE CASCADE,
+  inspection_date TIMESTAMP WITH TIME ZONE,
+  inspector_name VARCHAR(255),
+  condition_assessment VARCHAR(255),
+  is_resellable BOOLEAN,
+  damages_found TEXT,
+  photos_url TEXT[],
+  inspection_result VARCHAR(50),
+  notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Refund Transactions
+CREATE TABLE IF NOT EXISTS refund_transactions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  return_id UUID NOT NULL REFERENCES returns(id) ON DELETE CASCADE,
+  order_payment_id UUID REFERENCES order_payments(id),
+  refund_amount DECIMAL(12, 2) NOT NULL,
+  refund_method VARCHAR(100),
+  payment_method VARCHAR(100),
+  transaction_id VARCHAR(255),
+  gateway_response JSONB,
+  refund_status VARCHAR(50),
+  refund_reason TEXT,
+  processed_at TIMESTAMP WITH TIME ZONE,
+  expected_receipt_date DATE,
+  actual_receipt_date TIMESTAMP WITH TIME ZONE,
+  notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Return Shipping
+CREATE TABLE IF NOT EXISTS return_shipping (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  return_id UUID NOT NULL REFERENCES returns(id) ON DELETE CASCADE,
+  outbound_tracking_number VARCHAR(255),
+  outbound_carrier VARCHAR(100),
+  outbound_shipped_date TIMESTAMP WITH TIME ZONE,
+  inbound_tracking_number VARCHAR(255),
+  inbound_carrier VARCHAR(100),
+  inbound_shipped_date TIMESTAMP WITH TIME ZONE,
+  inbound_delivery_date TIMESTAMP WITH TIME ZONE,
+  warehouse_received_date TIMESTAMP WITH TIME ZONE,
+  shipping_label_url TEXT,
+  return_instructions_url TEXT,
+  shipping_cost DECIMAL(10, 2),
+  is_prepaid BOOLEAN DEFAULT false,
+  shipping_status VARCHAR(50),
+  notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Return Analytics
+CREATE TABLE IF NOT EXISTS return_analytics (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  period_start_date DATE,
+  period_end_date DATE,
+  total_returns INTEGER,
+  total_return_value DECIMAL(12, 2),
+  total_refunded DECIMAL(12, 2),
+  return_rate DECIMAL(5, 2),
+  average_days_to_return INTEGER,
+  average_days_to_refund INTEGER,
+  resellable_items INTEGER,
+  unrepairable_items INTEGER,
+  restocking_fees_collected DECIMAL(12, 2),
+  top_return_reason VARCHAR(255),
+  refund_method_breakdown JSONB,
+  return_by_category JSONB,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create Indexes for Returns
+CREATE INDEX IF NOT EXISTS idx_returns_user ON returns(user_id);
+CREATE INDEX IF NOT EXISTS idx_returns_order ON returns(order_id);
+CREATE INDEX IF NOT EXISTS idx_returns_customer ON returns(customer_id);
+CREATE INDEX IF NOT EXISTS idx_returns_status ON returns(return_status);
+CREATE INDEX IF NOT EXISTS idx_returns_rma_number ON returns(rma_number);
+CREATE INDEX IF NOT EXISTS idx_returns_refund_status ON returns(refund_status);
+CREATE INDEX IF NOT EXISTS idx_returns_created_date ON returns(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_return_items_return ON return_items(return_id);
+CREATE INDEX IF NOT EXISTS idx_return_items_product ON return_items(product_id);
+CREATE INDEX IF NOT EXISTS idx_return_items_inspection_status ON return_items(inspection_status);
+CREATE INDEX IF NOT EXISTS idx_return_inspections_item ON return_inspections(return_item_id);
+CREATE INDEX IF NOT EXISTS idx_refund_transactions_return ON refund_transactions(return_id);
+CREATE INDEX IF NOT EXISTS idx_refund_transactions_status ON refund_transactions(refund_status);
+CREATE INDEX IF NOT EXISTS idx_return_shipping_return ON return_shipping(return_id);
+CREATE INDEX IF NOT EXISTS idx_return_analytics_period ON return_analytics(period_start_date, period_end_date);
+
+-- Create Triggers for Returns
+CREATE TRIGGER update_returns_updated_at BEFORE UPDATE ON returns
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_refund_transactions_updated_at BEFORE UPDATE ON refund_transactions
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_return_shipping_updated_at BEFORE UPDATE ON return_shipping
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Enable RLS for Returns Tables
+ALTER TABLE return_reasons ENABLE ROW LEVEL SECURITY;
+ALTER TABLE returns ENABLE ROW LEVEL SECURITY;
+ALTER TABLE return_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE return_inspections ENABLE ROW LEVEL SECURITY;
+ALTER TABLE refund_transactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE return_shipping ENABLE ROW LEVEL SECURITY;
+ALTER TABLE return_analytics ENABLE ROW LEVEL SECURITY;
+
+-- Create Policies for Returns Tables
+CREATE POLICY "Allow all for return_reasons" ON return_reasons FOR ALL USING (true);
+CREATE POLICY "Allow all for returns" ON returns FOR ALL USING (true);
+CREATE POLICY "Allow all for return_items" ON return_items FOR ALL USING (true);
+CREATE POLICY "Allow all for return_inspections" ON return_inspections FOR ALL USING (true);
+CREATE POLICY "Allow all for refund_transactions" ON refund_transactions FOR ALL USING (true);
+CREATE POLICY "Allow all for return_shipping" ON return_shipping FOR ALL USING (true);
+CREATE POLICY "Allow all for return_analytics" ON return_analytics FOR ALL USING (true);
