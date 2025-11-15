@@ -316,6 +316,114 @@ CREATE TABLE IF NOT EXISTS discount_analytics (
   CONSTRAINT discount_analytics_user_id_fk FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
 
+-- ============================================
+-- REVIEW & RATING MANAGEMENT SYSTEM TABLES
+-- ============================================
+
+-- Product Reviews
+CREATE TABLE IF NOT EXISTS product_reviews (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  customer_id UUID,
+  order_id UUID, -- Reference to order if review is from purchase
+  customer_name VARCHAR(255),
+  customer_email VARCHAR(255),
+  title VARCHAR(255) NOT NULL,
+  content TEXT NOT NULL,
+  rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5), -- 1-5 stars
+  helpful_count INTEGER DEFAULT 0,
+  unhelpful_count INTEGER DEFAULT 0,
+  status VARCHAR(50) DEFAULT 'pending', -- pending, approved, rejected, hidden
+  moderation_notes TEXT,
+  verified_purchase BOOLEAN DEFAULT false,
+  is_featured BOOLEAN DEFAULT false,
+  response_text TEXT, -- Seller response to review
+  response_by UUID, -- User who responded
+  response_at TIMESTAMP WITH TIME ZONE,
+  reported_count INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT product_reviews_user_id_fk FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+
+-- Review Images/Attachments
+CREATE TABLE IF NOT EXISTS review_images (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  review_id UUID NOT NULL REFERENCES product_reviews(id) ON DELETE CASCADE,
+  image_url VARCHAR(500) NOT NULL,
+  alt_text VARCHAR(255),
+  display_order INTEGER,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT review_images_user_id_fk FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+
+-- Review Votes (Helpful/Unhelpful)
+CREATE TABLE IF NOT EXISTS review_votes (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  review_id UUID NOT NULL REFERENCES product_reviews(id) ON DELETE CASCADE,
+  voter_email VARCHAR(255),
+  vote_type VARCHAR(50) NOT NULL, -- helpful, unhelpful
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT review_votes_user_id_fk FOREIGN KEY (user_id) REFERENCES auth.users(id),
+  UNIQUE(review_id, voter_email, vote_type)
+);
+
+-- Review Reports/Flags
+CREATE TABLE IF NOT EXISTS review_reports (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  review_id UUID NOT NULL REFERENCES product_reviews(id) ON DELETE CASCADE,
+  reporter_email VARCHAR(255),
+  report_reason VARCHAR(100) NOT NULL, -- inappropriate, fake, spam, offensive, factually_incorrect
+  report_description TEXT,
+  status VARCHAR(50) DEFAULT 'pending', -- pending, reviewed, actioned, dismissed
+  action_taken VARCHAR(100), -- deleted, hidden, flagged, no_action
+  reviewed_by UUID,
+  reviewed_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT review_reports_user_id_fk FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+
+-- Product Rating Summary (Denormalized for performance)
+CREATE TABLE IF NOT EXISTS product_rating_summaries (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  product_id UUID NOT NULL UNIQUE REFERENCES products(id) ON DELETE CASCADE,
+  total_reviews INTEGER DEFAULT 0,
+  approved_reviews INTEGER DEFAULT 0,
+  average_rating DECIMAL(3, 2) DEFAULT 0, -- 0.00 to 5.00
+  rating_5_count INTEGER DEFAULT 0,
+  rating_4_count INTEGER DEFAULT 0,
+  rating_3_count INTEGER DEFAULT 0,
+  rating_2_count INTEGER DEFAULT 0,
+  rating_1_count INTEGER DEFAULT 0,
+  recommendation_count INTEGER DEFAULT 0, -- Implicit from high ratings
+  last_review_date TIMESTAMP WITH TIME ZONE,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT product_rating_summaries_user_id_fk FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+
+-- Review Analytics/Metrics
+CREATE TABLE IF NOT EXISTS review_analytics (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  date TIMESTAMP WITH TIME ZONE,
+  product_id UUID REFERENCES products(id) ON DELETE SET NULL,
+  total_new_reviews INTEGER DEFAULT 0,
+  approved_reviews INTEGER DEFAULT 0,
+  rejected_reviews INTEGER DEFAULT 0,
+  average_rating DECIMAL(3, 2),
+  positive_reviews INTEGER DEFAULT 0, -- 4-5 stars
+  negative_reviews INTEGER DEFAULT 0, -- 1-2 stars
+  total_helpful_votes INTEGER DEFAULT 0,
+  response_rate DECIMAL(5, 2), -- percentage of reviews with seller response
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT review_analytics_user_id_fk FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+
 -- Create Indexes
 CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);
 CREATE INDEX IF NOT EXISTS idx_products_sku ON products(sku);
@@ -362,6 +470,23 @@ CREATE INDEX IF NOT EXISTS idx_promotional_campaigns_status ON promotional_campa
 CREATE INDEX IF NOT EXISTS idx_discount_analytics_code ON discount_analytics(discount_code_id);
 CREATE INDEX IF NOT EXISTS idx_discount_analytics_campaign ON discount_analytics(campaign_id);
 CREATE INDEX IF NOT EXISTS idx_discount_analytics_date ON discount_analytics(date);
+
+-- Create Indexes for Review Management
+CREATE INDEX IF NOT EXISTS idx_product_reviews_user ON product_reviews(user_id);
+CREATE INDEX IF NOT EXISTS idx_product_reviews_product ON product_reviews(product_id);
+CREATE INDEX IF NOT EXISTS idx_product_reviews_status ON product_reviews(status);
+CREATE INDEX IF NOT EXISTS idx_product_reviews_rating ON product_reviews(rating);
+CREATE INDEX IF NOT EXISTS idx_product_reviews_verified ON product_reviews(verified_purchase);
+CREATE INDEX IF NOT EXISTS idx_product_reviews_created ON product_reviews(created_at);
+CREATE INDEX IF NOT EXISTS idx_product_reviews_order ON product_reviews(order_id);
+CREATE INDEX IF NOT EXISTS idx_review_images_review ON review_images(review_id);
+CREATE INDEX IF NOT EXISTS idx_review_votes_review ON review_votes(review_id);
+CREATE INDEX IF NOT EXISTS idx_review_votes_voter ON review_votes(voter_email);
+CREATE INDEX IF NOT EXISTS idx_review_reports_review ON review_reports(review_id);
+CREATE INDEX IF NOT EXISTS idx_review_reports_status ON review_reports(status);
+CREATE INDEX IF NOT EXISTS idx_product_rating_product ON product_rating_summaries(product_id);
+CREATE INDEX IF NOT EXISTS idx_review_analytics_product ON review_analytics(product_id);
+CREATE INDEX IF NOT EXISTS idx_review_analytics_date ON review_analytics(date);
 
 -- Create Views for Statistics
 CREATE OR REPLACE VIEW customer_stats AS
@@ -1633,6 +1758,14 @@ ALTER TABLE coupon_redemptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE promotional_campaigns ENABLE ROW LEVEL SECURITY;
 ALTER TABLE discount_analytics ENABLE ROW LEVEL SECURITY;
 
+-- Enable RLS for Review Management Tables
+ALTER TABLE product_reviews ENABLE ROW LEVEL SECURITY;
+ALTER TABLE review_images ENABLE ROW LEVEL SECURITY;
+ALTER TABLE review_votes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE review_reports ENABLE ROW LEVEL SECURITY;
+ALTER TABLE product_rating_summaries ENABLE ROW LEVEL SECURITY;
+ALTER TABLE review_analytics ENABLE ROW LEVEL SECURITY;
+
 -- Create Policies for Inventory Tables
 CREATE POLICY "Allow all for warehouses" ON warehouses FOR ALL USING (true);
 CREATE POLICY "Allow all for inventory" ON inventory FOR ALL USING (true);
@@ -1673,3 +1806,11 @@ CREATE POLICY "Allow all for discount_code_segments" ON discount_code_segments F
 CREATE POLICY "Allow all for coupon_redemptions" ON coupon_redemptions FOR ALL USING (true);
 CREATE POLICY "Allow all for promotional_campaigns" ON promotional_campaigns FOR ALL USING (true);
 CREATE POLICY "Allow all for discount_analytics" ON discount_analytics FOR ALL USING (true);
+
+-- Create Policies for Review Management Tables
+CREATE POLICY "Allow all for product_reviews" ON product_reviews FOR ALL USING (true);
+CREATE POLICY "Allow all for review_images" ON review_images FOR ALL USING (true);
+CREATE POLICY "Allow all for review_votes" ON review_votes FOR ALL USING (true);
+CREATE POLICY "Allow all for review_reports" ON review_reports FOR ALL USING (true);
+CREATE POLICY "Allow all for product_rating_summaries" ON product_rating_summaries FOR ALL USING (true);
+CREATE POLICY "Allow all for review_analytics" ON review_analytics FOR ALL USING (true);

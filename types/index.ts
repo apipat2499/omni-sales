@@ -1135,3 +1135,109 @@ export interface DiscountWithDetails extends DiscountCode {
   redemptions?: CouponRedemption[];
   analytics?: DiscountAnalytics[];
 }
+
+// ============================================
+// REVIEW & RATING MANAGEMENT TYPES
+// ============================================
+
+export type ReviewStatus = 'pending' | 'approved' | 'rejected' | 'hidden';
+export type ReportReason = 'inappropriate' | 'fake' | 'spam' | 'offensive' | 'factually_incorrect';
+export type ReportStatus = 'pending' | 'reviewed' | 'actioned' | 'dismissed';
+export type VoteType = 'helpful' | 'unhelpful';
+
+export interface ProductReview {
+  id: string;
+  userId: string;
+  productId: string;
+  customerId?: string;
+  orderId?: string;
+  customerName: string;
+  customerEmail: string;
+  title: string;
+  content: string;
+  rating: number; // 1-5
+  helpfulCount: number;
+  unhelpfulCount: number;
+  status: ReviewStatus;
+  moderationNotes?: string;
+  verifiedPurchase: boolean;
+  isFeatured: boolean;
+  responseText?: string;
+  responseBy?: string;
+  responseAt?: Date;
+  reportedCount: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ReviewImage {
+  id: string;
+  userId: string;
+  reviewId: string;
+  imageUrl: string;
+  altText?: string;
+  displayOrder?: number;
+  createdAt: Date;
+}
+
+export interface ReviewVote {
+  id: string;
+  userId: string;
+  reviewId: string;
+  voterEmail: string;
+  voteType: VoteType;
+  createdAt: Date;
+}
+
+export interface ReviewReport {
+  id: string;
+  userId: string;
+  reviewId: string;
+  reporterEmail: string;
+  reportReason: ReportReason;
+  reportDescription?: string;
+  status: ReportStatus;
+  actionTaken?: string;
+  reviewedBy?: string;
+  reviewedAt?: Date;
+  createdAt: Date;
+}
+
+export interface ProductRatingSummary {
+  id: string;
+  userId: string;
+  productId: string;
+  totalReviews: number;
+  approvedReviews: number;
+  averageRating: number; // 0.00 to 5.00
+  rating5Count: number;
+  rating4Count: number;
+  rating3Count: number;
+  rating2Count: number;
+  rating1Count: number;
+  recommendationCount: number;
+  lastReviewDate?: Date;
+  updatedAt: Date;
+}
+
+export interface ReviewAnalytics {
+  id: string;
+  userId: string;
+  date: Date;
+  productId?: string;
+  totalNewReviews: number;
+  approvedReviews: number;
+  rejectedReviews: number;
+  averageRating: number;
+  positiveReviews: number; // 4-5 stars
+  negativeReviews: number; // 1-2 stars
+  totalHelpfulVotes: number;
+  responseRate: number; // percentage
+  createdAt: Date;
+}
+
+export interface ProductReviewWithDetails extends ProductReview {
+  images?: ReviewImage[];
+  votes?: ReviewVote[];
+  reports?: ReviewReport[];
+}
