@@ -3074,3 +3074,220 @@ CREATE POLICY "Allow all for customer_journey_stages" ON customer_journey_stages
 CREATE POLICY "Allow all for customer_ltv_predictions" ON customer_ltv_predictions FOR ALL USING (true);
 CREATE POLICY "Allow all for behavioral_analytics" ON behavioral_analytics FOR ALL USING (true);
 CREATE POLICY "Allow all for segment_performance" ON segment_performance FOR ALL USING (true);
+
+-- ============================================
+-- PRODUCT RECOMMENDATIONS SYSTEM
+-- ============================================
+
+-- Recommendation Algorithms Configuration
+CREATE TABLE IF NOT EXISTS recommendation_algorithms (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  algorithm_type VARCHAR(100) NOT NULL,
+  algorithm_name VARCHAR(255) NOT NULL,
+  description TEXT,
+  config JSONB,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Product Embeddings
+CREATE TABLE IF NOT EXISTS product_embeddings (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  embedding_model VARCHAR(100),
+  embedding_vector FLOAT8[],
+  category_embedding FLOAT8[],
+  quality_score DECIMAL(5, 2),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Product Relationships
+CREATE TABLE IF NOT EXISTS product_relationships (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  product_id_1 UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  product_id_2 UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  relationship_type VARCHAR(50) NOT NULL,
+  strength DECIMAL(5, 2),
+  frequency INTEGER DEFAULT 1,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Product Recommendations
+CREATE TABLE IF NOT EXISTS product_recommendations (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  customer_id UUID NOT NULL,
+  recommended_product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  recommendation_reason VARCHAR(255),
+  rank_position INTEGER,
+  relevance_score DECIMAL(5, 2),
+  algorithm_type VARCHAR(100),
+  recommendation_context VARCHAR(100),
+  is_shown BOOLEAN DEFAULT false,
+  shown_at TIMESTAMP WITH TIME ZONE,
+  is_clicked BOOLEAN DEFAULT false,
+  clicked_at TIMESTAMP WITH TIME ZONE,
+  is_purchased BOOLEAN DEFAULT false,
+  purchased_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Recommendation Click Tracking
+CREATE TABLE IF NOT EXISTS recommendation_clicks (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  customer_id UUID NOT NULL,
+  recommendation_id UUID REFERENCES product_recommendations(id) ON DELETE CASCADE,
+  product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  clicked_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  device_type VARCHAR(50),
+  referrer_page VARCHAR(255)
+);
+
+-- Recommendation Conversions
+CREATE TABLE IF NOT EXISTS recommendation_conversions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  customer_id UUID NOT NULL,
+  recommendation_id UUID REFERENCES product_recommendations(id) ON DELETE CASCADE,
+  product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  order_id UUID REFERENCES orders(id) ON DELETE CASCADE,
+  revenue DECIMAL(10, 2),
+  converted_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Recommendation Rules
+CREATE TABLE IF NOT EXISTS recommendation_rules (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  rule_name VARCHAR(255) NOT NULL,
+  rule_type VARCHAR(100),
+  condition_product_id UUID REFERENCES products(id) ON DELETE SET NULL,
+  condition_category VARCHAR(100),
+  condition_segment_id UUID,
+  condition_price_min DECIMAL(10, 2),
+  condition_price_max DECIMAL(10, 2),
+  recommended_product_ids UUID[] DEFAULT '{}',
+  is_active BOOLEAN DEFAULT true,
+  priority INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Recommendation Analytics
+CREATE TABLE IF NOT EXISTS recommendation_analytics (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  date DATE,
+  algorithm_type VARCHAR(100),
+  total_recommendations INTEGER DEFAULT 0,
+  total_impressions INTEGER DEFAULT 0,
+  total_clicks INTEGER DEFAULT 0,
+  total_conversions INTEGER DEFAULT 0,
+  click_through_rate DECIMAL(5, 2),
+  conversion_rate DECIMAL(5, 2),
+  revenue_generated DECIMAL(12, 2),
+  avg_relevance_score DECIMAL(5, 2),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Recommendation Performance by Product
+CREATE TABLE IF NOT EXISTS recommendation_product_performance (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  date DATE,
+  times_recommended INTEGER DEFAULT 0,
+  times_clicked INTEGER DEFAULT 0,
+  times_purchased INTEGER DEFAULT 0,
+  revenue DECIMAL(12, 2),
+  click_rate DECIMAL(5, 2),
+  conversion_rate DECIMAL(5, 2),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Personalization Preferences
+CREATE TABLE IF NOT EXISTS personalization_preferences (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  customer_id UUID NOT NULL,
+  max_recommendations INTEGER DEFAULT 5,
+  preferred_categories VARCHAR[] DEFAULT '{}',
+  excluded_categories VARCHAR[] DEFAULT '{}',
+  preferred_price_range_min DECIMAL(10, 2),
+  preferred_price_range_max DECIMAL(10, 2),
+  exclude_already_viewed BOOLEAN DEFAULT true,
+  exclude_already_purchased BOOLEAN DEFAULT true,
+  enable_trending BOOLEAN DEFAULT true,
+  enable_similar BOOLEAN DEFAULT true,
+  enable_seasonal BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create Indexes for Recommendations
+CREATE INDEX IF NOT EXISTS idx_recommendation_algorithms_user ON recommendation_algorithms(user_id);
+CREATE INDEX IF NOT EXISTS idx_product_embeddings_product ON product_embeddings(product_id);
+CREATE INDEX IF NOT EXISTS idx_product_embeddings_user ON product_embeddings(user_id);
+CREATE INDEX IF NOT EXISTS idx_product_relationships_product1 ON product_relationships(product_id_1);
+CREATE INDEX IF NOT EXISTS idx_product_relationships_product2 ON product_relationships(product_id_2);
+CREATE INDEX IF NOT EXISTS idx_product_relationships_type ON product_relationships(user_id, relationship_type);
+CREATE INDEX IF NOT EXISTS idx_product_recommendations_customer ON product_recommendations(customer_id);
+CREATE INDEX IF NOT EXISTS idx_product_recommendations_product ON product_recommendations(recommended_product_id);
+CREATE INDEX IF NOT EXISTS idx_product_recommendations_context ON product_recommendations(recommendation_context);
+CREATE INDEX IF NOT EXISTS idx_product_recommendations_user_date ON product_recommendations(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_recommendation_clicks_customer ON recommendation_clicks(customer_id);
+CREATE INDEX IF NOT EXISTS idx_recommendation_clicks_product ON recommendation_clicks(product_id);
+CREATE INDEX IF NOT EXISTS idx_recommendation_conversions_customer ON recommendation_conversions(customer_id);
+CREATE INDEX IF NOT EXISTS idx_recommendation_conversions_product ON recommendation_conversions(product_id);
+CREATE INDEX IF NOT EXISTS idx_recommendation_rules_user ON recommendation_rules(user_id);
+CREATE INDEX IF NOT EXISTS idx_recommendation_rules_active ON recommendation_rules(user_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_recommendation_analytics_user_date ON recommendation_analytics(user_id, date DESC);
+CREATE INDEX IF NOT EXISTS idx_recommendation_analytics_algorithm ON recommendation_analytics(algorithm_type);
+CREATE INDEX IF NOT EXISTS idx_recommendation_product_performance_product ON recommendation_product_performance(product_id, date DESC);
+CREATE INDEX IF NOT EXISTS idx_personalization_preferences_customer ON personalization_preferences(customer_id);
+
+-- Create Triggers for Recommendations
+CREATE TRIGGER update_recommendation_algorithms_updated_at BEFORE UPDATE ON recommendation_algorithms
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_product_embeddings_updated_at BEFORE UPDATE ON product_embeddings
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_product_relationships_updated_at BEFORE UPDATE ON product_relationships
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_recommendation_rules_updated_at BEFORE UPDATE ON recommendation_rules
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_personalization_preferences_updated_at BEFORE UPDATE ON personalization_preferences
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Enable RLS for Recommendations Tables
+ALTER TABLE recommendation_algorithms ENABLE ROW LEVEL SECURITY;
+ALTER TABLE product_embeddings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE product_relationships ENABLE ROW LEVEL SECURITY;
+ALTER TABLE product_recommendations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE recommendation_clicks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE recommendation_conversions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE recommendation_rules ENABLE ROW LEVEL SECURITY;
+ALTER TABLE recommendation_analytics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE recommendation_product_performance ENABLE ROW LEVEL SECURITY;
+ALTER TABLE personalization_preferences ENABLE ROW LEVEL SECURITY;
+
+-- Create Policies for Recommendations Tables
+CREATE POLICY "Allow all for recommendation_algorithms" ON recommendation_algorithms FOR ALL USING (true);
+CREATE POLICY "Allow all for product_embeddings" ON product_embeddings FOR ALL USING (true);
+CREATE POLICY "Allow all for product_relationships" ON product_relationships FOR ALL USING (true);
+CREATE POLICY "Allow all for product_recommendations" ON product_recommendations FOR ALL USING (true);
+CREATE POLICY "Allow all for recommendation_clicks" ON recommendation_clicks FOR ALL USING (true);
+CREATE POLICY "Allow all for recommendation_conversions" ON recommendation_conversions FOR ALL USING (true);
+CREATE POLICY "Allow all for recommendation_rules" ON recommendation_rules FOR ALL USING (true);
+CREATE POLICY "Allow all for recommendation_analytics" ON recommendation_analytics FOR ALL USING (true);
+CREATE POLICY "Allow all for recommendation_product_performance" ON recommendation_product_performance FOR ALL USING (true);
+CREATE POLICY "Allow all for personalization_preferences" ON personalization_preferences FOR ALL USING (true);

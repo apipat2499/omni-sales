@@ -2183,3 +2183,153 @@ export interface SegmentPerformance {
   revenueGenerated?: number;
   createdAt: Date;
 }
+
+// ============================================
+// PRODUCT RECOMMENDATIONS TYPES
+// ============================================
+
+export type AlgorithmType = 'collaborative' | 'content_based' | 'popularity' | 'rule_based' | 'hybrid';
+export type RelationshipType = 'upsell' | 'cross_sell' | 'complement' | 'similar' | 'bundle';
+export type RecommendationContext = 'product_page' | 'cart' | 'email' | 'home' | 'search' | 'checkout';
+export type RuleType = 'if_purchase' | 'if_category' | 'if_segment' | 'if_price_range' | 'if_brand';
+
+export interface RecommendationAlgorithm {
+  id: string;
+  userId: string;
+  algorithmType: AlgorithmType;
+  algorithmName: string;
+  description?: string;
+  config?: Record<string, any>;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ProductEmbedding {
+  id: string;
+  userId: string;
+  productId: string;
+  embeddingModel?: string;
+  embeddingVector?: number[];
+  categoryEmbedding?: number[];
+  qualityScore?: number;
+  updatedAt: Date;
+}
+
+export interface ProductRelationship {
+  id: string;
+  userId: string;
+  productId1: string;
+  productId2: string;
+  relationshipType: RelationshipType;
+  strength?: number;
+  frequency?: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ProductRecommendation {
+  id: string;
+  userId: string;
+  customerId: string;
+  recommendedProductId: string;
+  recommendationReason?: string;
+  rankPosition?: number;
+  relevanceScore?: number;
+  algorithmType?: AlgorithmType;
+  recommendationContext?: RecommendationContext;
+  isShown: boolean;
+  shownAt?: Date;
+  isClicked: boolean;
+  clickedAt?: Date;
+  isPurchased: boolean;
+  purchasedAt?: Date;
+  createdAt: Date;
+}
+
+export interface RecommendationClick {
+  id: string;
+  userId: string;
+  customerId: string;
+  recommendationId?: string;
+  productId: string;
+  clickedAt: Date;
+  deviceType?: string;
+  referrerPage?: string;
+}
+
+export interface RecommendationConversion {
+  id: string;
+  userId: string;
+  customerId: string;
+  recommendationId?: string;
+  productId: string;
+  orderId?: string;
+  revenue?: number;
+  convertedAt: Date;
+}
+
+export interface RecommendationRule {
+  id: string;
+  userId: string;
+  ruleName: string;
+  ruleType?: RuleType;
+  conditionProductId?: string;
+  conditionCategory?: string;
+  conditionSegmentId?: string;
+  conditionPriceMin?: number;
+  conditionPriceMax?: number;
+  recommendedProductIds?: string[];
+  isActive: boolean;
+  priority?: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface RecommendationAnalytics {
+  id: string;
+  userId: string;
+  date: Date;
+  algorithmType?: AlgorithmType;
+  totalRecommendations: number;
+  totalImpressions: number;
+  totalClicks: number;
+  totalConversions: number;
+  clickThroughRate?: number;
+  conversionRate?: number;
+  revenueGenerated?: number;
+  avgRelevanceScore?: number;
+  createdAt: Date;
+}
+
+export interface RecommendationProductPerformance {
+  id: string;
+  userId: string;
+  productId: string;
+  date: Date;
+  timesRecommended: number;
+  timesClicked: number;
+  timesPurchased: number;
+  revenue?: number;
+  clickRate?: number;
+  conversionRate?: number;
+  createdAt: Date;
+}
+
+export interface PersonalizationPreferences {
+  id: string;
+  userId: string;
+  customerId: string;
+  maxRecommendations?: number;
+  preferredCategories?: string[];
+  excludedCategories?: string[];
+  preferredPriceRangeMin?: number;
+  preferredPriceRangeMax?: number;
+  excludeAlreadyViewed?: boolean;
+  excludeAlreadyPurchased?: boolean;
+  enableTrending?: boolean;
+  enableSimilar?: boolean;
+  enableSeasonal?: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
