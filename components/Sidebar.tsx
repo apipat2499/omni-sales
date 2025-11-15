@@ -14,6 +14,7 @@ import {
   Store,
   LogOut,
   Loader2,
+  FileText,
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -24,6 +25,7 @@ const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Products', href: '/products', icon: Package },
   { name: 'Orders', href: '/orders', icon: ShoppingCart },
+  { name: 'Invoices', href: '/invoices', icon: FileText },
   { name: 'Customers', href: '/customers', icon: Users },
   { name: 'Reports', href: '/reports', icon: BarChart3 },
   { name: 'Settings', href: '/settings', icon: Settings },
