@@ -111,7 +111,149 @@ ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE order_items ENABLE ROW LEVEL SECURITY;
 
+-- Subscription Plans Table
+CREATE TABLE IF NOT EXISTS subscription_plans (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name VARCHAR(100) NOT NULL,
+  stripe_product_id VARCHAR(255) UNIQUE NOT NULL,
+  stripe_price_id VARCHAR(255) UNIQUE NOT NULL,
+  amount_cents INTEGER NOT NULL,
+  currency VARCHAR(3) NOT NULL DEFAULT 'USD',
+  billing_interval VARCHAR(20) NOT NULL DEFAULT 'month',
+  product_limit INTEGER NOT NULL DEFAULT 10,
+  features TEXT[] DEFAULT '{}',
+  description TEXT,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Subscriptions Table
+CREATE TABLE IF NOT EXISTS subscriptions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  plan_id UUID REFERENCES subscription_plans(id),
+  stripe_subscription_id VARCHAR(255) UNIQUE NOT NULL,
+  stripe_customer_id VARCHAR(255) NOT NULL,
+  status VARCHAR(50) NOT NULL DEFAULT 'active',
+  current_period_start TIMESTAMP WITH TIME ZONE,
+  current_period_end TIMESTAMP WITH TIME ZONE,
+  cancel_at_period_end BOOLEAN DEFAULT false,
+  canceled_at TIMESTAMP WITH TIME ZONE,
+  ended_at TIMESTAMP WITH TIME ZONE,
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Subscription Items Table
+CREATE TABLE IF NOT EXISTS subscription_items (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  subscription_id UUID REFERENCES subscriptions(id) ON DELETE CASCADE,
+  stripe_subscription_item_id VARCHAR(255) UNIQUE,
+  product_id UUID REFERENCES products(id),
+  quantity INTEGER NOT NULL DEFAULT 1,
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Invoices Table
+CREATE TABLE IF NOT EXISTS invoices (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  subscription_id UUID REFERENCES subscriptions(id),
+  stripe_invoice_id VARCHAR(255) UNIQUE,
+  stripe_customer_id VARCHAR(255),
+  amount_cents INTEGER NOT NULL,
+  currency VARCHAR(3) NOT NULL DEFAULT 'USD',
+  status VARCHAR(50) NOT NULL DEFAULT 'draft',
+  description TEXT,
+  pdf_url VARCHAR(500),
+  hosted_invoice_url VARCHAR(500),
+  paid_at TIMESTAMP WITH TIME ZONE,
+  due_date TIMESTAMP WITH TIME ZONE,
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Payments Table
+CREATE TABLE IF NOT EXISTS payments (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  invoice_id UUID REFERENCES invoices(id),
+  subscription_id UUID REFERENCES subscriptions(id),
+  stripe_charge_id VARCHAR(255) UNIQUE,
+  stripe_payment_intent_id VARCHAR(255) UNIQUE,
+  amount_cents INTEGER NOT NULL,
+  currency VARCHAR(3) NOT NULL DEFAULT 'USD',
+  status VARCHAR(50) NOT NULL DEFAULT 'pending',
+  payment_method VARCHAR(100),
+  receipt_url VARCHAR(500),
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Billing Usage Table (for tracking product usage)
+CREATE TABLE IF NOT EXISTS billing_usage (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  subscription_id UUID REFERENCES subscriptions(id) ON DELETE CASCADE,
+  metric_name VARCHAR(100) NOT NULL,
+  value INTEGER NOT NULL DEFAULT 0,
+  period_start TIMESTAMP WITH TIME ZONE,
+  period_end TIMESTAMP WITH TIME ZONE,
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create Indexes for Subscriptions
+CREATE INDEX IF NOT EXISTS idx_subscriptions_user_id ON subscriptions(user_id);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_stripe_subscription_id ON subscriptions(stripe_subscription_id);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_status ON subscriptions(status);
+CREATE INDEX IF NOT EXISTS idx_invoices_subscription_id ON invoices(subscription_id);
+CREATE INDEX IF NOT EXISTS idx_invoices_stripe_invoice_id ON invoices(stripe_invoice_id);
+CREATE INDEX IF NOT EXISTS idx_invoices_status ON invoices(status);
+CREATE INDEX IF NOT EXISTS idx_payments_invoice_id ON payments(invoice_id);
+CREATE INDEX IF NOT EXISTS idx_payments_stripe_charge_id ON payments(stripe_charge_id);
+CREATE INDEX IF NOT EXISTS idx_billing_usage_subscription_id ON billing_usage(subscription_id);
+
+-- Create triggers for subscription timestamps
+CREATE TRIGGER update_subscription_plans_updated_at BEFORE UPDATE ON subscription_plans
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_subscriptions_updated_at BEFORE UPDATE ON subscriptions
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_subscription_items_updated_at BEFORE UPDATE ON subscription_items
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_invoices_updated_at BEFORE UPDATE ON invoices
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_payments_updated_at BEFORE UPDATE ON payments
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_billing_usage_updated_at BEFORE UPDATE ON billing_usage
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Enable RLS for subscription tables
+ALTER TABLE subscription_plans ENABLE ROW LEVEL SECURITY;
+ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE subscription_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE invoices ENABLE ROW LEVEL SECURITY;
+ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE billing_usage ENABLE ROW LEVEL SECURITY;
+
 -- Create Policies (Allow all for now - adjust based on auth requirements)
+CREATE POLICY "Allow all for subscription_plans" ON subscription_plans FOR ALL USING (true);
+CREATE POLICY "Allow all for subscriptions" ON subscriptions FOR ALL USING (true);
+CREATE POLICY "Allow all for subscription_items" ON subscription_items FOR ALL USING (true);
+CREATE POLICY "Allow all for invoices" ON invoices FOR ALL USING (true);
+CREATE POLICY "Allow all for payments" ON payments FOR ALL USING (true);
+CREATE POLICY "Allow all for billing_usage" ON billing_usage FOR ALL USING (true);
+
+-- Original Policies
 CREATE POLICY "Allow all for products" ON products FOR ALL USING (true);
 CREATE POLICY "Allow all for customers" ON customers FOR ALL USING (true);
 CREATE POLICY "Allow all for orders" ON orders FOR ALL USING (true);

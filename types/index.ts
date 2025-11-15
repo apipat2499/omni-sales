@@ -101,3 +101,77 @@ export interface CategorySales {
   value: number;
   percentage: number;
 }
+
+export type SubscriptionStatus =
+  | 'active'
+  | 'past_due'
+  | 'unpaid'
+  | 'canceled'
+  | 'incomplete'
+  | 'incomplete_expired';
+
+export interface SubscriptionPlan {
+  id: string;
+  name: string;
+  stripeProductId: string;
+  stripePriceId: string;
+  amountCents: number;
+  currency: string;
+  billingInterval: string;
+  productLimit: number;
+  features: string[];
+  description?: string;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Subscription {
+  id: string;
+  userId: string;
+  planId: string;
+  stripeSubscriptionId: string;
+  stripeCustomerId: string;
+  status: SubscriptionStatus;
+  currentPeriodStart: Date;
+  currentPeriodEnd: Date;
+  cancelAtPeriodEnd: boolean;
+  canceledAt?: Date;
+  endedAt?: Date;
+  metadata?: Record<string, unknown>;
+  createdAt: Date;
+  updatedAt: Date;
+  plan?: SubscriptionPlan;
+}
+
+export interface Invoice {
+  id: string;
+  subscriptionId?: string;
+  stripeInvoiceId: string;
+  stripeCustomerId: string;
+  amountCents: number;
+  currency: string;
+  status: string;
+  description?: string;
+  pdfUrl?: string;
+  hostedInvoiceUrl?: string;
+  paidAt?: Date;
+  dueDate?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Payment {
+  id: string;
+  invoiceId?: string;
+  subscriptionId?: string;
+  stripeChargeId: string;
+  stripePaymentIntentId: string;
+  amountCents: number;
+  currency: string;
+  status: string;
+  paymentMethod?: string;
+  receiptUrl?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
