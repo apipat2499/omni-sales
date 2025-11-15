@@ -424,6 +424,109 @@ CREATE TABLE IF NOT EXISTS review_analytics (
   CONSTRAINT review_analytics_user_id_fk FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
 
+-- ============================================
+-- WISHLIST & FAVORITES SYSTEM TABLES
+-- ============================================
+
+-- Wishlists (Personal Lists)
+CREATE TABLE IF NOT EXISTS wishlists (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  customer_email VARCHAR(255) NOT NULL,
+  wishlist_name VARCHAR(255) NOT NULL,
+  description TEXT,
+  is_public BOOLEAN DEFAULT false,
+  share_code VARCHAR(50) UNIQUE, -- For public sharing
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT wishlists_user_id_fk FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+
+-- Wishlist Items
+CREATE TABLE IF NOT EXISTS wishlist_items (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  wishlist_id UUID NOT NULL REFERENCES wishlists(id) ON DELETE CASCADE,
+  product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  product_name VARCHAR(255),
+  product_image VARCHAR(500),
+  price_at_added DECIMAL(10, 2),
+  current_price DECIMAL(10, 2),
+  priority INTEGER DEFAULT 0, -- 0=low, 1=medium, 2=high
+  notes TEXT,
+  quantity_desired INTEGER DEFAULT 1,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT wishlist_items_user_id_fk FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+
+-- Wishlist Shares (Shared Access)
+CREATE TABLE IF NOT EXISTS wishlist_shares (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  wishlist_id UUID NOT NULL REFERENCES wishlists(id) ON DELETE CASCADE,
+  share_email VARCHAR(255), -- Email recipient (if personal share)
+  share_name VARCHAR(255), -- Recipient name
+  share_token VARCHAR(100) UNIQUE, -- Token for access
+  share_type VARCHAR(50) DEFAULT 'link', -- link, email, social
+  view_count INTEGER DEFAULT 0,
+  accessed_at TIMESTAMP WITH TIME ZONE,
+  expires_at TIMESTAMP WITH TIME ZONE, -- Optional expiration
+  can_edit BOOLEAN DEFAULT false,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT wishlist_shares_user_id_fk FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+
+-- Price Change History (Track price drops for notifications)
+CREATE TABLE IF NOT EXISTS wishlist_price_history (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  wishlist_item_id UUID NOT NULL REFERENCES wishlist_items(id) ON DELETE CASCADE,
+  old_price DECIMAL(10, 2),
+  new_price DECIMAL(10, 2),
+  price_drop_amount DECIMAL(10, 2),
+  price_drop_percent DECIMAL(5, 2),
+  notification_sent BOOLEAN DEFAULT false,
+  price_checked_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT wishlist_price_history_user_id_fk FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+
+-- Wishlist Analytics
+CREATE TABLE IF NOT EXISTS wishlist_analytics (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  wishlist_id UUID REFERENCES wishlists(id) ON DELETE SET NULL,
+  date TIMESTAMP WITH TIME ZONE,
+  total_items INTEGER DEFAULT 0,
+  total_value DECIMAL(12, 2),
+  average_price DECIMAL(10, 2),
+  share_count INTEGER DEFAULT 0,
+  view_count INTEGER DEFAULT 0,
+  items_added INTEGER DEFAULT 0,
+  items_removed INTEGER DEFAULT 0,
+  items_purchased INTEGER DEFAULT 0,
+  price_drop_items INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT wishlist_analytics_user_id_fk FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+
+-- Customer Wishlist Preferences
+CREATE TABLE IF NOT EXISTS wishlist_preferences (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  customer_email VARCHAR(255) NOT NULL UNIQUE,
+  notify_price_drops BOOLEAN DEFAULT true,
+  price_drop_threshold DECIMAL(5, 2) DEFAULT 10, -- percentage
+  notify_back_in_stock BOOLEAN DEFAULT true,
+  notify_shared_wishlists BOOLEAN DEFAULT true,
+  weekly_digest BOOLEAN DEFAULT false,
+  default_wishlist_visibility VARCHAR(50) DEFAULT 'private', -- private, friends, public
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT wishlist_preferences_user_id_fk FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+
 -- Create Indexes
 CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);
 CREATE INDEX IF NOT EXISTS idx_products_sku ON products(sku);
@@ -487,6 +590,26 @@ CREATE INDEX IF NOT EXISTS idx_review_reports_status ON review_reports(status);
 CREATE INDEX IF NOT EXISTS idx_product_rating_product ON product_rating_summaries(product_id);
 CREATE INDEX IF NOT EXISTS idx_review_analytics_product ON review_analytics(product_id);
 CREATE INDEX IF NOT EXISTS idx_review_analytics_date ON review_analytics(date);
+
+-- Create Indexes for Wishlist System
+CREATE INDEX IF NOT EXISTS idx_wishlists_user ON wishlists(user_id);
+CREATE INDEX IF NOT EXISTS idx_wishlists_email ON wishlists(customer_email);
+CREATE INDEX IF NOT EXISTS idx_wishlists_public ON wishlists(is_public);
+CREATE INDEX IF NOT EXISTS idx_wishlists_share_code ON wishlists(share_code);
+CREATE INDEX IF NOT EXISTS idx_wishlist_items_wishlist ON wishlist_items(wishlist_id);
+CREATE INDEX IF NOT EXISTS idx_wishlist_items_product ON wishlist_items(product_id);
+CREATE INDEX IF NOT EXISTS idx_wishlist_items_user ON wishlist_items(user_id);
+CREATE INDEX IF NOT EXISTS idx_wishlist_items_priority ON wishlist_items(priority);
+CREATE INDEX IF NOT EXISTS idx_wishlist_items_created ON wishlist_items(created_at);
+CREATE INDEX IF NOT EXISTS idx_wishlist_shares_wishlist ON wishlist_shares(wishlist_id);
+CREATE INDEX IF NOT EXISTS idx_wishlist_shares_email ON wishlist_shares(share_email);
+CREATE INDEX IF NOT EXISTS idx_wishlist_shares_token ON wishlist_shares(share_token);
+CREATE INDEX IF NOT EXISTS idx_wishlist_price_history_item ON wishlist_price_history(wishlist_item_id);
+CREATE INDEX IF NOT EXISTS idx_wishlist_price_history_date ON wishlist_price_history(created_at);
+CREATE INDEX IF NOT EXISTS idx_wishlist_analytics_wishlist ON wishlist_analytics(wishlist_id);
+CREATE INDEX IF NOT EXISTS idx_wishlist_analytics_user ON wishlist_analytics(user_id);
+CREATE INDEX IF NOT EXISTS idx_wishlist_analytics_date ON wishlist_analytics(date);
+CREATE INDEX IF NOT EXISTS idx_wishlist_preferences_email ON wishlist_preferences(customer_email);
 
 -- Create Views for Statistics
 CREATE OR REPLACE VIEW customer_stats AS
@@ -1766,6 +1889,14 @@ ALTER TABLE review_reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE product_rating_summaries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE review_analytics ENABLE ROW LEVEL SECURITY;
 
+-- Enable RLS for Wishlist System Tables
+ALTER TABLE wishlists ENABLE ROW LEVEL SECURITY;
+ALTER TABLE wishlist_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE wishlist_shares ENABLE ROW LEVEL SECURITY;
+ALTER TABLE wishlist_price_history ENABLE ROW LEVEL SECURITY;
+ALTER TABLE wishlist_analytics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE wishlist_preferences ENABLE ROW LEVEL SECURITY;
+
 -- Create Policies for Inventory Tables
 CREATE POLICY "Allow all for warehouses" ON warehouses FOR ALL USING (true);
 CREATE POLICY "Allow all for inventory" ON inventory FOR ALL USING (true);
@@ -1814,3 +1945,11 @@ CREATE POLICY "Allow all for review_votes" ON review_votes FOR ALL USING (true);
 CREATE POLICY "Allow all for review_reports" ON review_reports FOR ALL USING (true);
 CREATE POLICY "Allow all for product_rating_summaries" ON product_rating_summaries FOR ALL USING (true);
 CREATE POLICY "Allow all for review_analytics" ON review_analytics FOR ALL USING (true);
+
+-- Create Policies for Wishlist System Tables
+CREATE POLICY "Allow all for wishlists" ON wishlists FOR ALL USING (true);
+CREATE POLICY "Allow all for wishlist_items" ON wishlist_items FOR ALL USING (true);
+CREATE POLICY "Allow all for wishlist_shares" ON wishlist_shares FOR ALL USING (true);
+CREATE POLICY "Allow all for wishlist_price_history" ON wishlist_price_history FOR ALL USING (true);
+CREATE POLICY "Allow all for wishlist_analytics" ON wishlist_analytics FOR ALL USING (true);
+CREATE POLICY "Allow all for wishlist_preferences" ON wishlist_preferences FOR ALL USING (true);

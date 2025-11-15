@@ -1241,3 +1241,109 @@ export interface ProductReviewWithDetails extends ProductReview {
   votes?: ReviewVote[];
   reports?: ReviewReport[];
 }
+
+// ============================================
+// WISHLIST & FAVORITES SYSTEM TYPES
+// ============================================
+
+export type WishlistVisibility = 'private' | 'friends' | 'public';
+export type WishlistItemPriority = 0 | 1 | 2; // 0=low, 1=medium, 2=high
+export type ShareType = 'link' | 'email' | 'social';
+
+export interface Wishlist {
+  id: string;
+  userId: string;
+  customerEmail: string;
+  wishlistName: string;
+  description?: string;
+  isPublic: boolean;
+  shareCode?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface WishlistItem {
+  id: string;
+  userId: string;
+  wishlistId: string;
+  productId: string;
+  productName: string;
+  productImage?: string;
+  priceAtAdded: number;
+  currentPrice: number;
+  priority: WishlistItemPriority;
+  notes?: string;
+  quantityDesired: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface WishlistShare {
+  id: string;
+  userId: string;
+  wishlistId: string;
+  shareEmail?: string;
+  shareName?: string;
+  shareToken: string;
+  shareType: ShareType;
+  viewCount: number;
+  accessedAt?: Date;
+  expiresAt?: Date;
+  canEdit: boolean;
+  createdAt: Date;
+}
+
+export interface WishlistPriceHistory {
+  id: string;
+  userId: string;
+  wishlistItemId: string;
+  oldPrice: number;
+  newPrice: number;
+  priceDropAmount: number;
+  priceDropPercent: number;
+  notificationSent: boolean;
+  priceCheckedAt: Date;
+  createdAt: Date;
+}
+
+export interface WishlistAnalytics {
+  id: string;
+  userId: string;
+  wishlistId?: string;
+  date: Date;
+  totalItems: number;
+  totalValue: number;
+  averagePrice: number;
+  shareCount: number;
+  viewCount: number;
+  itemsAdded: number;
+  itemsRemoved: number;
+  itemsPurchased: number;
+  priceDropItems: number;
+  createdAt: Date;
+}
+
+export interface WishlistPreferences {
+  id: string;
+  userId: string;
+  customerEmail: string;
+  notifyPriceDrops: boolean;
+  priceDropThreshold: number;
+  notifyBackInStock: boolean;
+  notifySharedWishlists: boolean;
+  weeklyDigest: boolean;
+  defaultWishlistVisibility: WishlistVisibility;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface WishlistWithItems extends Wishlist {
+  items?: WishlistItem[];
+  itemCount?: number;
+  totalValue?: number;
+}
+
+export interface WishlistWithShares extends Wishlist {
+  shares?: WishlistShare[];
+  items?: WishlistItem[];
+}
