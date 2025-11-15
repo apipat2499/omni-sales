@@ -1,0 +1,12 @@
+This is a placeholder file. To generate proper PNG icons:
+
+1. Use the generate-icons.html file in the root directory
+2. Open it in a browser
+3. Right-click on each icon and save as PNG
+4. Replace this file with the generated PNG
+
+Or use an online tool like:
+- https://realfavicongenerator.net/
+- https://www.pwabuilder.com/imageGenerator
+
+For now, the SVG icons will work in most browsers, but PNG is required for full PWA compliance.

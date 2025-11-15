@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Omni Sales - Screenshot Guide</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f5f5;
+      line-height: 1.6;
+    }
+    .header {
+      text-align: center;
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-bottom: 30px;
+    }
+    .header h1 {
+      color: #2563eb;
+      margin: 0 0 10px 0;
+    }
+    .section {
+      background: white;
+      padding: 25px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+    .section h2 {
+      color: #2563eb;
+      margin-top: 0;
+      border-bottom: 2px solid #2563eb;
+      padding-bottom: 10px;
+    }
+    .checklist {
+      background: #f9fafb;
+      padding: 15px;
+      border-radius: 6px;
+      border-left: 4px solid #2563eb;
+    }
+    .checklist li {
+      margin: 10px 0;
+    }
+    .screenshot-spec {
+      background: #eff6ff;
+      padding: 15px;
+      border-radius: 6px;
+      margin: 15px 0;
+      border: 1px solid #bfdbfe;
+    }
+    .screenshot-spec strong {
+      color: #1d4ed8;
+    }
+    code {
+      background: #1f2937;
+      color: #10b981;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 14px;
+    }
+    .tip {
+      background: #fef3c7;
+      border-left: 4px solid #f59e0b;
+      padding: 12px;
+      margin: 15px 0;
+      border-radius: 4px;
+    }
+    .tip strong {
+      color: #92400e;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 15px 0;
+    }
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    th {
+      background: #f3f4f6;
+      font-weight: 600;
+      color: #1f2937;
+    }
+    .method {
+      background: #f0fdf4;
+      border: 1px solid #86efac;
+      padding: 15px;
+      border-radius: 6px;
+      margin: 15px 0;
+    }
+    .method h3 {
+      color: #15803d;
+      margin-top: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>📸 PWA Screenshot Capture Guide</h1>
+    <p>Create professional screenshots for your Omni Sales PWA</p>
+  </div>
+
+  <div class="section">
+    <h2>🎯 Why Screenshots Matter</h2>
+    <p>Screenshots enhance the PWA install experience by:</p>
+    <ul>
+      <li>Showing users what the app looks like before installing</li>
+      <li>Improving install conversion rates by 30-40%</li>
+      <li>Required for app stores (Google Play, Microsoft Store)</li>
+      <li>Builds trust and professionalism</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>📐 Screenshot Specifications</h2>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Dimensions</th>
+          <th>Format</th>
+          <th>Purpose</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Mobile</strong></td>
+          <td>540 x 960 px</td>
+          <td>PNG/JPEG</td>
+          <td>Smartphone display</td>
+        </tr>
+        <tr>
+          <td><strong>Desktop</strong></td>
+          <td>1280 x 800 px</td>
+          <td>PNG/JPEG</td>
+          <td>Desktop/laptop display</td>
+        </tr>
+        <tr>
+          <td><strong>Tablet</strong></td>
+          <td>1024 x 768 px</td>
+          <td>PNG/JPEG</td>
+          <td>Tablet display</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="tip">
+      <strong>💡 Tip:</strong> Aspect ratio should be between 1:2.3 and 2.3:1. Minimum width: 320px. Maximum dimension: 3840px.
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>🖼️ Pages to Screenshot</h2>
+    <div class="checklist">
+      <ol>
+        <li><strong>Dashboard</strong> - Main overview with charts and stats</li>
+        <li><strong>Products</strong> - Product catalog view</li>
+        <li><strong>Orders</strong> - Order management interface</li>
+        <li><strong>Customers</strong> - Customer cards view</li>
+        <li><strong>Reports</strong> - Analytics and export features</li>
+        <li><strong>(Optional)</strong> Mobile view of Dashboard</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>🛠️ Method 1: Browser Developer Tools</h2>
+    <div class="method">
+      <h3>Using Chrome DevTools</h3>
+      <ol>
+        <li>Open your app in Chrome: <code>npm run dev</code> then visit <code>http://localhost:3000</code></li>
+        <li>Press <code>F12</code> to open Developer Tools</li>
+        <li>Click the device toolbar icon (or press <code>Ctrl+Shift+M</code>)</li>
+        <li>Select device dimensions:
+          <ul>
+            <li>For mobile: 540 x 960</li>
+            <li>For desktop: 1280 x 800</li>
+          </ul>
+        </li>
+        <li>Navigate to each page</li>
+        <li>Press <code>Ctrl+Shift+P</code> and search for "Capture screenshot"</li>
+        <li>Select "Capture full size screenshot"</li>
+        <li>Save to <code>public/screenshots/</code> folder</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>🛠️ Method 2: Browser Extensions</h2>
+    <div class="method">
+      <h3>Using Awesome Screenshot (Recommended)</h3>
+      <ol>
+        <li>Install "Awesome Screenshot" extension for Chrome/Firefox</li>
+        <li>Navigate to the page you want to capture</li>
+        <li>Click the extension icon</li>
+        <li>Select "Capture entire page"</li>
+        <li>Use the built-in editor to crop to exact dimensions</li>
+        <li>Save as PNG to <code>public/screenshots/</code></li>
+      </ol>
+    </div>
+
+    <div class="method">
+      <h3>Other Good Options</h3>
+      <ul>
+        <li><strong>Fireshot:</strong> Full page screenshots with annotation</li>
+        <li><strong>Nimbus:</strong> Video + screenshot capture</li>
+        <li><strong>GoFullPage:</strong> One-click full page capture</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>🛠️ Method 3: Playwright (Automated)</h2>
+    <div class="method">
+      <h3>Install and Run Script</h3>
+      <p>Create <code>scripts/capture-screenshots.js</code>:</p>
+      <pre style="background: #1f2937; color: #10b981; padding: 15px; border-radius: 6px; overflow-x: auto;"><code>const { chromium } = require('playwright');
+
+async function captureScreenshots() {
+  const browser = await chromium.launch();
+  const context = await browser.newContext({
+    viewport: { width: 1280, height: 800 }
+  });
+  const page = await context.newPage();
+
+  const pages = [
+    { url: 'http://localhost:3000/dashboard', name: 'dashboard' },
+    { url: 'http://localhost:3000/products', name: 'products' },
+    { url: 'http://localhost:3000/orders', name: 'orders' },
+    { url: 'http://localhost:3000/customers', name: 'customers' },
+    { url: 'http://localhost:3000/reports', name: 'reports' },
+  ];
+
+  for (const { url, name } of pages) {
+    await page.goto(url);
+    await page.waitForTimeout(2000); // Wait for charts to render
+    await page.screenshot({
+      path: `public/screenshots/${name}-desktop.png`,
+      fullPage: false
+    });
+    console.log(`✅ Captured ${name}`);
+  }
+
+  // Mobile screenshots
+  await context.setViewportSize({ width: 540, height: 960 });
+  await page.goto('http://localhost:3000/dashboard');
+  await page.waitForTimeout(2000);
+  await page.screenshot({
+    path: 'public/screenshots/dashboard-mobile.png',
+    fullPage: false
+  });
+
+  await browser.close();
+  console.log('🎉 All screenshots captured!');
+}
+
+captureScreenshots();</code></pre>
+      <p>Install and run:</p>
+      <pre style="background: #1f2937; color: #60a5fa; padding: 15px; border-radius: 6px;"><code>npm install -D playwright
+node scripts/capture-screenshots.js</code></pre>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>📝 Naming Convention</h2>
+    <div class="screenshot-spec">
+      <p><strong>Desktop screenshots:</strong></p>
+      <ul>
+        <li><code>dashboard-desktop.png</code> (1280 x 800)</li>
+        <li><code>products-desktop.png</code> (1280 x 800)</li>
+        <li><code>orders-desktop.png</code> (1280 x 800)</li>
+        <li><code>customers-desktop.png</code> (1280 x 800)</li>
+        <li><code>reports-desktop.png</code> (1280 x 800)</li>
+      </ul>
+
+      <p><strong>Mobile screenshots:</strong></p>
+      <ul>
+        <li><code>dashboard-mobile.png</code> (540 x 960)</li>
+        <li><code>products-mobile.png</code> (540 x 960)</li>
+        <li><code>orders-mobile.png</code> (540 x 960)</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>✅ Post-Capture Checklist</h2>
+    <div class="checklist">
+      <ol>
+        <li>Verify all screenshots are in <code>public/screenshots/</code></li>
+        <li>Check file sizes (should be &lt; 500KB each)</li>
+        <li>Ensure proper dimensions</li>
+        <li>Update <code>manifest.json</code> with screenshot paths</li>
+        <li>Test PWA install prompt shows screenshots</li>
+        <li>Optimize images if needed (use TinyPNG or similar)</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>🔄 Update manifest.json</h2>
+    <p>After capturing screenshots, add this to your <code>public/manifest.json</code>:</p>
+    <pre style="background: #1f2937; color: #10b981; padding: 15px; border-radius: 6px; overflow-x: auto;"><code>{
+  "screenshots": [
+    {
+      "src": "/screenshots/dashboard-desktop.png",
+      "sizes": "1280x800",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Dashboard - ภาพรวมยอดขาย"
+    },
+    {
+      "src": "/screenshots/products-desktop.png",
+      "sizes": "1280x800",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Products - จัดการสินค้า"
+    },
+    {
+      "src": "/screenshots/dashboard-mobile.png",
+      "sizes": "540x960",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Dashboard - Mobile"
+    }
+  ]
+}</code></pre>
+  </div>
+
+  <div class="section">
+    <h2>🎨 Pro Tips</h2>
+    <div class="tip">
+      <strong>💡 Best Practices:</strong>
+      <ul>
+        <li>Use real data (not lorem ipsum) in screenshots</li>
+        <li>Show the app in action (hover states, modals open)</li>
+        <li>Keep screenshots current when you update UI</li>
+        <li>Consider adding Thai language labels in manifest</li>
+        <li>Test on multiple devices to ensure quality</li>
+        <li>Use consistent branding colors</li>
+      </ul>
+    </div>
+  </div>
+</body>
+</html>

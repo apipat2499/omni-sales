@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Omni Sales - Icon Generator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    .icons-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 30px;
+      margin-bottom: 40px;
+    }
+    .icon-card {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    .icon-card h3 {
+      margin-top: 0;
+      color: #2563eb;
+    }
+    canvas {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      margin: 10px 0;
+    }
+    button {
+      background: #2563eb;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      margin: 5px;
+    }
+    button:hover {
+      background: #1d4ed8;
+    }
+    .instructions {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .instructions h2 {
+      color: #2563eb;
+      margin-top: 0;
+    }
+    .instructions ol {
+      line-height: 1.8;
+    }
+    .preview {
+      margin-top: 10px;
+      padding: 10px;
+      background: #f9fafb;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🎨 Omni Sales - PWA Icon Generator</h1>
+    <p>Generate professional PNG icons for your PWA</p>
+  </div>
+
+  <div class="icons-grid">
+    <div class="icon-card">
+      <h3>Icon 192x192</h3>
+      <canvas id="icon192" width="192" height="192"></canvas>
+      <div>
+        <button onclick="downloadIcon('icon192', 'icon-192x192.png')">📥 Download PNG</button>
+      </div>
+      <div class="preview">
+        <small>For Android home screen</small>
+      </div>
+    </div>
+
+    <div class="icon-card">
+      <h3>Icon 512x512</h3>
+      <canvas id="icon512" width="512" height="512"></canvas>
+      <div>
+        <button onclick="downloadIcon('icon512', 'icon-512x512.png')">📥 Download PNG</button>
+      </div>
+      <div class="preview">
+        <small>For splash screen & app stores</small>
+      </div>
+    </div>
+
+    <div class="icon-card">
+      <h3>Favicon 32x32</h3>
+      <canvas id="favicon" width="32" height="32"></canvas>
+      <div>
+        <button onclick="downloadIcon('favicon', 'favicon.png')">📥 Download PNG</button>
+      </div>
+      <div class="preview">
+        <small>For browser tab</small>
+      </div>
+    </div>
+
+    <div class="icon-card">
+      <h3>Apple Touch Icon 180x180</h3>
+      <canvas id="apple" width="180" height="180"></canvas>
+      <div>
+        <button onclick="downloadIcon('apple', 'apple-touch-icon.png')">📥 Download PNG</button>
+      </div>
+      <div class="preview">
+        <small>For iOS home screen</small>
+      </div>
+    </div>
+  </div>
+
+  <div class="instructions">
+    <h2>📋 Instructions</h2>
+    <ol>
+      <li><strong>Download all icons:</strong> Click each "Download PNG" button to save the icons</li>
+      <li><strong>Place icons:</strong> Move the downloaded files to <code>public/icons/</code> folder</li>
+      <li><strong>Favicon:</strong> Move <code>favicon.png</code> to <code>public/</code> folder</li>
+      <li><strong>Apple Touch Icon:</strong> Move <code>apple-touch-icon.png</code> to <code>public/</code> folder</li>
+      <li><strong>Verify:</strong> Check that manifest.json references are correct</li>
+      <li><strong>Test:</strong> Run <code>npm run build</code> and test the PWA</li>
+    </ol>
+    <p><strong>Note:</strong> You can customize the icon design by editing the <code>drawIcon()</code> function in this HTML file.</p>
+  </div>
+
+  <script>
+    // Icon design configuration
+    const config = {
+      primaryColor: '#2563eb',
+      secondaryColor: '#1d4ed8',
+      accentColor: '#60a5fa',
+      textColor: '#ffffff',
+      backgroundColor: '#2563eb',
+    };
+
+    // Draw icon on canvas
+    function drawIcon(canvas, size) {
+      const ctx = canvas.getContext('2d');
+      const centerX = size / 2;
+      const centerY = size / 2;
+
+      // Background
+      ctx.fillStyle = config.backgroundColor;
+      ctx.fillRect(0, 0, size, size);
+
+      // Gradient overlay
+      const gradient = ctx.createLinearGradient(0, 0, size, size);
+      gradient.addColorStop(0, config.primaryColor);
+      gradient.addColorStop(1, config.secondaryColor);
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, size, size);
+
+      // Modern geometric design
+      ctx.strokeStyle = config.accentColor;
+      ctx.lineWidth = size * 0.02;
+      ctx.globalAlpha = 0.3;
+
+      // Draw concentric circles
+      for (let i = 1; i <= 3; i++) {
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, (size / 6) * i, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      ctx.globalAlpha = 1;
+
+      // Draw "OS" text or logo
+      ctx.fillStyle = config.textColor;
+      ctx.font = `bold ${size * 0.35}px Arial, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      // Add shadow for depth
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+      ctx.shadowBlur = size * 0.02;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = size * 0.01;
+
+      ctx.fillText('OS', centerX, centerY - size * 0.05);
+
+      // Subtitle
+      ctx.shadowBlur = 0;
+      ctx.font = `${size * 0.12}px Arial, sans-serif`;
+      ctx.fillText('OMNI', centerX, centerY + size * 0.25);
+
+      // Shopping cart icon
+      ctx.strokeStyle = config.textColor;
+      ctx.lineWidth = size * 0.015;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      const cartSize = size * 0.15;
+      const cartX = centerX + size * 0.25;
+      const cartY = centerY - size * 0.28;
+
+      // Cart body
+      ctx.beginPath();
+      ctx.moveTo(cartX - cartSize/2, cartY);
+      ctx.lineTo(cartX - cartSize/3, cartY + cartSize/2);
+      ctx.lineTo(cartX + cartSize/3, cartY + cartSize/2);
+      ctx.lineTo(cartX + cartSize/2, cartY);
+      ctx.stroke();
+
+      // Cart wheels
+      ctx.beginPath();
+      ctx.arc(cartX - cartSize/4, cartY + cartSize/2 + cartSize/4, cartSize/8, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(cartX + cartSize/4, cartY + cartSize/2 + cartSize/4, cartSize/8, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    // Download icon as PNG
+    function downloadIcon(canvasId, filename) {
+      const canvas = document.getElementById(canvasId);
+      const link = document.createElement('a');
+      link.download = filename;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }
+
+    // Generate all icons on page load
+    window.onload = function() {
+      drawIcon(document.getElementById('icon192'), 192);
+      drawIcon(document.getElementById('icon512'), 512);
+      drawIcon(document.getElementById('favicon'), 32);
+      drawIcon(document.getElementById('apple'), 180);
+    };
+  </script>
+</body>
+</html>

@@ -112,6 +112,7 @@
 
 - Node.js 18+
 - npm, yarn, or pnpm
+- Supabase account (for database)
 
 ### Installation
 
@@ -126,12 +127,72 @@ cd omni-sales
 npm install
 ```
 
-3. Run the development server
+3. Set up environment variables
+```bash
+cp .env.example .env.local
+```
+
+Edit `.env.local` and add your Supabase credentials:
+```env
+NEXT_PUBLIC_SUPABASE_URL=your-project-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+```
+
+4. Set up database
+- Go to [Supabase](https://supabase.com) and create a project
+- Run the SQL in `supabase/schema.sql` (creates tables)
+- Run the SQL in `supabase/seed.sql` (adds sample data)
+- See `supabase/README.md` for detailed instructions
+
+5. Run the development server
 ```bash
 npm run dev
 ```
 
-4. Open [http://localhost:3000](http://localhost:3000) in your browser
+6. Open [http://localhost:3000](http://localhost:3000) in your browser
+
+7. Login with your Supabase user credentials
+- Create a user in Supabase Dashboard → Authentication → Users
+- Or sign up via the login page
+
+### PWA Setup
+
+To generate production-ready PWA assets:
+
+1. **Generate Icons:**
+```bash
+npm run generate:icons
+```
+This opens an HTML tool where you can download PNG icons.
+
+2. **Generate Screenshots:**
+```bash
+# Install Playwright (one-time)
+npm run setup:playwright
+
+# Start dev server
+npm run dev
+
+# In another terminal, capture screenshots
+npm run generate:screenshots
+```
+
+3. **Place Generated Files:**
+- Move icons to `public/icons/`
+- Move favicon to `public/favicon.png`
+- Move Apple touch icon to `public/apple-touch-icon.png`
+- Screenshots are auto-saved to `public/screenshots/`
+
+### Production Deployment
+
+See **[DEPLOYMENT.md](./DEPLOYMENT.md)** for complete deployment guide including:
+- Vercel deployment (recommended)
+- Railway deployment
+- Netlify deployment
+- PWA configuration
+- Supabase setup
+- Security best practices
+- Monetization strategies
 
 ## 📁 Project Structure
 
@@ -207,27 +268,46 @@ omni-sales/
 
 ## 🔜 Roadmap
 
-1. **Database Integration**
-   - Set up Supabase
-   - Create database schema
-   - Implement real-time sync
+### ✅ Completed (v1.0)
+- ✅ Database Integration (Supabase)
+- ✅ Authentication System
+- ✅ CRUD Operations (Products, Orders, Customers)
+- ✅ Dark Mode
+- ✅ PWA Support with offline mode
+- ✅ Icon & Screenshot generators
+- ✅ Deployment guides
 
-2. **Authentication**
-   - User login/registration
-   - Role-based access control
-   - Session management
+### 🎯 Next Steps (v1.1+)
 
-3. **CRUD Operations**
-   - Add/Edit/Delete products
-   - Update order status
-   - Manage customers
+1. **Payment Integration**
+   - Stripe/Omise integration
+   - Subscription management
+   - Invoice generation
 
-4. **Advanced Features**
-   - Dark mode
-   - PWA support
+2. **Enhanced Features**
    - Email notifications
-   - Inventory management
-   - Multi-store support
+   - Push notifications
+   - Advanced inventory management
+   - Multi-language support (EN/TH)
+
+3. **Business Intelligence**
+   - Advanced analytics
+   - Sales forecasting
+   - Customer lifetime value
+   - Inventory predictions
+
+4. **Integrations**
+   - Shopify/WooCommerce sync
+   - Facebook/Instagram shop
+   - LINE Official Account
+   - Thai logistics (Kerry, Flash, ThailandPost)
+
+5. **Enterprise Features**
+   - Multi-store management
+   - Role-based permissions
+   - API access
+   - Webhook support
+   - Custom reporting
 
 ## 📝 License
 
