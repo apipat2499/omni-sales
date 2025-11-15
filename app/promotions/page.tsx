@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
+import PromotionModal from '@/components/promotions/PromotionModal';
 import { usePromotions } from '@/lib/hooks/usePromotions';
 import { useToast } from '@/lib/hooks/useToast';
 import { formatCurrency } from '@/lib/utils';
@@ -12,8 +13,45 @@ import type { Promotion } from '@/types';
 
 export default function PromotionsPage() {
   const [showActiveOnly, setShowActiveOnly] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedPromotion, setSelectedPromotion] = useState<Promotion | null>(null);
   const { promotions, loading, error, refresh } = usePromotions({ isActive: showActiveOnly });
   const { success, error: showError } = useToast();
+
+  const handleAddPromotion = () => {
+    setSelectedPromotion(null);
+    setIsModalOpen(true);
+  };
+
+  const handleEditPromotion = (promotion: Promotion) => {
+    setSelectedPromotion(promotion);
+    setIsModalOpen(true);
+  };
+
+  const handleDeletePromotion = async (promotion: Promotion) => {
+    if (!confirm(`ต้องการลบโปรโมชั่น "${promotion.name}" หรือไม่?`)) return;
+
+    try {
+      const response = await fetch(`/api/promotions/${promotion.id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete promotion');
+      }
+
+      success('ลบโปรโมชั่นสำเร็จ');
+      refresh();
+    } catch (err) {
+      console.error('Delete error:', err);
+      showError('เกิดข้อผิดพลาดในการลบโปรโมชั่น');
+    }
+  };
+
+  const handleModalSuccess = () => {
+    success(selectedPromotion ? 'แก้ไขโปรโมชั่นสำเร็จ' : 'สร้างโปรโมชั่นสำเร็จ');
+    refresh();
+  };
 
   const activePromotions = promotions.filter((p) => {
     const now = new Date();
@@ -99,6 +137,7 @@ export default function PromotionsPage() {
             <p className="text-gray-600 dark:text-gray-400 mt-1">จัดการโปรโมชั่นและส่วนลด</p>
           </div>
           <button
+            onClick={handleAddPromotion}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             <Plus className="w-5 h-5" />
@@ -204,6 +243,9 @@ export default function PromotionsPage() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       การใช้งาน
                     </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      จัดการ
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -250,6 +292,22 @@ export default function PromotionsPage() {
                           {promotion.usageLimit && ` / ${promotion.usageLimit}`}
                         </div>
                       </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleEditPromotion(promotion)}
+                            className="p-1 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded"
+                          >
+                            <Edit className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                          </button>
+                          <button
+                            onClick={() => handleDeletePromotion(promotion)}
+                            className="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded"
+                          >
+                            <Trash2 className="w-4 h-4 text-red-600 dark:text-red-400" />
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -257,6 +315,14 @@ export default function PromotionsPage() {
             </div>
           )}
         </div>
+
+        {/* Promotion Modal */}
+        <PromotionModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onSuccess={handleModalSuccess}
+          promotion={selectedPromotion}
+        />
       </div>
     </DashboardLayout>
   );
