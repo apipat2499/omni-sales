@@ -32,12 +32,20 @@ export default function Home() {
             <Store className="h-8 w-8 text-blue-600 dark:text-blue-500" />
             <span className="text-2xl font-bold text-gray-900 dark:text-white">Omni Sales</span>
           </div>
-          <Link
-            href={getAuthLink()}
-            className="px-6 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors font-medium"
-          >
-            {user ? 'ไปที่แดชบอร์ด' : 'เข้าสู่ระบบ'}
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link
+              href="/pricing"
+              className="px-6 py-2 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors font-medium"
+            >
+              ราคา
+            </Link>
+            <Link
+              href={getAuthLink()}
+              className="px-6 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors font-medium"
+            >
+              {user ? 'ไปที่แดชบอร์ด' : 'เข้าสู่ระบบ'}
+            </Link>
+          </div>
         </nav>
       </header>
 
@@ -142,6 +150,106 @@ export default function Home() {
             <BenefitItem text="เข้าใจพฤติกรรมลูกค้าด้วยรายงานและการวิเคราะห์" />
             <BenefitItem text="ส่งออกรายงานเป็น Excel/PDF ได้ง่าย" />
             <BenefitItem text="รองรับ PWA ใช้งานได้แม้ไม่มีอินเทอร์เน็ต" />
+          </div>
+        </section>
+
+        {/* Pricing Preview */}
+        <section className="container mx-auto px-4 py-20">
+          <h2 className="text-4xl font-bold text-center text-gray-900 dark:text-white mb-8">
+            แผนราคาที่เหมาะกับทุกธุรกิจ
+          </h2>
+          <p className="text-xl text-center text-gray-600 dark:text-gray-300 mb-16">
+            เริ่มต้นฟรี อัพเกรดได้ทุกเมื่อที่ธุรกิจของคุณเติบโต
+          </p>
+          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            {/* Free Plan */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-8 shadow-lg border border-gray-200 dark:border-gray-700">
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">ฟรี</h3>
+              <div className="flex items-baseline mb-6">
+                <span className="text-4xl font-bold text-gray-900 dark:text-white">฿0</span>
+                <span className="text-gray-600 dark:text-gray-300 ml-2">/ตลอดกาล</span>
+              </div>
+              <ul className="space-y-3 mb-8">
+                <li className="flex items-start gap-2 text-gray-600 dark:text-gray-300">
+                  <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
+                  <span>สินค้า 100 รายการ</span>
+                </li>
+                <li className="flex items-start gap-2 text-gray-600 dark:text-gray-300">
+                  <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
+                  <span>คำสั่งซื้อ 50/เดือน</span>
+                </li>
+                <li className="flex items-start gap-2 text-gray-600 dark:text-gray-300">
+                  <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
+                  <span>รายงานพื้นฐาน</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Starter Plan */}
+            <div className="bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl p-8 shadow-2xl transform scale-105 relative">
+              <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-white dark:bg-gray-800 px-4 py-1 rounded-full text-sm font-semibold text-blue-600">
+                แนะนำ
+              </div>
+              <h3 className="text-2xl font-bold text-white mb-2">Starter</h3>
+              <div className="flex items-baseline mb-6">
+                <span className="text-4xl font-bold text-white">฿299</span>
+                <span className="text-blue-100 ml-2">/เดือน</span>
+              </div>
+              <ul className="space-y-3 mb-8">
+                <li className="flex items-start gap-2 text-white">
+                  <CheckCircle2 className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                  <span>สินค้า 1,000 รายการ</span>
+                </li>
+                <li className="flex items-start gap-2 text-white">
+                  <CheckCircle2 className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                  <span>คำสั่งซื้อ 500/เดือน</span>
+                </li>
+                <li className="flex items-start gap-2 text-white">
+                  <CheckCircle2 className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                  <span>ส่งออก PDF & Excel</span>
+                </li>
+                <li className="flex items-start gap-2 text-white">
+                  <CheckCircle2 className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                  <span>แจ้งเตือนอีเมล</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Pro Plan */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-8 shadow-lg border border-gray-200 dark:border-gray-700">
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Pro</h3>
+              <div className="flex items-baseline mb-6">
+                <span className="text-4xl font-bold text-gray-900 dark:text-white">฿999</span>
+                <span className="text-gray-600 dark:text-gray-300 ml-2">/เดือน</span>
+              </div>
+              <ul className="space-y-3 mb-8">
+                <li className="flex items-start gap-2 text-gray-600 dark:text-gray-300">
+                  <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
+                  <span>ไม่จำกัดสินค้า & ออเดอร์</span>
+                </li>
+                <li className="flex items-start gap-2 text-gray-600 dark:text-gray-300">
+                  <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
+                  <span>รายงานขั้นสูง</span>
+                </li>
+                <li className="flex items-start gap-2 text-gray-600 dark:text-gray-300">
+                  <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
+                  <span>API access</span>
+                </li>
+                <li className="flex items-start gap-2 text-gray-600 dark:text-gray-300">
+                  <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
+                  <span>หลายสาขา (3 สาขา)</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div className="text-center mt-12">
+            <Link
+              href="/pricing"
+              className="inline-flex items-center gap-2 px-8 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-lg"
+            >
+              ดูแผนราคาทั้งหมด
+              <ArrowRight className="h-5 w-5" />
+            </Link>
           </div>
         </section>
 
