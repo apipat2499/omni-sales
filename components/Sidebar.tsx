@@ -14,11 +14,13 @@ import {
   Store,
   LogOut,
   Loader2,
+  AlertTriangle,
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import ThemeToggle from './ThemeToggle';
 import { useAuth } from '@/lib/auth/AuthContext';
+import { useLowStock } from '@/lib/hooks/useLowStock';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -34,6 +36,7 @@ export default function Sidebar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const { user, logout } = useAuth();
+  const { count: lowStockCount } = useLowStock(10);
 
   const handleLogout = async () => {
     if (confirm('คุณต้องการออกจากระบบหรือไม่?')) {
@@ -107,6 +110,8 @@ export default function Sidebar() {
               {navigation.map((item) => {
                 const isActive = pathname === item.href;
                 const Icon = item.icon;
+                const showBadge = item.name === 'Products' && lowStockCount > 0;
+
                 return (
                   <li key={item.name}>
                     <Link
@@ -120,7 +125,13 @@ export default function Sidebar() {
                       )}
                     >
                       <Icon className="h-5 w-5" />
-                      {item.name}
+                      <span className="flex-1">{item.name}</span>
+                      {showBadge && (
+                        <span className="flex items-center gap-1 px-2 py-0.5 text-xs font-semibold bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-full">
+                          <AlertTriangle className="h-3 w-3" />
+                          {lowStockCount}
+                        </span>
+                      )}
                     </Link>
                   </li>
                 );

@@ -7,28 +7,48 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search');
     const category = searchParams.get('category');
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '20');
+    const offset = (page - 1) * limit;
 
-    let query = supabase.from('products').select('*');
+    // Build count query for total
+    let countQuery = supabase
+      .from('products')
+      .select('*', { count: 'exact', head: true });
 
-    // Apply search filter
+    // Build data query
+    let dataQuery = supabase
+      .from('products')
+      .select('*');
+
+    // Apply search filter to both queries
     if (search) {
-      query = query.or(`name.ilike.%${search}%,sku.ilike.%${search}%`);
+      const searchFilter = `name.ilike.%${search}%,sku.ilike.%${search}%`;
+      dataQuery = dataQuery.or(searchFilter);
+      countQuery = countQuery.or(searchFilter);
     }
 
-    // Apply category filter
+    // Apply category filter to both queries
     if (category && category !== 'all') {
-      query = query.eq('category', category);
+      dataQuery = dataQuery.eq('category', category);
+      countQuery = countQuery.eq('category', category);
     }
 
-    // Order by created date descending
-    query = query.order('createdAt', { ascending: false });
+    // Apply pagination and ordering
+    dataQuery = dataQuery
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
 
-    const { data, error } = await query;
+    // Execute both queries in parallel
+    const [{ data, error }, { count, error: countError }] = await Promise.all([
+      dataQuery,
+      countQuery,
+    ]);
 
-    if (error) {
-      console.error('Error fetching products:', error);
+    if (error || countError) {
+      console.error('Error fetching products:', error || countError);
       return NextResponse.json(
-        { error: 'Failed to fetch products', details: error.message },
+        { error: 'Failed to fetch products', details: (error || countError)?.message },
         { status: 500 }
       );
     }
@@ -36,11 +56,20 @@ export async function GET(request: NextRequest) {
     // Transform dates to Date objects
     const products: Product[] = (data || []).map((product) => ({
       ...product,
-      createdAt: new Date(product.createdAt),
-      updatedAt: new Date(product.updatedAt),
+      createdAt: new Date(product.created_at),
+      updatedAt: new Date(product.updated_at),
     }));
 
-    return NextResponse.json(products, { status: 200 });
+    // Return with pagination metadata
+    return NextResponse.json({
+      data: products,
+      pagination: {
+        page,
+        limit,
+        total: count || 0,
+        totalPages: Math.ceil((count || 0) / limit),
+      },
+    }, { status: 200 });
   } catch (error) {
     console.error('Unexpected error in GET /api/products:', error);
     return NextResponse.json(
