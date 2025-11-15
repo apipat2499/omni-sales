@@ -3291,3 +3291,203 @@ CREATE POLICY "Allow all for recommendation_rules" ON recommendation_rules FOR A
 CREATE POLICY "Allow all for recommendation_analytics" ON recommendation_analytics FOR ALL USING (true);
 CREATE POLICY "Allow all for recommendation_product_performance" ON recommendation_product_performance FOR ALL USING (true);
 CREATE POLICY "Allow all for personalization_preferences" ON personalization_preferences FOR ALL USING (true);
+
+-- ============================================
+-- DYNAMIC PRICING SYSTEM
+-- ============================================
+
+-- Pricing Strategies
+CREATE TABLE IF NOT EXISTS pricing_strategies (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  strategy_name VARCHAR(255) NOT NULL,
+  strategy_type VARCHAR(100) NOT NULL,
+  description TEXT,
+  base_strategy_id UUID REFERENCES pricing_strategies(id) ON DELETE SET NULL,
+  is_active BOOLEAN DEFAULT true,
+  apply_to_all BOOLEAN DEFAULT false,
+  priority INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Pricing Rules
+CREATE TABLE IF NOT EXISTS pricing_rules (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  strategy_id UUID NOT NULL REFERENCES pricing_strategies(id) ON DELETE CASCADE,
+  rule_name VARCHAR(255) NOT NULL,
+  rule_type VARCHAR(100) NOT NULL,
+  condition_field VARCHAR(100),
+  condition_operator VARCHAR(50),
+  condition_value VARCHAR(500),
+  price_adjustment_type VARCHAR(50),
+  price_adjustment_value DECIMAL(10, 2),
+  min_price DECIMAL(10, 2),
+  max_price DECIMAL(10, 2),
+  is_active BOOLEAN DEFAULT true,
+  priority INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Competitor Prices
+CREATE TABLE IF NOT EXISTS competitor_prices (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  competitor_name VARCHAR(255) NOT NULL,
+  competitor_sku VARCHAR(100),
+  competitor_price DECIMAL(10, 2),
+  our_price DECIMAL(10, 2),
+  price_difference DECIMAL(10, 2),
+  last_checked_at TIMESTAMP WITH TIME ZONE,
+  is_available BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Product Pricing History
+CREATE TABLE IF NOT EXISTS product_pricing_history (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  old_price DECIMAL(10, 2),
+  new_price DECIMAL(10, 2),
+  price_change_percentage DECIMAL(5, 2),
+  change_reason VARCHAR(255),
+  change_type VARCHAR(100),
+  strategy_id UUID REFERENCES pricing_strategies(id) ON DELETE SET NULL,
+  rule_id UUID REFERENCES pricing_rules(id) ON DELETE SET NULL,
+  changed_by VARCHAR(255),
+  changed_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  effective_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Demand Indicators
+CREATE TABLE IF NOT EXISTS demand_indicators (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  date DATE,
+  demand_level VARCHAR(50),
+  stock_level INTEGER,
+  conversion_rate DECIMAL(5, 2),
+  views_count INTEGER,
+  add_to_cart_count INTEGER,
+  purchase_count INTEGER,
+  average_rating DECIMAL(3, 2),
+  review_count INTEGER,
+  days_in_stock INTEGER,
+  seasonality_index DECIMAL(5, 2),
+  trend_score DECIMAL(5, 2),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Price Elasticity
+CREATE TABLE IF NOT EXISTS price_elasticity (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  elasticity_coefficient DECIMAL(5, 2),
+  price_range_min DECIMAL(10, 2),
+  price_range_max DECIMAL(10, 2),
+  optimal_price DECIMAL(10, 2),
+  confidence_score DECIMAL(5, 2),
+  calculated_at TIMESTAMP WITH TIME ZONE,
+  is_current BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Dynamic Pricing Analytics
+CREATE TABLE IF NOT EXISTS dynamic_pricing_analytics (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  date DATE,
+  strategy_id UUID REFERENCES pricing_strategies(id) ON DELETE SET NULL,
+  total_products_affected INTEGER DEFAULT 0,
+  total_price_changes INTEGER DEFAULT 0,
+  average_price_change DECIMAL(5, 2),
+  revenue_impact DECIMAL(12, 2),
+  margin_impact DECIMAL(12, 2),
+  demand_response DECIMAL(5, 2),
+  conversion_rate_change DECIMAL(5, 2),
+  customer_satisfaction_impact DECIMAL(5, 2),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Price Testing / A/B Tests
+CREATE TABLE IF NOT EXISTS price_tests (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  test_name VARCHAR(255) NOT NULL,
+  test_type VARCHAR(100),
+  control_price DECIMAL(10, 2),
+  test_price DECIMAL(10, 2),
+  test_percentage INTEGER,
+  start_date TIMESTAMP WITH TIME ZONE,
+  end_date TIMESTAMP WITH TIME ZONE,
+  status VARCHAR(50),
+  winner_price DECIMAL(10, 2),
+  revenue_control DECIMAL(12, 2),
+  revenue_test DECIMAL(12, 2),
+  conversion_control DECIMAL(5, 2),
+  conversion_test DECIMAL(5, 2),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create Indexes for Pricing
+CREATE INDEX IF NOT EXISTS idx_pricing_strategies_user ON pricing_strategies(user_id);
+CREATE INDEX IF NOT EXISTS idx_pricing_strategies_active ON pricing_strategies(user_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_pricing_rules_strategy ON pricing_rules(strategy_id);
+CREATE INDEX IF NOT EXISTS idx_pricing_rules_user ON pricing_rules(user_id);
+CREATE INDEX IF NOT EXISTS idx_competitor_prices_product ON competitor_prices(product_id);
+CREATE INDEX IF NOT EXISTS idx_competitor_prices_user ON competitor_prices(user_id);
+CREATE INDEX IF NOT EXISTS idx_competitor_prices_date ON competitor_prices(updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_product_pricing_history_product ON product_pricing_history(product_id);
+CREATE INDEX IF NOT EXISTS idx_product_pricing_history_strategy ON product_pricing_history(strategy_id);
+CREATE INDEX IF NOT EXISTS idx_product_pricing_history_date ON product_pricing_history(changed_at DESC);
+CREATE INDEX IF NOT EXISTS idx_demand_indicators_product_date ON demand_indicators(product_id, date DESC);
+CREATE INDEX IF NOT EXISTS idx_demand_indicators_user ON demand_indicators(user_id);
+CREATE INDEX IF NOT EXISTS idx_price_elasticity_product ON price_elasticity(product_id);
+CREATE INDEX IF NOT EXISTS idx_price_elasticity_current ON price_elasticity(user_id, is_current);
+CREATE INDEX IF NOT EXISTS idx_dynamic_pricing_analytics_user_date ON dynamic_pricing_analytics(user_id, date DESC);
+CREATE INDEX IF NOT EXISTS idx_dynamic_pricing_analytics_strategy ON dynamic_pricing_analytics(strategy_id);
+CREATE INDEX IF NOT EXISTS idx_price_tests_product ON price_tests(product_id);
+CREATE INDEX IF NOT EXISTS idx_price_tests_user ON price_tests(user_id);
+CREATE INDEX IF NOT EXISTS idx_price_tests_status ON price_tests(status);
+
+-- Create Triggers for Pricing
+CREATE TRIGGER update_pricing_strategies_updated_at BEFORE UPDATE ON pricing_strategies
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_pricing_rules_updated_at BEFORE UPDATE ON pricing_rules
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_competitor_prices_updated_at BEFORE UPDATE ON competitor_prices
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_price_elasticity_updated_at BEFORE UPDATE ON price_elasticity
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Enable RLS for Pricing Tables
+ALTER TABLE pricing_strategies ENABLE ROW LEVEL SECURITY;
+ALTER TABLE pricing_rules ENABLE ROW LEVEL SECURITY;
+ALTER TABLE competitor_prices ENABLE ROW LEVEL SECURITY;
+ALTER TABLE product_pricing_history ENABLE ROW LEVEL SECURITY;
+ALTER TABLE demand_indicators ENABLE ROW LEVEL SECURITY;
+ALTER TABLE price_elasticity ENABLE ROW LEVEL SECURITY;
+ALTER TABLE dynamic_pricing_analytics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE price_tests ENABLE ROW LEVEL SECURITY;
+
+-- Create Policies for Pricing Tables
+CREATE POLICY "Allow all for pricing_strategies" ON pricing_strategies FOR ALL USING (true);
+CREATE POLICY "Allow all for pricing_rules" ON pricing_rules FOR ALL USING (true);
+CREATE POLICY "Allow all for competitor_prices" ON competitor_prices FOR ALL USING (true);
+CREATE POLICY "Allow all for product_pricing_history" ON product_pricing_history FOR ALL USING (true);
+CREATE POLICY "Allow all for demand_indicators" ON demand_indicators FOR ALL USING (true);
+CREATE POLICY "Allow all for price_elasticity" ON price_elasticity FOR ALL USING (true);
+CREATE POLICY "Allow all for dynamic_pricing_analytics" ON dynamic_pricing_analytics FOR ALL USING (true);
+CREATE POLICY "Allow all for price_tests" ON price_tests FOR ALL USING (true);

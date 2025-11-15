@@ -2333,3 +2333,147 @@ export interface PersonalizationPreferences {
   createdAt: Date;
   updatedAt: Date;
 }
+
+// ============================================
+// DYNAMIC PRICING TYPES
+// ============================================
+
+export type PricingStrategyType = 'demand_based' | 'competition_based' | 'seasonality' | 'inventory_based' | 'customer_segment' | 'time_based';
+export type RuleType = 'percentage' | 'fixed_amount' | 'cost_plus' | 'value_based' | 'bundle' | 'threshold';
+export type DemandLevel = 'very_low' | 'low' | 'medium' | 'high' | 'very_high';
+export type PriceAdjustmentType = 'percentage' | 'fixed_amount' | 'absolute';
+export type TestStatus = 'planning' | 'active' | 'completed' | 'paused';
+
+export interface PricingStrategy {
+  id: string;
+  userId: string;
+  strategyName: string;
+  strategyType: PricingStrategyType;
+  description?: string;
+  baseStrategyId?: string;
+  isActive: boolean;
+  applyToAll: boolean;
+  priority?: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface PricingRule {
+  id: string;
+  userId: string;
+  strategyId: string;
+  ruleName: string;
+  ruleType: RuleType;
+  conditionField?: string;
+  conditionOperator?: string;
+  conditionValue?: string;
+  priceAdjustmentType?: PriceAdjustmentType;
+  priceAdjustmentValue?: number;
+  minPrice?: number;
+  maxPrice?: number;
+  isActive: boolean;
+  priority?: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CompetitorPrice {
+  id: string;
+  userId: string;
+  productId: string;
+  competitorName: string;
+  competitorSku?: string;
+  competitorPrice?: number;
+  ourPrice?: number;
+  priceDifference?: number;
+  lastCheckedAt?: Date;
+  isAvailable: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ProductPricingHistory {
+  id: string;
+  userId: string;
+  productId: string;
+  oldPrice?: number;
+  newPrice?: number;
+  priceChangePercentage?: number;
+  changeReason?: string;
+  changeType?: string;
+  strategyId?: string;
+  ruleId?: string;
+  changedBy?: string;
+  changedAt: Date;
+  effectiveAt?: Date;
+  createdAt: Date;
+}
+
+export interface DemandIndicator {
+  id: string;
+  userId: string;
+  productId: string;
+  date: Date;
+  demandLevel?: DemandLevel;
+  stockLevel?: number;
+  conversionRate?: number;
+  viewsCount?: number;
+  addToCartCount?: number;
+  purchaseCount?: number;
+  averageRating?: number;
+  reviewCount?: number;
+  daysInStock?: number;
+  seasonalityIndex?: number;
+  trendScore?: number;
+  createdAt: Date;
+}
+
+export interface PriceElasticity {
+  id: string;
+  userId: string;
+  productId: string;
+  elasticityCoefficient?: number;
+  priceRangeMin?: number;
+  priceRangeMax?: number;
+  optimalPrice?: number;
+  confidenceScore?: number;
+  calculatedAt?: Date;
+  isCurrent: boolean;
+  createdAt: Date;
+}
+
+export interface DynamicPricingAnalytics {
+  id: string;
+  userId: string;
+  date: Date;
+  strategyId?: string;
+  totalProductsAffected?: number;
+  totalPriceChanges?: number;
+  averagePriceChange?: number;
+  revenueImpact?: number;
+  marginImpact?: number;
+  demandResponse?: number;
+  conversionRateChange?: number;
+  customerSatisfactionImpact?: number;
+  createdAt: Date;
+}
+
+export interface PriceTest {
+  id: string;
+  userId: string;
+  productId: string;
+  testName: string;
+  testType?: string;
+  controlPrice?: number;
+  testPrice?: number;
+  testPercentage?: number;
+  startDate?: Date;
+  endDate?: Date;
+  status?: TestStatus;
+  winnerPrice?: number;
+  revenueControl?: number;
+  revenueTest?: number;
+  conversionControl?: number;
+  conversionTest?: number;
+  createdAt: Date;
+}
