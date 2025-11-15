@@ -247,42 +247,57 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search');
     const status = searchParams.get('status');
     const channel = searchParams.get('channel');
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '20');
+    const offset = (page - 1) * limit;
 
-    // First, fetch orders with customer information
-    let ordersQuery = supabase
+    // Build count query
+    let countQuery = supabase
+      .from('orders')
+      .select('*, customers!inner(name)', { count: 'exact', head: true });
+
+    // Build data query
+    let dataQuery = supabase
       .from('orders')
       .select(`
         *,
         customers!inner(name)
       `);
 
-    // Apply search filter (order ID or customer name)
+    // Apply search filter to both (order ID or customer name)
     if (search) {
-      // We need to use OR condition for searching by order ID or customer name
-      ordersQuery = ordersQuery.or(
-        `id.ilike.%${search}%,customers.name.ilike.%${search}%`
-      );
+      const searchFilter = `id.ilike.%${search}%,customers.name.ilike.%${search}%`;
+      dataQuery = dataQuery.or(searchFilter);
+      countQuery = countQuery.or(searchFilter);
     }
 
-    // Apply status filter
+    // Apply status filter to both
     if (status && status !== 'all') {
-      ordersQuery = ordersQuery.eq('status', status);
+      dataQuery = dataQuery.eq('status', status);
+      countQuery = countQuery.eq('status', status);
     }
 
-    // Apply channel filter
+    // Apply channel filter to both
     if (channel && channel !== 'all') {
-      ordersQuery = ordersQuery.eq('channel', channel);
+      dataQuery = dataQuery.eq('channel', channel);
+      countQuery = countQuery.eq('channel', channel);
     }
 
-    // Order by created date descending
-    ordersQuery = ordersQuery.order('created_at', { ascending: false });
+    // Apply pagination and ordering
+    dataQuery = dataQuery
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
 
-    const { data: ordersData, error: ordersError } = await ordersQuery;
+    // Execute both queries in parallel
+    const [{ data: ordersData, error: ordersError }, { count, error: countError }] = await Promise.all([
+      dataQuery,
+      countQuery,
+    ]);
 
-    if (ordersError) {
-      console.error('Error fetching orders:', ordersError);
+    if (ordersError || countError) {
+      console.error('Error fetching orders:', ordersError || countError);
       return NextResponse.json(
-        { error: 'Failed to fetch orders', details: ordersError.message },
+        { error: 'Failed to fetch orders', details: (ordersError || countError)?.message },
         { status: 500 }
       );
     }
@@ -331,7 +346,16 @@ export async function GET(request: NextRequest) {
       (order): order is Order => order !== null
     );
 
-    return NextResponse.json(orders, { status: 200 });
+    // Return with pagination metadata
+    return NextResponse.json({
+      data: orders,
+      pagination: {
+        page,
+        limit,
+        total: count || 0,
+        totalPages: Math.ceil((count || 0) / limit),
+      },
+    }, { status: 200 });
   } catch (error) {
     console.error('Unexpected error in GET /api/orders:', error);
     return NextResponse.json(
