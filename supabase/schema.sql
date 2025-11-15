@@ -4189,3 +4189,211 @@ CREATE POLICY "Allow all for complaint_feedback" ON complaint_feedback FOR ALL U
 CREATE POLICY "Allow all for complaint_analytics" ON complaint_analytics FOR ALL USING (true);
 CREATE POLICY "Allow all for feedback_surveys" ON feedback_surveys FOR ALL USING (true);
 CREATE POLICY "Allow all for survey_responses" ON survey_responses FOR ALL USING (true);
+
+-- ============================================
+-- ADVANCED ANALYTICS & REPORTING SYSTEM TABLES
+-- ============================================
+
+-- Sales Analytics
+CREATE TABLE IF NOT EXISTS sales_analytics (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  analytics_date DATE NOT NULL,
+  total_orders INT DEFAULT 0,
+  total_revenue DECIMAL(12, 2) DEFAULT 0,
+  average_order_value DECIMAL(12, 2),
+  total_items_sold INT DEFAULT 0,
+  total_discount_given DECIMAL(12, 2) DEFAULT 0,
+  total_refunds DECIMAL(12, 2) DEFAULT 0,
+  net_revenue DECIMAL(12, 2),
+  orders_by_status JSONB,
+  revenue_by_channel JSONB,
+  revenue_by_category JSONB,
+  top_products JSONB,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Customer Analytics
+CREATE TABLE IF NOT EXISTS customer_analytics (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  analytics_date DATE NOT NULL,
+  total_customers INT DEFAULT 0,
+  new_customers INT DEFAULT 0,
+  returning_customers INT DEFAULT 0,
+  active_customers INT DEFAULT 0,
+  customer_retention_rate DECIMAL(5, 2),
+  average_customer_lifetime_value DECIMAL(12, 2),
+  total_customer_spend DECIMAL(12, 2),
+  customer_acquisition_cost DECIMAL(12, 2),
+  churn_rate DECIMAL(5, 2),
+  customers_by_segment JSONB,
+  customers_by_location JSONB,
+  repeat_purchase_rate DECIMAL(5, 2),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Product Analytics
+CREATE TABLE IF NOT EXISTS product_analytics (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  product_id UUID REFERENCES products(id),
+  analytics_date DATE NOT NULL,
+  units_sold INT DEFAULT 0,
+  revenue DECIMAL(12, 2) DEFAULT 0,
+  cost_of_goods DECIMAL(12, 2),
+  gross_profit DECIMAL(12, 2),
+  gross_margin DECIMAL(5, 2),
+  average_rating DECIMAL(3, 2),
+  review_count INT,
+  return_rate DECIMAL(5, 2),
+  stock_level INT,
+  turnover_rate DECIMAL(10, 2),
+  inventory_value DECIMAL(12, 2),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Financial Analytics
+CREATE TABLE IF NOT EXISTS financial_analytics (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  analytics_date DATE NOT NULL,
+  period_type VARCHAR(50),
+  total_revenue DECIMAL(12, 2) DEFAULT 0,
+  total_cost DECIMAL(12, 2) DEFAULT 0,
+  gross_profit DECIMAL(12, 2),
+  operating_expenses DECIMAL(12, 2),
+  net_profit DECIMAL(12, 2),
+  gross_margin DECIMAL(5, 2),
+  operating_margin DECIMAL(5, 2),
+  net_margin DECIMAL(5, 2),
+  revenue_by_source JSONB,
+  expense_by_category JSONB,
+  cash_flow_data JSONB,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Marketing Analytics
+CREATE TABLE IF NOT EXISTS marketing_analytics (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  analytics_date DATE NOT NULL,
+  campaign_name VARCHAR(255),
+  channel VARCHAR(100),
+  impressions INT DEFAULT 0,
+  clicks INT DEFAULT 0,
+  conversions INT DEFAULT 0,
+  spend DECIMAL(12, 2) DEFAULT 0,
+  revenue DECIMAL(12, 2) DEFAULT 0,
+  email_sent INT DEFAULT 0,
+  email_opened INT DEFAULT 0,
+  email_clicked INT DEFAULT 0,
+  sms_sent INT DEFAULT 0,
+  sms_conversion INT DEFAULT 0,
+  engagement_rate DECIMAL(5, 2),
+  conversion_rate DECIMAL(5, 2),
+  roi DECIMAL(10, 2),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Operational Analytics
+CREATE TABLE IF NOT EXISTS operational_analytics (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  analytics_date DATE NOT NULL,
+  order_fulfillment_rate DECIMAL(5, 2),
+  average_fulfillment_time INT,
+  shipping_on_time_rate DECIMAL(5, 2),
+  inventory_accuracy DECIMAL(5, 2),
+  stock_out_incidents INT DEFAULT 0,
+  warehouse_utilization DECIMAL(5, 2),
+  average_complaint_resolution_time INT,
+  complaint_rate DECIMAL(5, 2),
+  return_rate DECIMAL(5, 2),
+  customer_satisfaction_score DECIMAL(3, 2),
+  nps_score INT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Dashboard Reports
+CREATE TABLE IF NOT EXISTS dashboard_reports (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  report_name VARCHAR(255) NOT NULL,
+  report_type VARCHAR(50),
+  report_description TEXT,
+  report_config JSONB,
+  refresh_frequency VARCHAR(50),
+  last_generated_at TIMESTAMP WITH TIME ZONE,
+  next_refresh_at TIMESTAMP WITH TIME ZONE,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Report Snapshots (for historical data)
+CREATE TABLE IF NOT EXISTS report_snapshots (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  report_id UUID NOT NULL REFERENCES dashboard_reports(id) ON DELETE CASCADE,
+  snapshot_date DATE NOT NULL,
+  snapshot_data JSONB NOT NULL,
+  metrics_summary JSONB,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- KPI Tracking
+CREATE TABLE IF NOT EXISTS kpi_tracking (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  kpi_name VARCHAR(255) NOT NULL,
+  kpi_category VARCHAR(100),
+  target_value DECIMAL(12, 2),
+  actual_value DECIMAL(12, 2),
+  current_date DATE NOT NULL,
+  status VARCHAR(50),
+  trend DECIMAL(5, 2),
+  notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create Indexes for Analytics
+CREATE INDEX IF NOT EXISTS idx_sales_analytics_user_date ON sales_analytics(user_id, analytics_date DESC);
+CREATE INDEX IF NOT EXISTS idx_customer_analytics_user_date ON customer_analytics(user_id, analytics_date DESC);
+CREATE INDEX IF NOT EXISTS idx_product_analytics_user_date ON product_analytics(user_id, analytics_date DESC);
+CREATE INDEX IF NOT EXISTS idx_product_analytics_product ON product_analytics(product_id);
+CREATE INDEX IF NOT EXISTS idx_financial_analytics_user_date ON financial_analytics(user_id, analytics_date DESC);
+CREATE INDEX IF NOT EXISTS idx_marketing_analytics_user_date ON marketing_analytics(user_id, analytics_date DESC);
+CREATE INDEX IF NOT EXISTS idx_marketing_analytics_channel ON marketing_analytics(channel);
+CREATE INDEX IF NOT EXISTS idx_operational_analytics_user_date ON operational_analytics(user_id, analytics_date DESC);
+CREATE INDEX IF NOT EXISTS idx_dashboard_reports_user ON dashboard_reports(user_id);
+CREATE INDEX IF NOT EXISTS idx_report_snapshots_report_date ON report_snapshots(report_id, snapshot_date DESC);
+CREATE INDEX IF NOT EXISTS idx_kpi_tracking_user_date ON kpi_tracking(user_id, current_date DESC);
+
+-- Create Triggers for Analytics
+CREATE TRIGGER update_sales_analytics_created_at BEFORE UPDATE ON sales_analytics
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_dashboard_reports_updated_at BEFORE UPDATE ON dashboard_reports
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Enable RLS for Analytics Tables
+ALTER TABLE sales_analytics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE customer_analytics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE product_analytics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE financial_analytics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE marketing_analytics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE operational_analytics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE dashboard_reports ENABLE ROW LEVEL SECURITY;
+ALTER TABLE report_snapshots ENABLE ROW LEVEL SECURITY;
+ALTER TABLE kpi_tracking ENABLE ROW LEVEL SECURITY;
+
+-- Create Policies for Analytics Tables
+CREATE POLICY "Allow all for sales_analytics" ON sales_analytics FOR ALL USING (true);
+CREATE POLICY "Allow all for customer_analytics" ON customer_analytics FOR ALL USING (true);
+CREATE POLICY "Allow all for product_analytics" ON product_analytics FOR ALL USING (true);
+CREATE POLICY "Allow all for financial_analytics" ON financial_analytics FOR ALL USING (true);
+CREATE POLICY "Allow all for marketing_analytics" ON marketing_analytics FOR ALL USING (true);
+CREATE POLICY "Allow all for operational_analytics" ON operational_analytics FOR ALL USING (true);
+CREATE POLICY "Allow all for dashboard_reports" ON dashboard_reports FOR ALL USING (true);
+CREATE POLICY "Allow all for report_snapshots" ON report_snapshots FOR ALL USING (true);
+CREATE POLICY "Allow all for kpi_tracking" ON kpi_tracking FOR ALL USING (true);

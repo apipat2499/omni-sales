@@ -3029,3 +3029,184 @@ export interface ComplaintStatistics {
   topComplaintReason: string;
   customerSatisfactionScore: number;
 }
+
+// ============================================
+// ADVANCED ANALYTICS & REPORTING TYPES
+// ============================================
+
+export interface SalesAnalytics {
+  id: string;
+  userId: string;
+  analyticsDate: Date;
+  totalOrders: number;
+  totalRevenue: number;
+  averageOrderValue: number;
+  totalItemsSold: number;
+  totalDiscountGiven: number;
+  totalRefunds: number;
+  netRevenue: number;
+  ordersByStatus?: Record<string, any>;
+  revenueByChannel?: Record<string, any>;
+  revenueByCategory?: Record<string, any>;
+  topProducts?: Record<string, any>;
+  createdAt: Date;
+}
+
+export interface CustomerAnalytics {
+  id: string;
+  userId: string;
+  analyticsDate: Date;
+  totalCustomers: number;
+  newCustomers: number;
+  returningCustomers: number;
+  activeCustomers: number;
+  customerRetentionRate: number;
+  averageCustomerLifetimeValue: number;
+  totalCustomerSpend: number;
+  customerAcquisitionCost: number;
+  churnRate: number;
+  customersBySegment?: Record<string, any>;
+  customersByLocation?: Record<string, any>;
+  repeatPurchaseRate: number;
+  createdAt: Date;
+}
+
+export interface ProductAnalytics {
+  id: string;
+  userId: string;
+  productId: string;
+  analyticsDate: Date;
+  unitsSold: number;
+  revenue: number;
+  costOfGoods: number;
+  grossProfit: number;
+  grossMargin: number;
+  averageRating: number;
+  reviewCount: number;
+  returnRate: number;
+  stockLevel: number;
+  turnoverRate: number;
+  inventoryValue: number;
+  createdAt: Date;
+}
+
+export interface FinancialAnalytics {
+  id: string;
+  userId: string;
+  analyticsDate: Date;
+  periodType: string;
+  totalRevenue: number;
+  totalCost: number;
+  grossProfit: number;
+  operatingExpenses: number;
+  netProfit: number;
+  grossMargin: number;
+  operatingMargin: number;
+  netMargin: number;
+  revenueBySource?: Record<string, any>;
+  expenseByCategory?: Record<string, any>;
+  cashFlowData?: Record<string, any>;
+  createdAt: Date;
+}
+
+export interface MarketingAnalytics {
+  id: string;
+  userId: string;
+  analyticsDate: Date;
+  campaignName?: string;
+  channel: string;
+  impressions: number;
+  clicks: number;
+  conversions: number;
+  spend: number;
+  revenue: number;
+  emailSent: number;
+  emailOpened: number;
+  emailClicked: number;
+  smsSent: number;
+  smsConversion: number;
+  engagementRate: number;
+  conversionRate: number;
+  roi: number;
+  createdAt: Date;
+}
+
+export interface OperationalAnalytics {
+  id: string;
+  userId: string;
+  analyticsDate: Date;
+  orderFulfillmentRate: number;
+  averageFulfillmentTime: number;
+  shippingOnTimeRate: number;
+  inventoryAccuracy: number;
+  stockOutIncidents: number;
+  warehouseUtilization: number;
+  averageComplaintResolutionTime: number;
+  complaintRate: number;
+  returnRate: number;
+  customerSatisfactionScore: number;
+  npsScore: number;
+  createdAt: Date;
+}
+
+export interface DashboardReport {
+  id: string;
+  userId: string;
+  reportName: string;
+  reportType: string;
+  reportDescription?: string;
+  reportConfig?: Record<string, any>;
+  refreshFrequency: string;
+  lastGeneratedAt?: Date;
+  nextRefreshAt?: Date;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ReportSnapshot {
+  id: string;
+  reportId: string;
+  snapshotDate: Date;
+  snapshotData: Record<string, any>;
+  metricsSummary?: Record<string, any>;
+  createdAt: Date;
+}
+
+export interface KPITracking {
+  id: string;
+  userId: string;
+  kpiName: string;
+  kpiCategory: string;
+  targetValue: number;
+  actualValue: number;
+  currentDate: Date;
+  status: string;
+  trend: number;
+  notes?: string;
+  createdAt: Date;
+}
+
+export interface AnalyticsDashboardData {
+  salesAnalytics: SalesAnalytics | null;
+  customerAnalytics: CustomerAnalytics | null;
+  financialAnalytics: FinancialAnalytics | null;
+  operationalAnalytics: OperationalAnalytics | null;
+  marketingAnalytics: MarketingAnalytics[];
+  topProducts: ProductAnalytics[];
+  kpiTracking: KPITracking[];
+  period: {
+    startDate: Date;
+    endDate: Date;
+  };
+}
+
+export interface AnalyticsFilter {
+  dateRange: 'day' | 'week' | 'month' | 'quarter' | 'year' | 'custom';
+  startDate?: Date;
+  endDate?: Date;
+  productIds?: string[];
+  categories?: string[];
+  channels?: string[];
+  segments?: string[];
+}

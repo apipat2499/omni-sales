@@ -1,332 +1,643 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 import {
-  BarChart,
-  Bar,
-  LineChart,
-  Line,
-  PieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from 'recharts';
-import { AnalyticsDashboard, ProductPerformance } from '@/types';
-import { TrendingUp, Users, ShoppingCart, DollarSign } from 'lucide-react';
+  TrendingUp,
+  DollarSign,
+  Users,
+  Package,
+  BarChart3,
+  RefreshCw,
+  Download,
+  Calendar,
+  TrendingDown,
+} from "lucide-react";
 
-const COLORS = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6'];
+interface AnalyticsData {
+  salesAnalytics: {
+    totalOrders?: number;
+    totalRevenue?: number;
+    averageOrderValue?: number;
+    totalItemsSold?: number;
+    totalDiscountGiven?: number;
+    totalRefunds?: number;
+    netRevenue?: number;
+    ordersByStatus?: Record<string, any>;
+    revenueByChannel?: Record<string, any>;
+    revenueByCategory?: Record<string, any>;
+    topProducts?: Record<string, any>;
+  } | null;
+  customerAnalytics: {
+    totalCustomers?: number;
+    newCustomers?: number;
+    returningCustomers?: number;
+    activeCustomers?: number;
+    customerRetentionRate?: number;
+    averageCustomerLifetimeValue?: number;
+    totalCustomerSpend?: number;
+    customerAcquisitionCost?: number;
+    churnRate?: number;
+    repeatPurchaseRate?: number;
+  } | null;
+  financialAnalytics: {
+    totalRevenue?: number;
+    totalCost?: number;
+    grossProfit?: number;
+    operatingExpenses?: number;
+    netProfit?: number;
+    grossMargin?: number;
+    operatingMargin?: number;
+    netMargin?: number;
+    revenueBySource?: Record<string, any>;
+    expenseByCategory?: Record<string, any>;
+    cashFlowData?: Record<string, any>;
+  } | null;
+  operationalAnalytics: {
+    orderFulfillmentRate?: number;
+    averageFulfillmentTime?: number;
+    shippingOnTimeRate?: number;
+    inventoryAccuracy?: number;
+    stockOutIncidents?: number;
+    warehouseUtilization?: number;
+    averageComplaintResolutionTime?: number;
+    complaintRate?: number;
+    returnRate?: number;
+    customerSatisfactionScore?: number;
+    npsScore?: number;
+  } | null;
+  marketingAnalytics: any[];
+  topProducts: any[];
+  kpiTracking: any[];
+}
 
 export default function AnalyticsPage() {
-  const [dashboard, setDashboard] = useState<AnalyticsDashboard | null>(null);
+  const [activeTab, setActiveTab] = useState("overview");
+  const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [daysBack, setDaysBack] = useState(30);
+  const [selectedDate, setSelectedDate] = useState(
+    new Date().toISOString().split("T")[0]
+  );
+  const [userId, setUserId] = useState("user-1");
 
   useEffect(() => {
-    const userId = localStorage.getItem('userId');
-    if (!userId) {
-      window.location.href = '/login';
-      return;
+    if (typeof window !== "undefined") {
+      const storedUserId = localStorage.getItem("userId") || "user-1";
+      setUserId(storedUserId);
     }
+  }, []);
 
-    fetchAnalytics(userId, daysBack);
-  }, [daysBack]);
+  useEffect(() => {
+    fetchAnalyticsData();
+  }, [selectedDate, userId]);
 
-  const fetchAnalytics = async (userId: string, days: number) => {
+  const fetchAnalyticsData = async () => {
     try {
       setIsLoading(true);
-      setError(null);
-
       const response = await fetch(
-        `/api/analytics/dashboard?userId=${userId}&daysBack=${days}`
+        `/api/analytics/dashboard?userId=${userId}&date=${selectedDate}`
       );
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch analytics');
+      if (response.ok) {
+        const data = await response.json();
+        setAnalyticsData(data.data);
       }
-
-      const data = await response.json();
-      setDashboard(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+    } catch (error) {
+      console.error("Error fetching analytics:", error);
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleDownloadReport = () => {
+    const reportData = {
+      date: selectedDate,
+      data: analyticsData,
+      generatedAt: new Date().toISOString(),
+    };
+    const blob = new Blob([JSON.stringify(reportData, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `analytics-report-${selectedDate}.json`;
+    a.click();
+  };
+
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="text-gray-600 dark:text-gray-400">Loading analytics...</div>
-      </div>
-    );
-  }
-
-  if (error || !dashboard) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="rounded-lg bg-red-50 p-4 text-red-800 dark:bg-red-900 dark:text-red-200">
-          {error || 'Failed to load analytics'}
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <BarChart3 className="w-12 h-12 text-blue-500 mx-auto mb-4 animate-spin" />
+          <p className="text-gray-600 dark:text-gray-400">
+            Loading analytics...
+          </p>
         </div>
       </div>
     );
   }
 
-  const kpis = [
+  const kpiCards = [
     {
-      label: 'Total Revenue',
-      value: `฿${dashboard.totalRevenue.toLocaleString('th-TH', {
-        maximumFractionDigits: 0,
-      })}`,
-      change: dashboard.revenueGrowth,
+      label: "Total Revenue",
+      value: analyticsData?.salesAnalytics?.totalRevenue
+        ? `$${(analyticsData.salesAnalytics.totalRevenue / 1000).toFixed(1)}K`
+        : "$0",
       icon: DollarSign,
-      color: 'bg-blue-500',
+      color: "bg-blue-500",
+      trend: 12,
     },
     {
-      label: 'Total Orders',
-      value: dashboard.totalOrders.toLocaleString(),
-      change: dashboard.ordersGrowth,
-      icon: ShoppingCart,
-      color: 'bg-green-500',
+      label: "Total Orders",
+      value: analyticsData?.salesAnalytics?.totalOrders || 0,
+      icon: Package,
+      color: "bg-purple-500",
+      trend: 8,
     },
     {
-      label: 'Unique Customers',
-      value: dashboard.uniqueCustomers.toLocaleString(),
-      change: dashboard.customersGrowth,
+      label: "Active Customers",
+      value: analyticsData?.customerAnalytics?.activeCustomers || 0,
       icon: Users,
-      color: 'bg-purple-500',
+      color: "bg-green-500",
+      trend: 5,
     },
     {
-      label: 'Avg Order Value',
-      value: `฿${dashboard.averageOrderValue.toLocaleString('th-TH', {
-        maximumFractionDigits: 2,
-      })}`,
-      change: 0,
+      label: "Fulfillment Rate",
+      value: `${(analyticsData?.operationalAnalytics?.orderFulfillmentRate || 0).toFixed(1)}%`,
       icon: TrendingUp,
-      color: 'bg-orange-500',
+      color: "bg-orange-500",
+      trend: -2,
     },
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 dark:bg-gray-900">
-      <div className="mx-auto max-w-7xl">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-8">
+      <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8 flex items-center justify-between">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-4xl font-bold dark:text-white">Analytics</h1>
-            <p className="mt-2 text-gray-600 dark:text-gray-400">
-              Last {daysBack} days
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+              Analytics Dashboard
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400">
+              Track your business performance and KPIs
             </p>
           </div>
-
-          <div className="flex gap-2">
-            {[7, 30, 90].map((days) => (
-              <button
-                key={days}
-                onClick={() => setDaysBack(days)}
-                className={`rounded-lg px-4 py-2 font-medium transition-all ${
-                  daysBack === days
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-white text-gray-700 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
-                }`}
-              >
-                {days}d
-              </button>
-            ))}
+          <div className="flex gap-3">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-gray-500" />
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+              />
+            </div>
+            <button
+              onClick={fetchAnalyticsData}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Refresh
+            </button>
+            <button
+              onClick={handleDownloadReport}
+              className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition"
+            >
+              <Download className="w-4 h-4" />
+              Download
+            </button>
           </div>
         </div>
 
-        {/* KPIs */}
-        <div className="mb-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {kpis.map((kpi) => {
-            const Icon = kpi.icon;
-            const isPositive = kpi.change >= 0;
-
+        {/* KPI Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {kpiCards.map((card, idx) => {
+            const Icon = card.icon;
             return (
               <div
-                key={kpi.label}
-                className="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800"
+                key={idx}
+                className="bg-white dark:bg-gray-800 rounded-lg shadow p-6"
               >
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {kpi.label}
-                    </p>
-                    <p className="mt-2 text-3xl font-bold dark:text-white">
-                      {kpi.value}
-                    </p>
-                    {kpi.change !== 0 && (
-                      <p
-                        className={`mt-2 text-sm font-medium ${
-                          isPositive
-                            ? 'text-green-600 dark:text-green-400'
-                            : 'text-red-600 dark:text-red-400'
-                        }`}
-                      >
-                        {isPositive ? '+' : ''}{kpi.change.toFixed(1)}% from last period
-                      </p>
-                    )}
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                    {card.label}
+                  </h3>
+                  <div className={`${card.color} p-3 rounded-lg`}>
+                    <Icon className="w-5 h-5 text-white" />
                   </div>
-                  <div className={`${kpi.color} rounded-lg p-3`}>
-                    <Icon className="h-6 w-6 text-white" />
-                  </div>
+                </div>
+                <div className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                  {card.value}
+                </div>
+                <div className="flex items-center gap-1">
+                  {card.trend >= 0 ? (
+                    <TrendingUp className="w-4 h-4 text-green-500" />
+                  ) : (
+                    <TrendingDown className="w-4 h-4 text-red-500" />
+                  )}
+                  <span
+                    className={`text-sm font-medium ${card.trend >= 0 ? "text-green-600" : "text-red-600"}`}
+                  >
+                    {Math.abs(card.trend)}% vs last period
+                  </span>
                 </div>
               </div>
             );
           })}
         </div>
 
-        {/* Charts Grid */}
-        <div className="mb-8 grid gap-6 lg:grid-cols-2">
-          {/* Top Products */}
-          {dashboard.topProducts && dashboard.topProducts.length > 0 && (
-            <div className="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
-              <h2 className="mb-4 text-xl font-bold dark:text-white">
-                Top Products by Revenue
-              </h2>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart
-                  data={dashboard.topProducts.slice(0, 5).map((p: ProductPerformance) => ({
-                    name: p.productId,
-                    revenue: Number(p.revenue),
-                  }))}
+        {/* Tabs */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow mb-8">
+          <div className="border-b border-gray-200 dark:border-gray-700">
+            <div className="flex gap-8 px-6">
+              {[
+                { id: "overview", label: "Overview" },
+                { id: "sales", label: "Sales" },
+                { id: "customer", label: "Customer" },
+                { id: "financial", label: "Financial" },
+                { id: "operational", label: "Operational" },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`py-4 px-1 border-b-2 font-medium text-sm transition ${
+                    activeTab === tab.id
+                      ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                      : "border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300"
+                  }`}
                 >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="revenue" fill="#3b82f6" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-
-          {/* Customer Segments */}
-          {dashboard.customerSegments && (
-            <div className="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
-              <h2 className="mb-4 text-xl font-bold dark:text-white">
-                Customer Segments
-              </h2>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={Object.entries(dashboard.customerSegments).map(
-                      ([name, value]) => ({
-                        name: name.charAt(0).toUpperCase() + name.slice(1),
-                        value: value as number,
-                      })
-                    )}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) =>
-                      `${name} ${(percent * 100).toFixed(0)}%`
-                    }
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {COLORS.map((color, index) => (
-                      <Cell key={`cell-${index}`} fill={color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-
-          {/* Channel Performance */}
-          {dashboard.topChannels && dashboard.topChannels.length > 0 && (
-            <div className="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
-              <h2 className="mb-4 text-xl font-bold dark:text-white">
-                Channel Performance
-              </h2>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart
-                  data={dashboard.topChannels.slice(0, 5).map((c) => ({
-                    name: c.channel,
-                    revenue: Number(c.revenue),
-                    profit: Number(c.profit),
-                  }))}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="revenue" fill="#3b82f6" />
-                  <Bar dataKey="profit" fill="#10b981" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-
-          {/* Category Performance */}
-          {dashboard.topCategories && dashboard.topCategories.length > 0 && (
-            <div className="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
-              <h2 className="mb-4 text-xl font-bold dark:text-white">
-                Category Performance
-              </h2>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart
-                  data={dashboard.topCategories.slice(0, 5).map((c) => ({
-                    name: c.category,
-                    revenue: Number(c.revenue),
-                  }))}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="revenue" fill="#8b5cf6" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </div>
-
-        {/* Anomalies */}
-        {dashboard.anomalies && dashboard.anomalies.length > 0 && (
-          <div className="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
-            <h2 className="mb-4 text-xl font-bold dark:text-white">
-              Anomalies Detected
-            </h2>
-            <div className="space-y-3">
-              {dashboard.anomalies.map((anomaly) => (
-                <div
-                  key={anomaly.id}
-                  className="flex items-start justify-between rounded-lg bg-gray-50 p-4 dark:bg-gray-700"
-                >
-                  <div className="flex-1">
-                    <h3 className="font-semibold dark:text-white">
-                      {anomaly.anomalyType}
-                    </h3>
-                    <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                      {anomaly.description}
-                    </p>
-                  </div>
-                  <span
-                    className={`rounded-full px-3 py-1 text-sm font-medium ${
-                      anomaly.severity === 'high'
-                        ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                        : anomaly.severity === 'medium'
-                          ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                          : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                    }`}
-                  >
-                    {anomaly.severity}
-                  </span>
-                </div>
+                  {tab.label}
+                </button>
               ))}
             </div>
           </div>
-        )}
+
+          <div className="p-6">
+            {/* Overview Tab */}
+            {activeTab === "overview" && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                    <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
+                      Sales Summary
+                    </h3>
+                    <div className="space-y-3">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-300">
+                          Net Revenue
+                        </span>
+                        <span className="font-semibold text-gray-900 dark:text-white">
+                          ${(analyticsData?.salesAnalytics?.netRevenue || 0).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-300">
+                          Avg Order Value
+                        </span>
+                        <span className="font-semibold text-gray-900 dark:text-white">
+                          ${(analyticsData?.salesAnalytics?.averageOrderValue || 0).toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-300">
+                          Items Sold
+                        </span>
+                        <span className="font-semibold text-gray-900 dark:text-white">
+                          {analyticsData?.salesAnalytics?.totalItemsSold || 0}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-300">
+                          Total Refunds
+                        </span>
+                        <span className="font-semibold text-gray-900 dark:text-white">
+                          ${(analyticsData?.salesAnalytics?.totalRefunds || 0).toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                    <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
+                      Customer Summary
+                    </h3>
+                    <div className="space-y-3">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-300">
+                          Total Customers
+                        </span>
+                        <span className="font-semibold text-gray-900 dark:text-white">
+                          {analyticsData?.customerAnalytics?.totalCustomers || 0}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-300">
+                          Returning Customers
+                        </span>
+                        <span className="font-semibold text-gray-900 dark:text-white">
+                          {analyticsData?.customerAnalytics?.returningCustomers || 0}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-300">
+                          Retention Rate
+                        </span>
+                        <span className="font-semibold text-gray-900 dark:text-white">
+                          {(analyticsData?.customerAnalytics?.customerRetentionRate || 0).toFixed(1)}%
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-300">
+                          Avg Lifetime Value
+                        </span>
+                        <span className="font-semibold text-gray-900 dark:text-white">
+                          ${(analyticsData?.customerAnalytics?.averageCustomerLifetimeValue || 0).toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Sales Tab */}
+            {activeTab === "sales" && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                    <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
+                      Key Metrics
+                    </h3>
+                    <div className="space-y-3">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-300">
+                          Total Orders
+                        </span>
+                        <span className="font-semibold text-gray-900 dark:text-white">
+                          {analyticsData?.salesAnalytics?.totalOrders || 0}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-300">
+                          Total Revenue
+                        </span>
+                        <span className="font-semibold text-gray-900 dark:text-white">
+                          ${(analyticsData?.salesAnalytics?.totalRevenue || 0).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-300">
+                          Discount Given
+                        </span>
+                        <span className="font-semibold text-gray-900 dark:text-white">
+                          ${(analyticsData?.salesAnalytics?.totalDiscountGiven || 0).toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                    <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
+                      Top Products
+                    </h3>
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {analyticsData?.topProducts && analyticsData.topProducts.length > 0 ? (
+                        analyticsData.topProducts.slice(0, 5).map((product: any, idx: number) => (
+                          <div
+                            key={idx}
+                            className="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-600"
+                          >
+                            <span className="text-sm text-gray-700 dark:text-gray-300">
+                              {product.productId || `Product ${idx + 1}`}
+                            </span>
+                            <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                              {product.unitsSold || 0} units
+                            </span>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-gray-500 dark:text-gray-400">No data available</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Customer Tab */}
+            {activeTab === "customer" && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                    <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
+                      Cohort Analysis
+                    </h3>
+                    <div className="space-y-3">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-300">
+                          New Customers
+                        </span>
+                        <span className="font-semibold text-gray-900 dark:text-white">
+                          {analyticsData?.customerAnalytics?.newCustomers || 0}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-300">
+                          Returning Customers
+                        </span>
+                        <span className="font-semibold text-gray-900 dark:text-white">
+                          {analyticsData?.customerAnalytics?.returningCustomers || 0}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-300">
+                          Repeat Purchase Rate
+                        </span>
+                        <span className="font-semibold text-gray-900 dark:text-white">
+                          {(analyticsData?.customerAnalytics?.repeatPurchaseRate || 0).toFixed(1)}%
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                    <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
+                      Customer Health
+                    </h3>
+                    <div className="space-y-3">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-300">
+                          Churn Rate
+                        </span>
+                        <span className="font-semibold text-gray-900 dark:text-white">
+                          {(analyticsData?.customerAnalytics?.churnRate || 0).toFixed(1)}%
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-300">
+                          CAC
+                        </span>
+                        <span className="font-semibold text-gray-900 dark:text-white">
+                          ${(analyticsData?.customerAnalytics?.customerAcquisitionCost || 0).toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-300">
+                          Total Customer Spend
+                        </span>
+                        <span className="font-semibold text-gray-900 dark:text-white">
+                          ${(analyticsData?.customerAnalytics?.totalCustomerSpend || 0).toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Financial Tab */}
+            {activeTab === "financial" && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                    <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
+                      P&L Statement
+                    </h3>
+                    <div className="space-y-3">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-300">
+                          Total Revenue
+                        </span>
+                        <span className="font-semibold text-gray-900 dark:text-white">
+                          ${(analyticsData?.financialAnalytics?.totalRevenue || 0).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-300">
+                          Total Cost
+                        </span>
+                        <span className="font-semibold text-gray-900 dark:text-white">
+                          ${(analyticsData?.financialAnalytics?.totalCost || 0).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="flex justify-between border-t border-gray-300 dark:border-gray-600 pt-2">
+                        <span className="text-gray-600 dark:text-gray-300">
+                          Gross Profit
+                        </span>
+                        <span className="font-semibold text-green-600 dark:text-green-400">
+                          ${(analyticsData?.financialAnalytics?.grossProfit || 0).toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                    <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
+                      Profitability Margins
+                    </h3>
+                    <div className="space-y-3">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-300">
+                          Gross Margin
+                        </span>
+                        <span className="font-semibold text-gray-900 dark:text-white">
+                          {(analyticsData?.financialAnalytics?.grossMargin || 0).toFixed(1)}%
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-300">
+                          Operating Margin
+                        </span>
+                        <span className="font-semibold text-gray-900 dark:text-white">
+                          {(analyticsData?.financialAnalytics?.operatingMargin || 0).toFixed(1)}%
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-300">
+                          Net Margin
+                        </span>
+                        <span className="font-semibold text-gray-900 dark:text-white">
+                          {(analyticsData?.financialAnalytics?.netMargin || 0).toFixed(1)}%
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Operational Tab */}
+            {activeTab === "operational" && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                    <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
+                      Fulfillment & Shipping
+                    </h3>
+                    <div className="space-y-3">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-300">
+                          Fulfillment Rate
+                        </span>
+                        <span className="font-semibold text-gray-900 dark:text-white">
+                          {(analyticsData?.operationalAnalytics?.orderFulfillmentRate || 0).toFixed(1)}%
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-300">
+                          Avg Fulfillment Time
+                        </span>
+                        <span className="font-semibold text-gray-900 dark:text-white">
+                          {(analyticsData?.operationalAnalytics?.averageFulfillmentTime || 0).toFixed(1)} days
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-300">
+                          On-Time Shipping
+                        </span>
+                        <span className="font-semibold text-gray-900 dark:text-white">
+                          {(analyticsData?.operationalAnalytics?.shippingOnTimeRate || 0).toFixed(1)}%
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                    <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
+                      Quality & Satisfaction
+                    </h3>
+                    <div className="space-y-3">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-300">
+                          Inventory Accuracy
+                        </span>
+                        <span className="font-semibold text-gray-900 dark:text-white">
+                          {(analyticsData?.operationalAnalytics?.inventoryAccuracy || 0).toFixed(1)}%
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-300">
+                          Return Rate
+                        </span>
+                        <span className="font-semibold text-gray-900 dark:text-white">
+                          {(analyticsData?.operationalAnalytics?.returnRate || 0).toFixed(1)}%
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-300">
+                          Customer Satisfaction
+                        </span>
+                        <span className="font-semibold text-gray-900 dark:text-white">
+                          {(analyticsData?.operationalAnalytics?.customerSatisfactionScore || 0).toFixed(1)}/5
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
