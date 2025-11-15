@@ -2852,3 +2852,180 @@ export interface ReturnStatistics {
   pendingReturns: number;
   pendingRefunds: number;
 }
+
+// ============================================
+// COMPLAINT & FEEDBACK MANAGEMENT TYPES
+// ============================================
+
+export type ComplaintStatus = 'open' | 'acknowledged' | 'in_progress' | 'resolved' | 'closed' | 'reopened';
+export type ComplaintPriority = 'low' | 'medium' | 'high' | 'critical';
+export type ComplaintSeverity = 'low' | 'medium' | 'high' | 'critical';
+export type ComplaintType = 'product_quality' | 'delivery' | 'customer_service' | 'billing' | 'other';
+export type AcknowledgmentStatus = 'pending' | 'acknowledged' | 'not_required';
+export type ResolutionType = 'refund' | 'replacement' | 'store_credit' | 'repair' | 'closed_no_action';
+
+export interface ComplaintCategory {
+  id: string;
+  categoryCode: string;
+  categoryName: string;
+  description?: string;
+  isActive: boolean;
+  escalationRequired: boolean;
+  slaHours: number;
+  createdAt: Date;
+}
+
+export interface Complaint {
+  id: string;
+  userId: string;
+  customerId: string;
+  orderId?: string;
+  complaintTicketId: string;
+  complaintCategoryId: string;
+  complaintType: ComplaintType;
+  subject: string;
+  description: string;
+  complaintStatus: ComplaintStatus;
+  priority: ComplaintPriority;
+  severity: ComplaintSeverity;
+  assignedToId?: string;
+  assignedAt?: Date;
+  acknowledgmentStatus: AcknowledgmentStatus;
+  acknowledgedAt?: Date;
+  acknowledgedById?: string;
+  resolutionSummary?: string;
+  resolutionDate?: Date;
+  resolvedById?: string;
+  satisfactionRating?: number;
+  feedbackProvided: boolean;
+  requiresEscalation: boolean;
+  escalationReason?: string;
+  escalatedAt?: Date;
+  escalatedToId?: string;
+  notes?: string;
+  tags: string[];
+  attachments?: string[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ComplaintResponse {
+  id: string;
+  complaintId: string;
+  responderId?: string;
+  responderType?: string;
+  message: string;
+  attachments?: string[];
+  isInternal: boolean;
+  responseType?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ComplaintEscalation {
+  id: string;
+  complaintId: string;
+  escalationLevel: number;
+  escalatedFromId?: string;
+  escalatedToId?: string;
+  escalationReason?: string;
+  escalationTime: Date;
+  resolutionTime?: Date;
+  resolved: boolean;
+  notes?: string;
+  createdAt: Date;
+}
+
+export interface ComplaintResolution {
+  id: string;
+  complaintId: string;
+  resolutionType: ResolutionType;
+  resolutionDescription?: string;
+  compensationOffered?: number;
+  compensationType?: string;
+  refundAmount?: number;
+  replacementOffered: boolean;
+  storeCreditAmount?: number;
+  actionsTaken?: string[];
+  resolvedById?: string;
+  resolutionDate?: Date;
+  createdAt: Date;
+}
+
+export interface ComplaintFeedback {
+  id: string;
+  complaintId: string;
+  customerId: string;
+  satisfactionRating: number;
+  responseQualityRating: number;
+  resolutionEffectivenessRating: number;
+  communicationRating: number;
+  overallExperienceRating: number;
+  feedbackComments?: string;
+  wouldRecommend?: boolean;
+  npsScore?: number;
+  followUpRequired: boolean;
+  followUpReason?: string;
+  createdAt: Date;
+}
+
+export interface ComplaintAnalytics {
+  id: string;
+  userId: string;
+  periodStartDate?: Date;
+  periodEndDate?: Date;
+  totalComplaints: number;
+  openComplaints: number;
+  resolvedComplaints: number;
+  averageResolutionDays: number;
+  averageSatisfactionRating: number;
+  complaintRate: number;
+  topComplaintReason?: string;
+  escalationRate: number;
+  customerSatisfactionScore: number;
+  complaintByCategory?: Record<string, any>;
+  complaintByPriority?: Record<string, any>;
+  resolutionByType?: Record<string, any>;
+  createdAt: Date;
+}
+
+export interface FeedbackSurvey {
+  id: string;
+  userId: string;
+  surveyType?: string;
+  surveyTitle: string;
+  surveyDescription?: string;
+  surveyStatus: string;
+  questions?: Record<string, any>;
+  startDate?: Date;
+  endDate?: Date;
+  targetCustomers?: number;
+  responsesReceived: number;
+  averageRating?: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SurveyResponse {
+  id: string;
+  surveyId: string;
+  customerId: string;
+  responses?: Record<string, any>;
+  rating?: number;
+  comments?: string;
+  responseTime?: number;
+  createdAt: Date;
+}
+
+export interface ComplaintStatistics {
+  totalComplaints: number;
+  openComplaints: number;
+  resolvedComplaints: number;
+  resolutionRate: number;
+  averageSatisfactionRating: number;
+  averageResolutionTime: number;
+  escalationRate: number;
+  topComplaintType: string;
+  topComplaintReason: string;
+  customerSatisfactionScore: number;
+}

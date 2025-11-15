@@ -3974,3 +3974,218 @@ CREATE POLICY "Allow all for return_inspections" ON return_inspections FOR ALL U
 CREATE POLICY "Allow all for refund_transactions" ON refund_transactions FOR ALL USING (true);
 CREATE POLICY "Allow all for return_shipping" ON return_shipping FOR ALL USING (true);
 CREATE POLICY "Allow all for return_analytics" ON return_analytics FOR ALL USING (true);
+
+-- ============================================
+-- COMPLAINT & FEEDBACK MANAGEMENT SYSTEM TABLES
+-- ============================================
+
+-- Complaint Categories
+CREATE TABLE IF NOT EXISTS complaint_categories (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  category_code VARCHAR(50) UNIQUE NOT NULL,
+  category_name VARCHAR(255) NOT NULL,
+  description TEXT,
+  is_active BOOLEAN DEFAULT true,
+  escalation_required BOOLEAN DEFAULT false,
+  sla_hours INT DEFAULT 24,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Main Complaints Table
+CREATE TABLE IF NOT EXISTS complaints (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  order_id UUID REFERENCES orders(id) ON DELETE CASCADE,
+  complaint_ticket_id VARCHAR(50) UNIQUE NOT NULL,
+  complaint_category_id UUID NOT NULL REFERENCES complaint_categories(id),
+  complaint_type VARCHAR(50) NOT NULL,
+  subject VARCHAR(500) NOT NULL,
+  description TEXT NOT NULL,
+  complaint_status VARCHAR(50) DEFAULT 'open',
+  priority VARCHAR(50) DEFAULT 'medium',
+  severity VARCHAR(50) DEFAULT 'medium',
+  assigned_to_id UUID,
+  assigned_at TIMESTAMP WITH TIME ZONE,
+  acknowledgment_status VARCHAR(50) DEFAULT 'pending',
+  acknowledged_at TIMESTAMP WITH TIME ZONE,
+  acknowledged_by_id UUID,
+  resolution_summary TEXT,
+  resolution_date TIMESTAMP WITH TIME ZONE,
+  resolved_by_id UUID,
+  satisfaction_rating INT,
+  feedback_provided BOOLEAN DEFAULT false,
+  requires_escalation BOOLEAN DEFAULT false,
+  escalation_reason TEXT,
+  escalated_at TIMESTAMP WITH TIME ZONE,
+  escalated_to_id UUID,
+  notes TEXT,
+  tags TEXT[] DEFAULT '{}',
+  attachments TEXT[],
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Complaint Comments/Responses
+CREATE TABLE IF NOT EXISTS complaint_responses (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  complaint_id UUID NOT NULL REFERENCES complaints(id) ON DELETE CASCADE,
+  responder_id UUID,
+  responder_type VARCHAR(50),
+  message TEXT NOT NULL,
+  attachments TEXT[],
+  is_internal BOOLEAN DEFAULT false,
+  response_type VARCHAR(50),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Complaint Escalations
+CREATE TABLE IF NOT EXISTS complaint_escalations (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  complaint_id UUID NOT NULL REFERENCES complaints(id) ON DELETE CASCADE,
+  escalation_level INT,
+  escalated_from_id UUID,
+  escalated_to_id UUID,
+  escalation_reason TEXT,
+  escalation_time TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  resolution_time TIMESTAMP WITH TIME ZONE,
+  resolved BOOLEAN DEFAULT false,
+  notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Complaint Resolution
+CREATE TABLE IF NOT EXISTS complaint_resolutions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  complaint_id UUID NOT NULL REFERENCES complaints(id) ON DELETE CASCADE,
+  resolution_type VARCHAR(50) NOT NULL,
+  resolution_description TEXT,
+  compensation_offered DECIMAL(12, 2),
+  compensation_type VARCHAR(100),
+  refund_amount DECIMAL(12, 2),
+  replacement_offered BOOLEAN DEFAULT false,
+  store_credit_amount DECIMAL(12, 2),
+  actions_taken TEXT[],
+  resolved_by_id UUID,
+  resolution_date TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Complaint Feedback/Survey
+CREATE TABLE IF NOT EXISTS complaint_feedback (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  complaint_id UUID NOT NULL REFERENCES complaints(id) ON DELETE CASCADE,
+  customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  satisfaction_rating INT CHECK (satisfaction_rating >= 1 AND satisfaction_rating <= 5),
+  response_quality_rating INT CHECK (response_quality_rating >= 1 AND response_quality_rating >= 5),
+  resolution_effectiveness_rating INT CHECK (resolution_effectiveness_rating >= 1 AND resolution_effectiveness_rating <= 5),
+  communication_rating INT CHECK (communication_rating >= 1 AND communication_rating <= 5),
+  overall_experience_rating INT CHECK (overall_experience_rating >= 1 AND overall_experience_rating <= 5),
+  feedback_comments TEXT,
+  would_recommend BOOLEAN,
+  nps_score INT,
+  follow_up_required BOOLEAN DEFAULT false,
+  follow_up_reason TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Complaint Analytics
+CREATE TABLE IF NOT EXISTS complaint_analytics (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  period_start_date DATE,
+  period_end_date DATE,
+  total_complaints INTEGER,
+  open_complaints INTEGER,
+  resolved_complaints INTEGER,
+  average_resolution_days DECIMAL(10, 2),
+  average_satisfaction_rating DECIMAL(3, 2),
+  complaint_rate DECIMAL(5, 2),
+  top_complaint_reason VARCHAR(255),
+  escalation_rate DECIMAL(5, 2),
+  customer_satisfaction_score DECIMAL(5, 2),
+  complaint_by_category JSONB,
+  complaint_by_priority JSONB,
+  resolution_by_type JSONB,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Feedback Surveys
+CREATE TABLE IF NOT EXISTS feedback_surveys (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  survey_type VARCHAR(50),
+  survey_title VARCHAR(255),
+  survey_description TEXT,
+  survey_status VARCHAR(50) DEFAULT 'active',
+  questions JSONB,
+  start_date DATE,
+  end_date DATE,
+  target_customers INT,
+  responses_received INT DEFAULT 0,
+  average_rating DECIMAL(3, 2),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Survey Responses
+CREATE TABLE IF NOT EXISTS survey_responses (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  survey_id UUID NOT NULL REFERENCES feedback_surveys(id) ON DELETE CASCADE,
+  customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  responses JSONB,
+  rating INT,
+  comments TEXT,
+  response_time INT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create Indexes for Complaints
+CREATE INDEX IF NOT EXISTS idx_complaints_user ON complaints(user_id);
+CREATE INDEX IF NOT EXISTS idx_complaints_customer ON complaints(customer_id);
+CREATE INDEX IF NOT EXISTS idx_complaints_order ON complaints(order_id);
+CREATE INDEX IF NOT EXISTS idx_complaints_status ON complaints(complaint_status);
+CREATE INDEX IF NOT EXISTS idx_complaints_priority ON complaints(priority);
+CREATE INDEX IF NOT EXISTS idx_complaints_ticket_id ON complaints(complaint_ticket_id);
+CREATE INDEX IF NOT EXISTS idx_complaints_assigned_to ON complaints(assigned_to_id);
+CREATE INDEX IF NOT EXISTS idx_complaints_created_date ON complaints(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_complaint_responses_complaint ON complaint_responses(complaint_id);
+CREATE INDEX IF NOT EXISTS idx_complaint_escalations_complaint ON complaint_escalations(complaint_id);
+CREATE INDEX IF NOT EXISTS idx_complaint_resolutions_complaint ON complaint_resolutions(complaint_id);
+CREATE INDEX IF NOT EXISTS idx_complaint_feedback_complaint ON complaint_feedback(complaint_id);
+CREATE INDEX IF NOT EXISTS idx_complaint_analytics_period ON complaint_analytics(period_start_date, period_end_date);
+CREATE INDEX IF NOT EXISTS idx_feedback_surveys_user ON feedback_surveys(user_id);
+CREATE INDEX IF NOT EXISTS idx_survey_responses_survey ON survey_responses(survey_id);
+
+-- Create Triggers for Complaints
+CREATE TRIGGER update_complaints_updated_at BEFORE UPDATE ON complaints
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_complaint_responses_updated_at BEFORE UPDATE ON complaint_responses
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_feedback_surveys_updated_at BEFORE UPDATE ON feedback_surveys
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Enable RLS for Complaint Tables
+ALTER TABLE complaint_categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE complaints ENABLE ROW LEVEL SECURITY;
+ALTER TABLE complaint_responses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE complaint_escalations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE complaint_resolutions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE complaint_feedback ENABLE ROW LEVEL SECURITY;
+ALTER TABLE complaint_analytics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE feedback_surveys ENABLE ROW LEVEL SECURITY;
+ALTER TABLE survey_responses ENABLE ROW LEVEL SECURITY;
+
+-- Create Policies for Complaint Tables
+CREATE POLICY "Allow all for complaint_categories" ON complaint_categories FOR ALL USING (true);
+CREATE POLICY "Allow all for complaints" ON complaints FOR ALL USING (true);
+CREATE POLICY "Allow all for complaint_responses" ON complaint_responses FOR ALL USING (true);
+CREATE POLICY "Allow all for complaint_escalations" ON complaint_escalations FOR ALL USING (true);
+CREATE POLICY "Allow all for complaint_resolutions" ON complaint_resolutions FOR ALL USING (true);
+CREATE POLICY "Allow all for complaint_feedback" ON complaint_feedback FOR ALL USING (true);
+CREATE POLICY "Allow all for complaint_analytics" ON complaint_analytics FOR ALL USING (true);
+CREATE POLICY "Allow all for feedback_surveys" ON feedback_surveys FOR ALL USING (true);
+CREATE POLICY "Allow all for survey_responses" ON survey_responses FOR ALL USING (true);
