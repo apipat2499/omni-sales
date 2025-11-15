@@ -1347,3 +1347,223 @@ export interface WishlistWithShares extends Wishlist {
   shares?: WishlistShare[];
   items?: WishlistItem[];
 }
+
+// ============================================
+// LOYALTY & REWARDS TYPES
+// ============================================
+
+export type LoyaltyProgramType = 'points' | 'tier' | 'referral' | 'vip';
+export type RewardType = 'discount' | 'free_product' | 'free_shipping' | 'upgrade' | 'exclusive_access';
+export type RewardUnit = 'percent' | 'amount' | 'points' | 'quantity';
+export type RedemptionStatus = 'pending' | 'approved' | 'claimed' | 'used' | 'expired' | 'cancelled';
+export type PointTransactionType = 'earned' | 'redeemed' | 'expired' | 'adjusted' | 'refunded';
+export type ReferralStatus = 'pending' | 'completed' | 'cancelled' | 'expired';
+export type PointRuleType = 'purchase' | 'review' | 'referral' | 'signup' | 'birthday' | 'social_share';
+
+export interface LoyaltyProgram {
+  id: string;
+  userId: string;
+  name: string;
+  description?: string;
+  programType: LoyaltyProgramType;
+  isActive: boolean;
+  pointMultiplier: number;
+  minPurchaseForPoints: number;
+  pointExpiryDays?: number;
+  tierStructure?: Record<string, unknown>;
+  rewards?: Record<string, unknown>;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface LoyaltyTier {
+  id: string;
+  userId: string;
+  loyaltyProgramId: string;
+  tierName: string;
+  tierLevel: number;
+  minPoints: number;
+  maxPoints?: number;
+  minAnnualSpending: number;
+  maxAnnualSpending?: number;
+  pointsMultiplier: number;
+  bonusPointsOnJoin: number;
+  exclusiveBenefits: string[];
+  colorHex?: string;
+  iconUrl?: string;
+  isVip: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface LoyaltyPointRule {
+  id: string;
+  userId: string;
+  loyaltyProgramId: string;
+  ruleName: string;
+  ruleType: PointRuleType;
+  triggerEvent: string;
+  pointsEarned: number;
+  pointsCalculationType?: string;
+  percentageValue?: number;
+  minTransactionAmount?: number;
+  maxPointsPerTransaction?: number;
+  categoryApplicable: string[];
+  isStackable: boolean;
+  isActive: boolean;
+  startDate?: Date;
+  endDate?: Date;
+  priority: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface LoyaltyReward {
+  id: string;
+  userId: string;
+  loyaltyProgramId: string;
+  rewardName: string;
+  rewardType: RewardType;
+  rewardValue: number;
+  rewardUnit: RewardUnit;
+  pointsRequired: number;
+  totalAvailableQuantity?: number;
+  claimedQuantity: number;
+  description?: string;
+  termsConditions?: string;
+  imageUrl?: string;
+  tierRequired?: string;
+  isActive: boolean;
+  isFeatured: boolean;
+  expiryDays?: number;
+  startedAt?: Date;
+  endedAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CustomerRewardRedemption {
+  id: string;
+  userId: string;
+  customerId: string;
+  loyaltyProgramId?: string;
+  rewardId: string;
+  pointsSpent: number;
+  redemptionStatus: RedemptionStatus;
+  redemptionCode: string;
+  orderAppliedTo?: string;
+  claimedAt?: Date;
+  usedAt?: Date;
+  expiresAt?: Date;
+  notes?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface LoyaltyPointTransaction {
+  id: string;
+  userId: string;
+  customerId: string;
+  loyaltyProgramId?: string;
+  transactionType: PointTransactionType;
+  pointsAmount: number;
+  pointsBefore?: number;
+  pointsAfter?: number;
+  relatedOrderId?: string;
+  relatedRewardId?: string;
+  relatedRuleId?: string;
+  description?: string;
+  notes?: string;
+  createdBy?: string;
+  createdAt: Date;
+}
+
+export interface LoyaltyTierHistory {
+  id: string;
+  userId: string;
+  customerId: string;
+  loyaltyProgramId?: string;
+  previousTierId?: string;
+  newTierId: string;
+  promotionReason?: string;
+  effectiveDate: Date;
+  downgradeReason?: string;
+  expiryDate?: Date;
+  createdAt: Date;
+}
+
+export interface LoyaltyPromotion {
+  id: string;
+  userId: string;
+  loyaltyProgramId: string;
+  promotionName: string;
+  promotionType?: string;
+  description?: string;
+  pointsMultiplier: number;
+  bonusPointsFixed?: number;
+  minTransactionAmount?: number;
+  maxBonusPoints?: number;
+  targetCustomerSegment?: string;
+  applicableCategories: string[];
+  startDate: Date;
+  endDate: Date;
+  isActive: boolean;
+  promotionCode?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface LoyaltyAnalytics {
+  id: string;
+  userId: string;
+  loyaltyProgramId?: string;
+  date: Date;
+  totalActiveMembers: number;
+  newMembers: number;
+  pointsIssued: number;
+  pointsRedeemed: number;
+  pointsExpired: number;
+  rewardsClaimed: number;
+  rewardsUsed: number;
+  avgPointsPerMember: number;
+  tierDistribution?: Record<string, number>;
+  engagementRate: number;
+  repeatPurchaseRate: number;
+  revenueFromLoyaltyPurchases: number;
+  createdAt: Date;
+}
+
+export interface LoyaltyReferralReward {
+  id: string;
+  userId: string;
+  loyaltyProgramId: string;
+  referrerCustomerId: string;
+  referredCustomerId?: string;
+  referralCode: string;
+  referrerPoints: number;
+  referredCustomerDiscount: number;
+  referredCustomerPoints: number;
+  referralStatus: ReferralStatus;
+  referredCustomerMadePurchase: boolean;
+  purchaseDate?: Date;
+  minimumPurchaseAmount?: number;
+  claimedAt?: Date;
+  expiresAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CustomerLoyaltyAccount {
+  userId: string;
+  customerId: string;
+  loyaltyProgramId?: string;
+  totalPoints: number;
+  availablePoints: number;
+  redeemedPoints: number;
+  tierLevel?: string;
+  tierSince?: Date;
+  pointsExpiryDate?: Date;
+  lastActivityDate?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}

@@ -1953,3 +1953,263 @@ CREATE POLICY "Allow all for wishlist_shares" ON wishlist_shares FOR ALL USING (
 CREATE POLICY "Allow all for wishlist_price_history" ON wishlist_price_history FOR ALL USING (true);
 CREATE POLICY "Allow all for wishlist_analytics" ON wishlist_analytics FOR ALL USING (true);
 CREATE POLICY "Allow all for wishlist_preferences" ON wishlist_preferences FOR ALL USING (true);
+
+-- ============================================
+-- LOYALTY & REWARDS MANAGEMENT SYSTEM TABLES
+-- ============================================
+
+-- Loyalty Program Tiers
+CREATE TABLE IF NOT EXISTS loyalty_tiers (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  loyalty_program_id UUID NOT NULL REFERENCES loyalty_programs(id) ON DELETE CASCADE,
+  tier_name VARCHAR(100) NOT NULL,
+  tier_level INTEGER NOT NULL,
+  min_points INTEGER DEFAULT 0,
+  max_points INTEGER,
+  min_annual_spending DECIMAL(12, 2) DEFAULT 0,
+  max_annual_spending DECIMAL(12, 2),
+  points_multiplier DECIMAL(3, 2) DEFAULT 1.0,
+  bonus_points_on_join INTEGER DEFAULT 0,
+  exclusive_benefits TEXT[] DEFAULT '{}',
+  color_hex VARCHAR(7),
+  icon_url VARCHAR(500),
+  is_vip BOOLEAN DEFAULT false,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(user_id, loyalty_program_id, tier_name)
+);
+
+-- Loyalty Point Rules (How customers earn points)
+CREATE TABLE IF NOT EXISTS loyalty_point_rules (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  loyalty_program_id UUID NOT NULL REFERENCES loyalty_programs(id) ON DELETE CASCADE,
+  rule_name VARCHAR(255) NOT NULL,
+  rule_type VARCHAR(50) NOT NULL, -- purchase, review, referral, signup, birthday, social_share, etc
+  trigger_event VARCHAR(100) NOT NULL,
+  points_earned INTEGER NOT NULL DEFAULT 0,
+  points_calculation_type VARCHAR(50), -- flat, percentage_of_amount, dynamic
+  percentage_value DECIMAL(5, 2),
+  min_transaction_amount DECIMAL(12, 2),
+  max_points_per_transaction INTEGER,
+  category_applicable TEXT[], -- for category-specific rules
+  is_stackable BOOLEAN DEFAULT true,
+  is_active BOOLEAN DEFAULT true,
+  start_date TIMESTAMP WITH TIME ZONE,
+  end_date TIMESTAMP WITH TIME ZONE,
+  priority INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Loyalty Rewards (What customers can redeem points for)
+CREATE TABLE IF NOT EXISTS loyalty_rewards (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  loyalty_program_id UUID NOT NULL REFERENCES loyalty_programs(id) ON DELETE CASCADE,
+  reward_name VARCHAR(255) NOT NULL,
+  reward_type VARCHAR(50) NOT NULL, -- discount, free_product, free_shipping, upgrade, exclusive_access, etc
+  reward_value DECIMAL(12, 2) NOT NULL,
+  reward_unit VARCHAR(50), -- percent, amount, points, quantity
+  points_required INTEGER NOT NULL,
+  total_available_quantity INTEGER, -- null = unlimited
+  claimed_quantity INTEGER DEFAULT 0,
+  description TEXT,
+  terms_conditions TEXT,
+  image_url VARCHAR(500),
+  tier_required VARCHAR(100), -- if tier-specific
+  is_active BOOLEAN DEFAULT true,
+  is_featured BOOLEAN DEFAULT false,
+  expiry_days INTEGER, -- null = never expires
+  started_at TIMESTAMP WITH TIME ZONE,
+  ended_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Customer Reward Redemptions
+CREATE TABLE IF NOT EXISTS customer_reward_redemptions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  loyalty_program_id UUID REFERENCES loyalty_programs(id) ON DELETE SET NULL,
+  reward_id UUID NOT NULL REFERENCES loyalty_rewards(id) ON DELETE CASCADE,
+  points_spent INTEGER NOT NULL,
+  redemption_status VARCHAR(50) DEFAULT 'pending', -- pending, approved, claimed, used, expired, cancelled
+  redemption_code VARCHAR(100) UNIQUE,
+  order_applied_to UUID REFERENCES orders(id),
+  claimed_at TIMESTAMP WITH TIME ZONE,
+  used_at TIMESTAMP WITH TIME ZONE,
+  expires_at TIMESTAMP WITH TIME ZONE,
+  notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Loyalty Point Transactions (Complete audit trail)
+CREATE TABLE IF NOT EXISTS loyalty_point_transactions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  loyalty_program_id UUID REFERENCES loyalty_programs(id) ON DELETE SET NULL,
+  transaction_type VARCHAR(50) NOT NULL, -- earned, redeemed, expired, adjusted, refunded
+  points_amount INTEGER NOT NULL,
+  points_before INTEGER,
+  points_after INTEGER,
+  related_order_id UUID REFERENCES orders(id),
+  related_reward_id UUID REFERENCES loyalty_rewards(id),
+  related_rule_id UUID REFERENCES loyalty_point_rules(id),
+  description VARCHAR(255),
+  notes TEXT,
+  created_by UUID,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Loyalty Tier History (Track customer tier progression)
+CREATE TABLE IF NOT EXISTS loyalty_tier_history (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  loyalty_program_id UUID REFERENCES loyalty_programs(id) ON DELETE SET NULL,
+  previous_tier_id UUID REFERENCES loyalty_tiers(id),
+  new_tier_id UUID NOT NULL REFERENCES loyalty_tiers(id),
+  promotion_reason VARCHAR(100), -- points_milestone, spending_threshold, birthday_promotion, admin_adjustment, etc
+  effective_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  downgrade_reason VARCHAR(100),
+  expiry_date TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Loyalty Promotions (Special campaigns)
+CREATE TABLE IF NOT EXISTS loyalty_promotions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  loyalty_program_id UUID NOT NULL REFERENCES loyalty_programs(id) ON DELETE CASCADE,
+  promotion_name VARCHAR(255) NOT NULL,
+  promotion_type VARCHAR(50), -- bonus_points, double_points, tier_bonus, birthday, anniversary, seasonal
+  description TEXT,
+  points_multiplier DECIMAL(3, 2) DEFAULT 2.0,
+  bonus_points_fixed INTEGER,
+  min_transaction_amount DECIMAL(12, 2),
+  max_bonus_points INTEGER,
+  target_customer_segment VARCHAR(50), -- all, new, vip, at_risk, birthday
+  applicable_categories TEXT[],
+  start_date TIMESTAMP WITH TIME ZONE NOT NULL,
+  end_date TIMESTAMP WITH TIME ZONE NOT NULL,
+  is_active BOOLEAN DEFAULT true,
+  promotion_code VARCHAR(100),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Loyalty Analytics
+CREATE TABLE IF NOT EXISTS loyalty_analytics (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  loyalty_program_id UUID REFERENCES loyalty_programs(id) ON DELETE CASCADE,
+  date TIMESTAMP WITH TIME ZONE,
+  total_active_members INTEGER DEFAULT 0,
+  new_members INTEGER DEFAULT 0,
+  points_issued INTEGER DEFAULT 0,
+  points_redeemed INTEGER DEFAULT 0,
+  points_expired INTEGER DEFAULT 0,
+  rewards_claimed INTEGER DEFAULT 0,
+  rewards_used INTEGER DEFAULT 0,
+  avg_points_per_member DECIMAL(10, 2),
+  tier_distribution JSONB, -- tier_name: count
+  engagement_rate DECIMAL(5, 2),
+  repeat_purchase_rate DECIMAL(5, 2),
+  revenue_from_loyalty_purchases DECIMAL(12, 2),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Referral Rewards
+CREATE TABLE IF NOT EXISTS loyalty_referral_rewards (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  loyalty_program_id UUID NOT NULL REFERENCES loyalty_programs(id) ON DELETE CASCADE,
+  referrer_customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  referred_customer_id UUID REFERENCES customers(id) ON DELETE SET NULL,
+  referral_code VARCHAR(50) UNIQUE NOT NULL,
+  referrer_points INTEGER DEFAULT 0,
+  referred_customer_discount DECIMAL(5, 2), -- percentage discount
+  referred_customer_points INTEGER DEFAULT 0,
+  referral_status VARCHAR(50) DEFAULT 'pending', -- pending, completed, cancelled, expired
+  referred_customer_made_purchase BOOLEAN DEFAULT false,
+  purchase_date TIMESTAMP WITH TIME ZONE,
+  minimum_purchase_amount DECIMAL(12, 2),
+  claimed_at TIMESTAMP WITH TIME ZONE,
+  expires_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create Indexes for Loyalty & Rewards
+CREATE INDEX IF NOT EXISTS idx_loyalty_tiers_program ON loyalty_tiers(loyalty_program_id);
+CREATE INDEX IF NOT EXISTS idx_loyalty_tiers_level ON loyalty_tiers(user_id, tier_level);
+CREATE INDEX IF NOT EXISTS idx_loyalty_point_rules_program ON loyalty_point_rules(loyalty_program_id);
+CREATE INDEX IF NOT EXISTS idx_loyalty_point_rules_type ON loyalty_point_rules(rule_type);
+CREATE INDEX IF NOT EXISTS idx_loyalty_point_rules_active ON loyalty_point_rules(user_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_loyalty_rewards_program ON loyalty_rewards(loyalty_program_id);
+CREATE INDEX IF NOT EXISTS idx_loyalty_rewards_type ON loyalty_rewards(reward_type);
+CREATE INDEX IF NOT EXISTS idx_loyalty_rewards_active ON loyalty_rewards(user_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_customer_reward_redemptions_customer ON customer_reward_redemptions(customer_id);
+CREATE INDEX IF NOT EXISTS idx_customer_reward_redemptions_status ON customer_reward_redemptions(redemption_status);
+CREATE INDEX IF NOT EXISTS idx_customer_reward_redemptions_date ON customer_reward_redemptions(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_customer_reward_redemptions_code ON customer_reward_redemptions(redemption_code);
+CREATE INDEX IF NOT EXISTS idx_loyalty_point_transactions_customer ON loyalty_point_transactions(customer_id);
+CREATE INDEX IF NOT EXISTS idx_loyalty_point_transactions_type ON loyalty_point_transactions(transaction_type);
+CREATE INDEX IF NOT EXISTS idx_loyalty_point_transactions_date ON loyalty_point_transactions(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_loyalty_point_transactions_order ON loyalty_point_transactions(related_order_id);
+CREATE INDEX IF NOT EXISTS idx_loyalty_tier_history_customer ON loyalty_tier_history(customer_id);
+CREATE INDEX IF NOT EXISTS idx_loyalty_tier_history_date ON loyalty_tier_history(effective_date DESC);
+CREATE INDEX IF NOT EXISTS idx_loyalty_promotions_program ON loyalty_promotions(loyalty_program_id);
+CREATE INDEX IF NOT EXISTS idx_loyalty_promotions_active ON loyalty_promotions(user_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_loyalty_promotions_date ON loyalty_promotions(start_date, end_date);
+CREATE INDEX IF NOT EXISTS idx_loyalty_analytics_program ON loyalty_analytics(loyalty_program_id);
+CREATE INDEX IF NOT EXISTS idx_loyalty_analytics_date ON loyalty_analytics(date DESC);
+CREATE INDEX IF NOT EXISTS idx_loyalty_referral_code ON loyalty_referral_rewards(referral_code);
+CREATE INDEX IF NOT EXISTS idx_loyalty_referral_customer ON loyalty_referral_rewards(referrer_customer_id);
+CREATE INDEX IF NOT EXISTS idx_loyalty_referral_status ON loyalty_referral_rewards(referral_status);
+
+-- Create Triggers for Loyalty & Rewards
+CREATE TRIGGER update_loyalty_tiers_updated_at BEFORE UPDATE ON loyalty_tiers
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_loyalty_point_rules_updated_at BEFORE UPDATE ON loyalty_point_rules
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_loyalty_rewards_updated_at BEFORE UPDATE ON loyalty_rewards
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_customer_reward_redemptions_updated_at BEFORE UPDATE ON customer_reward_redemptions
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_loyalty_promotions_updated_at BEFORE UPDATE ON loyalty_promotions
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_loyalty_referral_rewards_updated_at BEFORE UPDATE ON loyalty_referral_rewards
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Enable RLS for Loyalty & Rewards Tables
+ALTER TABLE loyalty_tiers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE loyalty_point_rules ENABLE ROW LEVEL SECURITY;
+ALTER TABLE loyalty_rewards ENABLE ROW LEVEL SECURITY;
+ALTER TABLE customer_reward_redemptions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE loyalty_point_transactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE loyalty_tier_history ENABLE ROW LEVEL SECURITY;
+ALTER TABLE loyalty_promotions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE loyalty_analytics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE loyalty_referral_rewards ENABLE ROW LEVEL SECURITY;
+
+-- Create Policies for Loyalty & Rewards Tables
+CREATE POLICY "Allow all for loyalty_tiers" ON loyalty_tiers FOR ALL USING (true);
+CREATE POLICY "Allow all for loyalty_point_rules" ON loyalty_point_rules FOR ALL USING (true);
+CREATE POLICY "Allow all for loyalty_rewards" ON loyalty_rewards FOR ALL USING (true);
+CREATE POLICY "Allow all for customer_reward_redemptions" ON customer_reward_redemptions FOR ALL USING (true);
+CREATE POLICY "Allow all for loyalty_point_transactions" ON loyalty_point_transactions FOR ALL USING (true);
+CREATE POLICY "Allow all for loyalty_tier_history" ON loyalty_tier_history FOR ALL USING (true);
+CREATE POLICY "Allow all for loyalty_promotions" ON loyalty_promotions FOR ALL USING (true);
+CREATE POLICY "Allow all for loyalty_analytics" ON loyalty_analytics FOR ALL USING (true);
+CREATE POLICY "Allow all for loyalty_referral_rewards" ON loyalty_referral_rewards FOR ALL USING (true);
