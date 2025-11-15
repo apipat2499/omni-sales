@@ -3,13 +3,14 @@
 import { useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { formatCurrency, getStatusColor, getChannelColor } from '@/lib/utils';
-import { Search, Eye, Download, ShoppingCart, RefreshCw, Edit } from 'lucide-react';
+import { Search, Eye, Download, ShoppingCart, RefreshCw, Edit, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import { th } from 'date-fns/locale';
 import type { OrderStatus, OrderChannel, Order } from '@/types';
 import { useOrders } from '@/lib/hooks/useOrders';
 import OrderDetailsModal from '@/components/orders/OrderDetailsModal';
 import UpdateOrderStatusModal from '@/components/orders/UpdateOrderStatusModal';
+import CreateOrderModal from '@/components/orders/CreateOrderModal';
 
 export default function OrdersPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -18,6 +19,7 @@ export default function OrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [isUpdateStatusModalOpen, setIsUpdateStatusModalOpen] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const { orders, loading, error, refresh } = useOrders({
     search: searchTerm,
@@ -48,13 +50,27 @@ export default function OrdersPage() {
     refresh();
   };
 
+  const handleCreateSuccess = () => {
+    setIsCreateModalOpen(false);
+    refresh();
+  };
+
   return (
     <DashboardLayout>
       <div className="p-6 space-y-6">
         {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">คำสั่งซื้อ</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">จัดการคำสั่งซื้อทั้งหมดในระบบ</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">คำสั่งซื้อ</h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">จัดการคำสั่งซื้อทั้งหมดในระบบ</p>
+          </div>
+          <button
+            onClick={() => setIsCreateModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
+          >
+            <Plus className="h-5 w-5" />
+            สร้างคำสั่งซื้อ
+          </button>
         </div>
 
         {/* Stats */}
@@ -292,6 +308,13 @@ export default function OrdersPage() {
           order={selectedOrder}
           onSuccess={handleStatusUpdateSuccess}
         />
+
+        {isCreateModalOpen && (
+          <CreateOrderModal
+            onClose={() => setIsCreateModalOpen(false)}
+            onSuccess={handleCreateSuccess}
+          />
+        )}
       </div>
     </DashboardLayout>
   );

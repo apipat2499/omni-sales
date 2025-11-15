@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { formatCurrency, getTagColor } from '@/lib/utils';
-import { Search, Plus, Mail, Phone, MapPin, ShoppingBag, DollarSign, Users, Star, Edit, Trash2 } from 'lucide-react';
+import { exportCustomers } from '@/lib/utils/export';
+import { Search, Plus, Mail, Phone, MapPin, ShoppingBag, DollarSign, Users, Star, Edit, Trash2, Download } from 'lucide-react';
 import { format } from 'date-fns';
 import { th } from 'date-fns/locale';
 import type { Customer, CustomerTag } from '@/types';
@@ -55,13 +56,23 @@ export default function CustomersPage() {
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">ลูกค้า</h1>
             <p className="text-gray-600 dark:text-gray-400 mt-1">จัดการข้อมูลลูกค้าในระบบ</p>
           </div>
-          <button
-            onClick={handleAddCustomer}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
-          >
-            <Plus className="h-5 w-5" />
-            เพิ่มลูกค้า
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => exportCustomers(customers)}
+              disabled={customers.length === 0}
+              className="flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+            >
+              <Download className="h-5 w-5" />
+              Export CSV
+            </button>
+            <button
+              onClick={handleAddCustomer}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
+            >
+              <Plus className="h-5 w-5" />
+              เพิ่มลูกค้า
+            </button>
+          </div>
         </div>
 
         {/* Stats */}

@@ -178,6 +178,60 @@ export async function PUT(
       );
     }
 
+    // Send email notification for status changes
+    if (newStatus === 'shipped' || newStatus === 'delivered') {
+      try {
+        const { data: customer } = await supabase
+          .from('customers')
+          .select('name, email')
+          .eq('id', data.customer_id)
+          .single();
+
+        const { data: itemsData } = await supabase
+          .from('order_items')
+          .select('*')
+          .eq('order_id', orderId);
+
+        if (customer && customer.email) {
+          const orderWithDetails = {
+            id: data.id,
+            customerName: customer.name,
+            items: (itemsData || []).map((item: any) => ({
+              productName: item.product_name,
+              quantity: item.quantity,
+              price: parseFloat(item.price),
+            })),
+            subtotal: parseFloat(data.subtotal),
+            tax: parseFloat(data.tax),
+            shipping: parseFloat(data.shipping),
+            total: parseFloat(data.total),
+            discountCode: data.discount_code,
+            discountAmount: data.discount_amount ? parseFloat(data.discount_amount) : undefined,
+            status: newStatus,
+            paymentMethod: data.payment_method,
+            shippingAddress: data.shipping_address,
+            notes: data.notes,
+            createdAt: new Date(data.created_at),
+          };
+
+          await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/notifications/email`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              type: 'order_status_update',
+              to: customer.email,
+              order: orderWithDetails,
+              oldStatus: currentStatus,
+              newStatus: newStatus,
+            }),
+          });
+        }
+      } catch (emailError) {
+        console.error('Error sending status update email:', emailError);
+        // Don't fail the status update if email fails
+      }
+    }
+
     return NextResponse.json(
       {
         success: true,

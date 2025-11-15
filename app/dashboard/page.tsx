@@ -3,6 +3,9 @@ import StatsCards from '@/components/dashboard/StatsCards';
 import RevenueChart from '@/components/dashboard/RevenueChart';
 import CategoryChart from '@/components/dashboard/CategoryChart';
 import RecentOrders from '@/components/dashboard/RecentOrders';
+import ActiveDiscounts from '@/components/dashboard/ActiveDiscounts';
+import RecentNotifications from '@/components/dashboard/RecentNotifications';
+import QuickActions from '@/components/dashboard/QuickActions';
 
 export default function DashboardPage() {
   return (
@@ -15,9 +18,16 @@ export default function DashboardPage() {
 
         <StatsCards />
 
+        <QuickActions />
+
         <div className="grid lg:grid-cols-2 gap-6">
           <RevenueChart />
           <CategoryChart />
+        </div>
+
+        <div className="grid lg:grid-cols-2 gap-6">
+          <ActiveDiscounts />
+          <RecentNotifications />
         </div>
 
         <RecentOrders />

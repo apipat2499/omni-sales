@@ -6,7 +6,8 @@ import ProductModal from '@/components/products/ProductModal';
 import DeleteProductModal from '@/components/products/DeleteProductModal';
 import { useProducts } from '@/lib/hooks/useProducts';
 import { formatCurrency, isLowStock, cn } from '@/lib/utils';
-import { Search, Plus, Edit, Trash2, AlertCircle, Package, Loader2 } from 'lucide-react';
+import { exportProducts } from '@/lib/utils/export';
+import { Search, Plus, Edit, Trash2, AlertCircle, Package, Loader2, Download } from 'lucide-react';
 import type { Product, ProductCategory } from '@/types';
 
 export default function ProductsPage() {
@@ -66,13 +67,23 @@ export default function ProductsPage() {
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">สินค้า</h1>
             <p className="text-gray-600 dark:text-gray-400 mt-1">จัดการสินค้าในระบบ</p>
           </div>
-          <button
-            onClick={handleAddProduct}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
-          >
-            <Plus className="h-5 w-5" />
-            เพิ่มสินค้า
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => exportProducts(products)}
+              disabled={products.length === 0}
+              className="flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+            >
+              <Download className="h-5 w-5" />
+              Export CSV
+            </button>
+            <button
+              onClick={handleAddProduct}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
+            >
+              <Plus className="h-5 w-5" />
+              เพิ่มสินค้า
+            </button>
+          </div>
         </div>
 
         {/* Low Stock Alert */}

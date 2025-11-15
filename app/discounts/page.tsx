@@ -6,7 +6,8 @@ import DiscountModal from '@/components/discounts/DiscountModal';
 import DeleteDiscountModal from '@/components/discounts/DeleteDiscountModal';
 import { useDiscounts } from '@/lib/hooks/useDiscounts';
 import { formatCurrency, cn } from '@/lib/utils';
-import { Search, Plus, Edit, Trash2, Tag, Percent, DollarSign, Loader2, Calendar, Users } from 'lucide-react';
+import { exportDiscounts } from '@/lib/utils/export';
+import { Search, Plus, Edit, Trash2, Tag, Percent, DollarSign, Loader2, Calendar, Users, Download } from 'lucide-react';
 import type { Discount } from '@/types';
 import { format } from 'date-fns';
 
@@ -46,13 +47,23 @@ export default function DiscountsPage() {
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">ส่วนลด & โปรโมชั่น</h1>
             <p className="text-gray-600 dark:text-gray-400 mt-1">จัดการโค้ดส่วนลดและโปรโมชั่น</p>
           </div>
-          <button
-            onClick={handleAddDiscount}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
-          >
-            <Plus className="h-5 w-5" />
-            สร้างส่วนลด
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => exportDiscounts(discounts)}
+              disabled={discounts.length === 0}
+              className="flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+            >
+              <Download className="h-5 w-5" />
+              Export CSV
+            </button>
+            <button
+              onClick={handleAddDiscount}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
+            >
+              <Plus className="h-5 w-5" />
+              สร้างส่วนลด
+            </button>
+          </div>
         </div>
 
         {/* Stats */}
