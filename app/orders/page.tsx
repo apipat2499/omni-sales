@@ -2,36 +2,50 @@
 
 import { useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
-import { mockOrders } from '@/lib/data/mock-data';
 import { formatCurrency, getStatusColor, getChannelColor } from '@/lib/utils';
-import { Search, Filter, Eye, Download, ShoppingCart } from 'lucide-react';
+import { Search, Eye, Download, ShoppingCart, RefreshCw, Edit } from 'lucide-react';
 import { format } from 'date-fns';
 import { th } from 'date-fns/locale';
-import type { OrderStatus, OrderChannel } from '@/types';
+import type { OrderStatus, OrderChannel, Order } from '@/types';
+import { useOrders } from '@/lib/hooks/useOrders';
+import OrderDetailsModal from '@/components/orders/OrderDetailsModal';
+import UpdateOrderStatusModal from '@/components/orders/UpdateOrderStatusModal';
 
 export default function OrdersPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<OrderStatus | 'all'>('all');
   const [channelFilter, setChannelFilter] = useState<OrderChannel | 'all'>('all');
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [isUpdateStatusModalOpen, setIsUpdateStatusModalOpen] = useState(false);
 
-  const filteredOrders = mockOrders.filter((order) => {
-    const matchesSearch =
-      order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.customerName.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus =
-      statusFilter === 'all' || order.status === statusFilter;
-    const matchesChannel =
-      channelFilter === 'all' || order.channel === channelFilter;
-    return matchesSearch && matchesStatus && matchesChannel;
+  const { orders, loading, error, refresh } = useOrders({
+    search: searchTerm,
+    status: statusFilter,
+    channel: channelFilter,
   });
 
   const statusCounts = {
-    all: mockOrders.length,
-    pending: mockOrders.filter((o) => o.status === 'pending').length,
-    processing: mockOrders.filter((o) => o.status === 'processing').length,
-    shipped: mockOrders.filter((o) => o.status === 'shipped').length,
-    delivered: mockOrders.filter((o) => o.status === 'delivered').length,
-    cancelled: mockOrders.filter((o) => o.status === 'cancelled').length,
+    all: orders.length,
+    pending: orders.filter((o) => o.status === 'pending').length,
+    processing: orders.filter((o) => o.status === 'processing').length,
+    shipped: orders.filter((o) => o.status === 'shipped').length,
+    delivered: orders.filter((o) => o.status === 'delivered').length,
+    cancelled: orders.filter((o) => o.status === 'cancelled').length,
+  };
+
+  const handleViewOrder = (order: Order) => {
+    setSelectedOrder(order);
+    setIsDetailsModalOpen(true);
+  };
+
+  const handleUpdateStatus = (order: Order) => {
+    setSelectedOrder(order);
+    setIsUpdateStatusModalOpen(true);
+  };
+
+  const handleStatusUpdateSuccess = () => {
+    refresh();
   };
 
   return (
@@ -114,12 +128,29 @@ export default function OrdersPage() {
               <option value="mobile">Mobile</option>
               <option value="phone">Phone</option>
             </select>
+            <button
+              onClick={refresh}
+              disabled={loading}
+              className="flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50"
+            >
+              <RefreshCw className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
+              รีเฟรช
+            </button>
             <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-white">
               <Download className="h-5 w-5" />
               ส่งออก
             </button>
           </div>
         </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg p-4">
+            <p className="text-sm text-red-800 dark:text-red-200">
+              เกิดข้อผิดพลาด: {error}
+            </p>
+          </div>
+        )}
 
         {/* Orders Table */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
@@ -154,75 +185,113 @@ export default function OrdersPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                {filteredOrders.map((order) => (
-                  <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900 dark:text-white">
-                        #{order.id.toUpperCase()}
+                {loading ? (
+                  <tr>
+                    <td colSpan={8} className="px-6 py-12 text-center">
+                      <div className="flex flex-col items-center gap-3">
+                        <RefreshCw className="h-8 w-8 text-gray-400 dark:text-gray-500 animate-spin" />
+                        <p className="text-gray-600 dark:text-gray-400">กำลังโหลดข้อมูล...</p>
                       </div>
-                      {order.paymentMethod && (
-                        <div className="text-xs text-gray-500 dark:text-gray-400">
-                          {order.paymentMethod}
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
-                      {order.customerName}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900 dark:text-white">
-                        {order.items.length} รายการ
-                      </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 max-w-xs truncate">
-                        {order.items.map((item) => item.productName).join(', ')}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`px-2 py-1 text-xs font-medium rounded-md border ${getChannelColor(
-                          order.channel
-                        )}`}
-                      >
-                        {order.channel}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-semibold text-gray-900 dark:text-white">
-                        {formatCurrency(order.total)}
-                      </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
-                        สุทธิ: {formatCurrency(order.subtotal)}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`px-2 py-1 text-xs font-medium rounded-md border ${getStatusColor(
-                          order.status
-                        )}`}
-                      >
-                        {order.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
-                      {format(order.createdAt, 'dd MMM yyyy', { locale: th })}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <button className="p-1 text-blue-600 dark:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded">
-                        <Eye className="h-4 w-4" />
-                      </button>
                     </td>
                   </tr>
-                ))}
+                ) : orders.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="px-6 py-12 text-center">
+                      <ShoppingCart className="h-12 w-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+                      <p className="text-gray-600 dark:text-gray-400">ไม่พบคำสั่งซื้อที่ค้นหา</p>
+                    </td>
+                  </tr>
+                ) : (
+                  orders.map((order) => (
+                    <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900 dark:text-white">
+                          #{order.id.toUpperCase().slice(0, 8)}
+                        </div>
+                        {order.paymentMethod && (
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            {order.paymentMethod}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
+                        {order.customerName}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-gray-900 dark:text-white">
+                          {order.items.length} รายการ
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 max-w-xs truncate">
+                          {order.items.map((item) => item.productName).join(', ')}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span
+                          className={`px-2 py-1 text-xs font-medium rounded-md border ${getChannelColor(
+                            order.channel
+                          )}`}
+                        >
+                          {order.channel}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                          {formatCurrency(order.total)}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          สุทธิ: {formatCurrency(order.subtotal)}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span
+                          className={`px-2 py-1 text-xs font-medium rounded-md border ${getStatusColor(
+                            order.status
+                          )}`}
+                        >
+                          {order.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                        {format(order.createdAt, 'dd MMM yyyy', { locale: th })}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => handleViewOrder(order)}
+                            className="p-1 text-blue-600 dark:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded"
+                            title="ดูรายละเอียด"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleUpdateStatus(order)}
+                            className="p-1 text-green-600 dark:text-green-500 hover:bg-green-50 dark:hover:bg-green-900/30 rounded"
+                            title="อัปเดตสถานะ"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
-          {filteredOrders.length === 0 && (
-            <div className="text-center py-12">
-              <ShoppingCart className="h-12 w-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
-              <p className="text-gray-600 dark:text-gray-400">ไม่พบคำสั่งซื้อที่ค้นหา</p>
-            </div>
-          )}
         </div>
+
+        {/* Modals */}
+        <OrderDetailsModal
+          isOpen={isDetailsModalOpen}
+          onClose={() => setIsDetailsModalOpen(false)}
+          order={selectedOrder}
+        />
+        <UpdateOrderStatusModal
+          isOpen={isUpdateStatusModalOpen}
+          onClose={() => setIsUpdateStatusModalOpen(false)}
+          order={selectedOrder}
+          onSuccess={handleStatusUpdateSuccess}
+        />
       </div>
     </DashboardLayout>
   );

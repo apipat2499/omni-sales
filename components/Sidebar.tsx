@@ -12,10 +12,13 @@ import {
   Menu,
   X,
   Store,
+  LogOut,
+  Loader2,
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import ThemeToggle from './ThemeToggle';
+import { useAuth } from '@/lib/auth/AuthContext';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -29,6 +32,22 @@ const navigation = [
 export default function Sidebar() {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const { user, logout } = useAuth();
+
+  const handleLogout = async () => {
+    if (confirm('คุณต้องการออกจากระบบหรือไม่?')) {
+      setIsLoggingOut(true);
+      await logout();
+      // The logout function in AuthContext will handle the redirect
+    }
+  };
+
+  // Get user initials for avatar
+  const getUserInitials = () => {
+    if (!user?.email) return 'U';
+    return user.email.substring(0, 2).toUpperCase();
+  };
 
   return (
     <>
@@ -110,20 +129,42 @@ export default function Sidebar() {
           </nav>
 
           {/* Footer */}
-          <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                <span className="text-sm font-semibold text-blue-700 dark:text-blue-400">AD</span>
+          <div className="px-4 py-4 border-t border-gray-200 dark:border-gray-700 space-y-3">
+            {/* User Info */}
+            <div className="flex items-center gap-3 px-2">
+              <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center flex-shrink-0">
+                <span className="text-sm font-semibold text-blue-700 dark:text-blue-400">
+                  {getUserInitials()}
+                </span>
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                  Admin User
+                  {user?.email?.split('@')[0] || 'User'}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                  admin@omnisales.com
+                  {user?.email || 'user@example.com'}
                 </p>
               </div>
             </div>
+
+            {/* Logout Button */}
+            <button
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isLoggingOut ? (
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <span>กำลังออกจากระบบ...</span>
+                </>
+              ) : (
+                <>
+                  <LogOut className="h-5 w-5" />
+                  <span>ออกจากระบบ</span>
+                </>
+              )}
+            </button>
           </div>
         </div>
       </aside>

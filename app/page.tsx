@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import {
   Store,
@@ -11,8 +13,16 @@ import {
   ArrowRight,
   CheckCircle2,
 } from 'lucide-react';
+import { useAuth } from '@/lib/auth/AuthContext';
 
 export default function Home() {
+  const { user, loading } = useAuth();
+
+  // Determine the link destination based on auth state
+  const getAuthLink = () => {
+    if (loading) return '/login'; // Default to login while loading
+    return user ? '/dashboard' : '/login';
+  };
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
       {/* Hero Section */}
@@ -23,10 +33,10 @@ export default function Home() {
             <span className="text-2xl font-bold text-gray-900 dark:text-white">Omni Sales</span>
           </div>
           <Link
-            href="/dashboard"
+            href={getAuthLink()}
             className="px-6 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors font-medium"
           >
-            เข้าสู่ระบบ
+            {user ? 'ไปที่แดชบอร์ด' : 'เข้าสู่ระบบ'}
           </Link>
         </nav>
       </header>
@@ -43,7 +53,7 @@ export default function Home() {
           </p>
           <div className="flex gap-4 justify-center">
             <Link
-              href="/dashboard"
+              href={getAuthLink()}
               className="px-8 py-4 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors font-medium text-lg flex items-center gap-2"
             >
               เริ่มใช้งาน
@@ -145,7 +155,7 @@ export default function Home() {
               เริ่มจัดการธุรกิจของคุณด้วยระบบที่ทันสมัยและใช้งานง่าย
             </p>
             <Link
-              href="/dashboard"
+              href={getAuthLink()}
               className="inline-flex items-center gap-2 px-8 py-4 bg-white text-blue-600 rounded-lg hover:bg-gray-100 transition-colors font-medium text-lg"
             >
               เริ่มใช้งานทันที

@@ -1,4 +1,5 @@
 import Sidebar from './Sidebar';
+import InstallPWA from './InstallPWA';
 
 export default function DashboardLayout({
   children,
@@ -13,6 +14,7 @@ export default function DashboardLayout({
           {children}
         </main>
       </div>
+      <InstallPWA />
     </div>
   );
 }

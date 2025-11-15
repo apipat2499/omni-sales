@@ -50,16 +50,50 @@
   - API routes สำหรับ CRUD operations
   - Row Level Security (RLS)
 - ✏️ **CRUD Operations - Products** - จัดการสินค้าแบบครบวงจร
-  - เพิ่มสินค้าใหม่ผ่าน Modal
+  - เพิ่มสินค้าใหม่ผ่าน Modal พร้อม validation
   - แก้ไขข้อมูลสินค้า
-  - ลบสินค้าพร้อม confirmation
+  - ลบสินค้าพร้อม confirmation dialog
   - Real-time data จาก Supabase
+  - Search และ filter แบบ real-time
+- ✏️ **CRUD Operations - Customers** - จัดการลูกค้าครบวงจร
+  - เพิ่มลูกค้าใหม่ด้วย Modal form
+  - แก้ไขข้อมูลลูกค้า (ชื่อ, email, phone, address, tags)
+  - ลบลูกค้าพร้อม warning หากมี orders
+  - Multi-select tags (VIP, Regular, New, Wholesale)
+  - Email validation
+- ✏️ **CRUD Operations - Orders** - จัดการออเดอร์
+  - ดูรายละเอียดออเดอร์แบบครบถ้วน (OrderDetailsModal)
+  - อัพเดทสถานะออเดอร์ (UpdateOrderStatusModal)
+  - Status validation (ป้องกันการย้อนกลับ)
+  - Auto-update delivered_at timestamp
+  - Print order details
+  - Filter และ search แบบ advanced
+- 🔐 **Authentication System** - ระบบยืนยันตัวตนด้วย Supabase Auth
+  - Email/Password login
+  - Session management และ auto-refresh
+  - Protected routes ด้วย middleware
+  - Logout พร้อม confirmation
+  - User info display ใน sidebar
+  - Auto-redirect logic
+- 📴 **PWA Support** - Progressive Web App พร้อมใช้งาน
+  - Web App Manifest พร้อม shortcuts
+  - Service Worker สำหรับ offline caching
+  - Install prompts (Android, iOS, Desktop)
+  - Offline fallback page พร้อม auto-retry
+  - Cache strategies (Network-first, Stale-while-revalidate)
+  - Background sync support
+  - Platform detection และ smart install UI
 
-### 🚧 ฟีเจอร์ที่รอพัฒนา
+### 🎯 ฟีเจอร์เพิ่มเติมที่แนะนำ (Optional)
 
-- 🔐 Authentication System (Supabase Auth)
-- ✏️ CRUD Operations for Orders & Customers
-- 📴 PWA & Offline Support
+- 📧 Email notifications เมื่อเปลี่ยนสถานะออเดอร์
+- 📦 Inventory management ขั้นสูง
+- 🔔 Push notifications
+- 📊 Advanced analytics และ business intelligence
+- 🌐 Multi-language support
+- 🏪 Multi-store management
+- 🎫 Promotions และ discount system
+- 🚚 Shipping integration
 
 ## 🛠️ Tech Stack
 
