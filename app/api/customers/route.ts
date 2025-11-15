@@ -1,13 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase/client';
 import type { Customer } from '@/types';
+import { getPaginationParams, createPaginatedResponse, getOffsetLimit } from '@/lib/utils/pagination';
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search');
     const tags = searchParams.get('tags');
+    const { page, limit, sortBy, sortOrder } = getPaginationParams(searchParams);
 
+    // Build count query
+    let countQuery = supabase.from('customer_stats').select('*', { count: 'exact', head: true });
+
+    // Apply filters to count query
+    if (search) {
+      countQuery = countQuery.or(`name.ilike.%${search}%,email.ilike.%${search}%,phone.ilike.%${search}%`);
+    }
+    if (tags && tags !== 'all') {
+      countQuery = countQuery.contains('tags', [tags]);
+    }
+
+    const { count } = await countQuery;
+    const total = count || 0;
+
+    // Build data query with pagination
     let query = supabase.from('customer_stats').select('*');
 
     // Apply search filter (name, email, or phone)
@@ -20,8 +37,13 @@ export async function GET(request: NextRequest) {
       query = query.contains('tags', [tags]);
     }
 
-    // Order by created date descending
-    query = query.order('createdAt', { ascending: false });
+    // Apply sorting
+    const orderColumn = sortBy || 'createdAt';
+    query = query.order(orderColumn, { ascending: sortOrder === 'asc' });
+
+    // Apply pagination
+    const { from, to } = getOffsetLimit(page, limit);
+    query = query.range(from, to);
 
     const { data, error } = await query;
 
@@ -41,7 +63,9 @@ export async function GET(request: NextRequest) {
       lastOrderDate: customer.lastOrderDate ? new Date(customer.lastOrderDate) : undefined,
     }));
 
-    return NextResponse.json(customers, { status: 200 });
+    // Return paginated response
+    const response = createPaginatedResponse(customers, total, page, limit);
+    return NextResponse.json(response, { status: 200 });
   } catch (error) {
     console.error('Unexpected error in GET /api/customers:', error);
     return NextResponse.json(

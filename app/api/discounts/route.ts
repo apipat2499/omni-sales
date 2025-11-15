@@ -1,17 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase/client';
 import type { Discount } from '@/types';
+import { getPaginationParams, createPaginatedResponse, getOffsetLimit } from '@/lib/utils/pagination';
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search');
     const active = searchParams.get('active');
+    const { page, limit, sortBy, sortOrder } = getPaginationParams(searchParams);
 
-    let query = supabase
-      .from('discounts')
-      .select('*')
-      .order('created_at', { ascending: false });
+    // Build count query
+    let countQuery = supabase.from('discounts').select('*', { count: 'exact', head: true });
+
+    // Apply filters to count query
+    if (search) {
+      countQuery = countQuery.or(`code.ilike.%${search}%,name.ilike.%${search}%`);
+    }
+    if (active !== null && active !== 'all') {
+      countQuery = countQuery.eq('active', active === 'true');
+    }
+
+    const { count } = await countQuery;
+    const total = count || 0;
+
+    // Build data query with pagination
+    let query = supabase.from('discounts').select('*');
 
     // Filter by search (code or name)
     if (search) {
@@ -22,6 +36,14 @@ export async function GET(request: NextRequest) {
     if (active !== null && active !== 'all') {
       query = query.eq('active', active === 'true');
     }
+
+    // Apply sorting
+    const orderColumn = sortBy || 'created_at';
+    query = query.order(orderColumn, { ascending: sortOrder === 'asc' });
+
+    // Apply pagination
+    const { from, to } = getOffsetLimit(page, limit);
+    query = query.range(from, to);
 
     const { data, error } = await query;
 
@@ -53,7 +75,9 @@ export async function GET(request: NextRequest) {
       updatedAt: new Date(d.updated_at),
     }));
 
-    return NextResponse.json(discounts, { status: 200 });
+    // Return paginated response
+    const response = createPaginatedResponse(discounts, total, page, limit);
+    return NextResponse.json(response, { status: 200 });
   } catch (error) {
     console.error('Unexpected error in GET /api/discounts:', error);
     return NextResponse.json(

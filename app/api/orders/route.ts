@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase/client';
 import type { Order } from '@/types';
+import { getPaginationParams, createPaginatedResponse, getOffsetLimit } from '@/lib/utils/pagination';
 
 export async function GET(request: NextRequest) {
   try {
@@ -8,6 +9,26 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search');
     const status = searchParams.get('status');
     const channel = searchParams.get('channel');
+    const { page, limit, sortBy, sortOrder } = getPaginationParams(searchParams);
+
+    // Build count query
+    let countQuery = supabase
+      .from('orders')
+      .select('*', { count: 'exact', head: true });
+
+    // Apply filters to count query
+    if (search) {
+      countQuery = countQuery.or(`id.ilike.%${search}%`);
+    }
+    if (status && status !== 'all') {
+      countQuery = countQuery.eq('status', status);
+    }
+    if (channel && channel !== 'all') {
+      countQuery = countQuery.eq('channel', channel);
+    }
+
+    const { count } = await countQuery;
+    const total = count || 0;
 
     // First, fetch orders with customer information
     let ordersQuery = supabase
@@ -19,7 +40,6 @@ export async function GET(request: NextRequest) {
 
     // Apply search filter (order ID or customer name)
     if (search) {
-      // We need to use OR condition for searching by order ID or customer name
       ordersQuery = ordersQuery.or(
         `id.ilike.%${search}%,customers.name.ilike.%${search}%`
       );
@@ -35,8 +55,13 @@ export async function GET(request: NextRequest) {
       ordersQuery = ordersQuery.eq('channel', channel);
     }
 
-    // Order by created date descending
-    ordersQuery = ordersQuery.order('created_at', { ascending: false });
+    // Apply sorting
+    const orderColumn = sortBy || 'created_at';
+    ordersQuery = ordersQuery.order(orderColumn, { ascending: sortOrder === 'asc' });
+
+    // Apply pagination
+    const { from, to } = getOffsetLimit(page, limit);
+    ordersQuery = ordersQuery.range(from, to);
 
     const { data: ordersData, error: ordersError } = await ordersQuery;
 
@@ -94,7 +119,9 @@ export async function GET(request: NextRequest) {
       (order): order is Order => order !== null
     );
 
-    return NextResponse.json(orders, { status: 200 });
+    // Return paginated response
+    const response = createPaginatedResponse(orders, total, page, limit);
+    return NextResponse.json(response, { status: 200 });
   } catch (error) {
     console.error('Unexpected error in GET /api/orders:', error);
     return NextResponse.json(

@@ -1,27 +1,47 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase/client';
 import type { Product } from '@/types';
+import { getPaginationParams, createPaginatedResponse, getOffsetLimit } from '@/lib/utils/pagination';
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search');
     const category = searchParams.get('category');
+    const { page, limit, sortBy, sortOrder } = getPaginationParams(searchParams);
 
+    // Build count query
+    let countQuery = supabase.from('products').select('*', { count: 'exact', head: true });
+
+    // Apply filters to count query
+    if (search) {
+      countQuery = countQuery.or(`name.ilike.%${search}%,sku.ilike.%${search}%`);
+    }
+    if (category && category !== 'all') {
+      countQuery = countQuery.eq('category', category);
+    }
+
+    const { count } = await countQuery;
+    const total = count || 0;
+
+    // Build data query with pagination
     let query = supabase.from('products').select('*');
 
-    // Apply search filter
+    // Apply filters
     if (search) {
       query = query.or(`name.ilike.%${search}%,sku.ilike.%${search}%`);
     }
-
-    // Apply category filter
     if (category && category !== 'all') {
       query = query.eq('category', category);
     }
 
-    // Order by created date descending
-    query = query.order('createdAt', { ascending: false });
+    // Apply sorting
+    const orderColumn = sortBy || 'createdAt';
+    query = query.order(orderColumn, { ascending: sortOrder === 'asc' });
+
+    // Apply pagination
+    const { from, to } = getOffsetLimit(page, limit);
+    query = query.range(from, to);
 
     const { data, error } = await query;
 
@@ -40,7 +60,9 @@ export async function GET(request: NextRequest) {
       updatedAt: new Date(product.updatedAt),
     }));
 
-    return NextResponse.json(products, { status: 200 });
+    // Return paginated response
+    const response = createPaginatedResponse(products, total, page, limit);
+    return NextResponse.json(response, { status: 200 });
   } catch (error) {
     console.error('Unexpected error in GET /api/products:', error);
     return NextResponse.json(
