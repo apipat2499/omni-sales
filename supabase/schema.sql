@@ -2213,3 +2213,285 @@ CREATE POLICY "Allow all for loyalty_tier_history" ON loyalty_tier_history FOR A
 CREATE POLICY "Allow all for loyalty_promotions" ON loyalty_promotions FOR ALL USING (true);
 CREATE POLICY "Allow all for loyalty_analytics" ON loyalty_analytics FOR ALL USING (true);
 CREATE POLICY "Allow all for loyalty_referral_rewards" ON loyalty_referral_rewards FOR ALL USING (true);
+
+-- ============================================
+-- SMS & TEXT MESSAGE NOTIFICATIONS TABLES
+-- ============================================
+
+-- SMS Providers Configuration
+CREATE TABLE IF NOT EXISTS sms_providers (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  provider_name VARCHAR(100) NOT NULL, -- Twilio, AWS SNS, Nexmo, etc
+  is_active BOOLEAN DEFAULT true,
+  api_key VARCHAR(255) ENCRYPTED,
+  api_secret VARCHAR(255) ENCRYPTED,
+  account_sid VARCHAR(255), -- For Twilio
+  auth_token VARCHAR(255) ENCRYPTED, -- For Twilio
+  sender_id VARCHAR(50), -- Phone number or alphanumeric ID
+  monthly_quota INTEGER,
+  current_usage INTEGER DEFAULT 0,
+  supported_countries TEXT[], -- List of country codes
+  metadata JSONB DEFAULT '{}',
+  connected_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(user_id, provider_name)
+);
+
+-- SMS Templates
+CREATE TABLE IF NOT EXISTS sms_templates (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  template_type VARCHAR(50) NOT NULL, -- order_confirmation, shipping_update, payment_reminder, verification, promotional, etc
+  content TEXT NOT NULL, -- Max 160 characters for single SMS
+  variables TEXT[] DEFAULT '{}', -- {{customer_name}}, {{order_id}}, etc
+  character_count INTEGER,
+  sms_count INTEGER, -- How many SMS segments (160 chars = 1 segment)
+  is_default BOOLEAN DEFAULT false,
+  is_active BOOLEAN DEFAULT true,
+  preview_data JSONB DEFAULT '{}',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(user_id, template_type)
+);
+
+-- SMS Triggers (When to send SMS)
+CREATE TABLE IF NOT EXISTS sms_triggers (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  trigger_name VARCHAR(100) NOT NULL,
+  trigger_event VARCHAR(100) NOT NULL, -- order_placed, payment_received, order_shipped, delivery_confirmed, etc
+  template_id UUID REFERENCES sms_templates(id),
+  is_enabled BOOLEAN DEFAULT true,
+  delay_minutes INTEGER DEFAULT 0, -- Send after N minutes
+  recipient_type VARCHAR(50) NOT NULL, -- customer, merchant, both
+  conditions JSONB DEFAULT '{}', -- Additional conditions for sending
+  max_frequency_hours INTEGER, -- Prevent sending more than X hours apart
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- SMS Logs (Track all sent SMS)
+CREATE TABLE IF NOT EXISTS sms_logs (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  recipient_phone VARCHAR(20) NOT NULL,
+  recipient_name VARCHAR(255),
+  template_type VARCHAR(50),
+  content TEXT NOT NULL,
+  status VARCHAR(50) NOT NULL DEFAULT 'pending', -- pending, queued, sent, delivered, failed, bounced
+  provider VARCHAR(50),
+  provider_message_id VARCHAR(255),
+  delivery_status VARCHAR(50), -- delivered, undelivered, queued
+  failure_reason TEXT,
+  failure_code VARCHAR(50),
+  segments_used INTEGER DEFAULT 1,
+  cost DECIMAL(10, 4),
+  related_order_id UUID REFERENCES orders(id),
+  related_customer_id UUID REFERENCES customers(id),
+  metadata JSONB DEFAULT '{}',
+  sent_at TIMESTAMP WITH TIME ZONE,
+  delivered_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- SMS Queue (For sending SMS asynchronously)
+CREATE TABLE IF NOT EXISTS sms_queue (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  recipient_phone VARCHAR(20) NOT NULL,
+  recipient_name VARCHAR(255),
+  template_id UUID REFERENCES sms_templates(id),
+  content TEXT NOT NULL,
+  variables JSONB DEFAULT '{}',
+  status VARCHAR(50) NOT NULL DEFAULT 'pending', -- pending, processing, sent, failed
+  retry_count INTEGER DEFAULT 0,
+  max_retries INTEGER DEFAULT 3,
+  scheduled_for TIMESTAMP WITH TIME ZONE,
+  sent_at TIMESTAMP WITH TIME ZONE,
+  error_message TEXT,
+  related_order_id UUID REFERENCES orders(id),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- SMS Preferences (Customer SMS settings)
+CREATE TABLE IF NOT EXISTS sms_preferences (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  customer_phone VARCHAR(20) NOT NULL,
+  phone_verified BOOLEAN DEFAULT false,
+  verification_code VARCHAR(6),
+  verification_attempts INTEGER DEFAULT 0,
+  verified_at TIMESTAMP WITH TIME ZONE,
+  order_notifications BOOLEAN DEFAULT true,
+  order_confirmation BOOLEAN DEFAULT true,
+  shipping_updates BOOLEAN DEFAULT true,
+  delivery_confirmation BOOLEAN DEFAULT true,
+  payment_reminders BOOLEAN DEFAULT true,
+  promotional_offers BOOLEAN DEFAULT false,
+  cart_abandonment BOOLEAN DEFAULT false,
+  loyalty_rewards BOOLEAN DEFAULT true,
+  is_opted_in BOOLEAN DEFAULT true,
+  opted_in_date TIMESTAMP WITH TIME ZONE,
+  opted_out_date TIMESTAMP WITH TIME ZONE,
+  opted_out_reason VARCHAR(100),
+  do_not_contact BOOLEAN DEFAULT false,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(user_id, customer_id)
+);
+
+-- SMS Campaigns (Bulk promotional SMS)
+CREATE TABLE IF NOT EXISTS sms_campaigns (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  campaign_name VARCHAR(255) NOT NULL,
+  description TEXT,
+  campaign_type VARCHAR(50), -- promotional, transactional, reminder, verification
+  status VARCHAR(50) DEFAULT 'draft', -- draft, scheduled, active, paused, completed, cancelled
+  template_id UUID REFERENCES sms_templates(id),
+  content TEXT,
+  target_audience VARCHAR(50), -- all, segment, vip, at_risk, new_customers, birthday
+  target_segment_id UUID, -- Reference to customer segment
+  recipient_count INTEGER DEFAULT 0,
+  scheduled_for TIMESTAMP WITH TIME ZONE,
+  started_at TIMESTAMP WITH TIME ZONE,
+  completed_at TIMESTAMP WITH TIME ZONE,
+  budget_limit DECIMAL(12, 2),
+  total_cost DECIMAL(12, 2) DEFAULT 0,
+  sent_count INTEGER DEFAULT 0,
+  delivered_count INTEGER DEFAULT 0,
+  failed_count INTEGER DEFAULT 0,
+  conversion_rate DECIMAL(5, 2),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- SMS Analytics
+CREATE TABLE IF NOT EXISTS sms_analytics (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  date TIMESTAMP WITH TIME ZONE,
+  total_sent INTEGER DEFAULT 0,
+  total_delivered INTEGER DEFAULT 0,
+  total_failed INTEGER DEFAULT 0,
+  total_bounced INTEGER DEFAULT 0,
+  total_cost DECIMAL(12, 2) DEFAULT 0,
+  segments_used INTEGER DEFAULT 0,
+  delivery_rate DECIMAL(5, 2),
+  failure_rate DECIMAL(5, 2),
+  bounce_rate DECIMAL(5, 2),
+  avg_segments_per_message DECIMAL(3, 2),
+  unique_recipients INTEGER DEFAULT 0,
+  campaign_id UUID REFERENCES sms_campaigns(id),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- SMS Bounce Management
+CREATE TABLE IF NOT EXISTS sms_bounces (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  phone_number VARCHAR(20) NOT NULL,
+  bounce_type VARCHAR(50) NOT NULL, -- permanent, temporary, invalid
+  bounce_reason TEXT,
+  is_permanent BOOLEAN DEFAULT false,
+  first_bounce_at TIMESTAMP WITH TIME ZONE,
+  last_bounce_at TIMESTAMP WITH TIME ZONE,
+  bounce_count INTEGER DEFAULT 1,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(user_id, phone_number)
+);
+
+-- SMS Compliance & Consent
+CREATE TABLE IF NOT EXISTS sms_compliance (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  customer_id UUID REFERENCES customers(id) ON DELETE CASCADE,
+  phone_number VARCHAR(20),
+  consent_type VARCHAR(50), -- marketing, transactional, all
+  consent_status VARCHAR(50), -- opted_in, opted_out, pending, revoked
+  consent_date TIMESTAMP WITH TIME ZONE,
+  consent_method VARCHAR(50), -- web_form, phone_call, sms, email
+  ip_address VARCHAR(50),
+  user_agent VARCHAR(500),
+  regulatory_framework VARCHAR(50), -- TCPA, GDPR, PDPA, etc
+  notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create Indexes for SMS
+CREATE INDEX IF NOT EXISTS idx_sms_templates_user_type ON sms_templates(user_id, template_type);
+CREATE INDEX IF NOT EXISTS idx_sms_triggers_user_event ON sms_triggers(user_id, trigger_event);
+CREATE INDEX IF NOT EXISTS idx_sms_logs_user_status ON sms_logs(user_id, status);
+CREATE INDEX IF NOT EXISTS idx_sms_logs_recipient ON sms_logs(recipient_phone);
+CREATE INDEX IF NOT EXISTS idx_sms_logs_created_at ON sms_logs(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_sms_logs_order ON sms_logs(related_order_id);
+CREATE INDEX IF NOT EXISTS idx_sms_queue_status ON sms_queue(status);
+CREATE INDEX IF NOT EXISTS idx_sms_queue_scheduled ON sms_queue(scheduled_for);
+CREATE INDEX IF NOT EXISTS idx_sms_preferences_customer ON sms_preferences(customer_id);
+CREATE INDEX IF NOT EXISTS idx_sms_preferences_phone ON sms_preferences(customer_phone);
+CREATE INDEX IF NOT EXISTS idx_sms_preferences_opted_in ON sms_preferences(user_id, is_opted_in);
+CREATE INDEX IF NOT EXISTS idx_sms_campaigns_user_status ON sms_campaigns(user_id, status);
+CREATE INDEX IF NOT EXISTS idx_sms_campaigns_scheduled ON sms_campaigns(scheduled_for);
+CREATE INDEX IF NOT EXISTS idx_sms_analytics_user_date ON sms_analytics(user_id, date DESC);
+CREATE INDEX IF NOT EXISTS idx_sms_bounces_phone ON sms_bounces(phone_number);
+CREATE INDEX IF NOT EXISTS idx_sms_compliance_customer ON sms_compliance(customer_id);
+CREATE INDEX IF NOT EXISTS idx_sms_compliance_phone ON sms_compliance(phone_number);
+CREATE INDEX IF NOT EXISTS idx_sms_compliance_status ON sms_compliance(consent_status);
+
+-- Create Triggers for SMS
+CREATE TRIGGER update_sms_templates_updated_at BEFORE UPDATE ON sms_templates
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_sms_triggers_updated_at BEFORE UPDATE ON sms_triggers
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_sms_logs_updated_at BEFORE UPDATE ON sms_logs
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_sms_queue_updated_at BEFORE UPDATE ON sms_queue
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_sms_preferences_updated_at BEFORE UPDATE ON sms_preferences
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_sms_campaigns_updated_at BEFORE UPDATE ON sms_campaigns
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_sms_bounces_updated_at BEFORE UPDATE ON sms_bounces
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_sms_compliance_updated_at BEFORE UPDATE ON sms_compliance
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Enable RLS for SMS Tables
+ALTER TABLE sms_providers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sms_templates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sms_triggers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sms_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sms_queue ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sms_preferences ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sms_campaigns ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sms_analytics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sms_bounces ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sms_compliance ENABLE ROW LEVEL SECURITY;
+
+-- Create Policies for SMS Tables
+CREATE POLICY "Allow all for sms_providers" ON sms_providers FOR ALL USING (true);
+CREATE POLICY "Allow all for sms_templates" ON sms_templates FOR ALL USING (true);
+CREATE POLICY "Allow all for sms_triggers" ON sms_triggers FOR ALL USING (true);
+CREATE POLICY "Allow all for sms_logs" ON sms_logs FOR ALL USING (true);
+CREATE POLICY "Allow all for sms_queue" ON sms_queue FOR ALL USING (true);
+CREATE POLICY "Allow all for sms_preferences" ON sms_preferences FOR ALL USING (true);
+CREATE POLICY "Allow all for sms_campaigns" ON sms_campaigns FOR ALL USING (true);
+CREATE POLICY "Allow all for sms_analytics" ON sms_analytics FOR ALL USING (true);
+CREATE POLICY "Allow all for sms_bounces" ON sms_bounces FOR ALL USING (true);
+CREATE POLICY "Allow all for sms_compliance" ON sms_compliance FOR ALL USING (true);

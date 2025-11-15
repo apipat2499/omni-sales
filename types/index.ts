@@ -1567,3 +1567,198 @@ export interface CustomerLoyaltyAccount {
   createdAt: Date;
   updatedAt: Date;
 }
+
+// ============================================
+// SMS & TEXT MESSAGE NOTIFICATION TYPES
+// ============================================
+
+export type SMSStatus = 'pending' | 'queued' | 'sent' | 'delivered' | 'failed' | 'bounced';
+export type SMSTemplateType = 'order_confirmation' | 'shipping_update' | 'payment_reminder' | 'verification' | 'promotional' | 'reminder' | 'customer_service';
+export type CampaignStatus = 'draft' | 'scheduled' | 'active' | 'paused' | 'completed' | 'cancelled';
+export type BounceType = 'permanent' | 'temporary' | 'invalid';
+export type ConsentStatus = 'opted_in' | 'opted_out' | 'pending' | 'revoked';
+export type RegulatoryFramework = 'TCPA' | 'GDPR' | 'PDPA' | 'CCPA';
+
+export interface SMSProvider {
+  id: string;
+  userId: string;
+  providerName: string;
+  isActive: boolean;
+  senderId: string;
+  monthlyQuota: number;
+  currentUsage: number;
+  supportedCountries: string[];
+  connectedAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SMSTemplate {
+  id: string;
+  userId: string;
+  name: string;
+  templateType: SMSTemplateType;
+  content: string;
+  variables: string[];
+  characterCount: number;
+  smsCount: number;
+  isDefault: boolean;
+  isActive: boolean;
+  previewData?: Record<string, unknown>;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SMSTrigger {
+  id: string;
+  userId: string;
+  triggerName: string;
+  triggerEvent: string;
+  templateId?: string;
+  isEnabled: boolean;
+  delayMinutes: number;
+  recipientType: string;
+  conditions?: Record<string, unknown>;
+  maxFrequencyHours?: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SMSLog {
+  id: string;
+  userId: string;
+  recipientPhone: string;
+  recipientName?: string;
+  templateType?: SMSTemplateType;
+  content: string;
+  status: SMSStatus;
+  provider?: string;
+  providerMessageId?: string;
+  deliveryStatus?: string;
+  failureReason?: string;
+  failureCode?: string;
+  segmentsUsed: number;
+  cost?: number;
+  relatedOrderId?: string;
+  relatedCustomerId?: string;
+  sentAt?: Date;
+  deliveredAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SMSQueue {
+  id: string;
+  userId: string;
+  recipientPhone: string;
+  recipientName?: string;
+  templateId?: string;
+  content: string;
+  variables?: Record<string, unknown>;
+  status: string;
+  retryCount: number;
+  maxRetries: number;
+  scheduledFor?: Date;
+  sentAt?: Date;
+  errorMessage?: string;
+  relatedOrderId?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SMSPreferences {
+  id: string;
+  userId: string;
+  customerId: string;
+  customerPhone: string;
+  phoneVerified: boolean;
+  verifiedAt?: Date;
+  orderNotifications: boolean;
+  orderConfirmation: boolean;
+  shippingUpdates: boolean;
+  deliveryConfirmation: boolean;
+  paymentReminders: boolean;
+  promotionalOffers: boolean;
+  cartAbandonment: boolean;
+  loyaltyRewards: boolean;
+  isOptedIn: boolean;
+  optedInDate?: Date;
+  optedOutDate?: Date;
+  optedOutReason?: string;
+  doNotContact: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SMSCampaign {
+  id: string;
+  userId: string;
+  campaignName: string;
+  description?: string;
+  campaignType: string;
+  status: CampaignStatus;
+  templateId?: string;
+  content?: string;
+  targetAudience: string;
+  recipientCount: number;
+  scheduledFor?: Date;
+  startedAt?: Date;
+  completedAt?: Date;
+  budgetLimit?: number;
+  totalCost: number;
+  sentCount: number;
+  deliveredCount: number;
+  failedCount: number;
+  conversionRate?: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SMSAnalytics {
+  id: string;
+  userId: string;
+  date: Date;
+  totalSent: number;
+  totalDelivered: number;
+  totalFailed: number;
+  totalBounced: number;
+  totalCost: number;
+  segmentsUsed: number;
+  deliveryRate: number;
+  failureRate: number;
+  bounceRate: number;
+  avgSegmentsPerMessage: number;
+  uniqueRecipients: number;
+  campaignId?: string;
+  createdAt: Date;
+}
+
+export interface SMSBounce {
+  id: string;
+  userId: string;
+  phoneNumber: string;
+  bounceType: BounceType;
+  bounceReason?: string;
+  isPermanent: boolean;
+  firstBounceAt?: Date;
+  lastBounceAt?: Date;
+  bounceCount: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SMSCompliance {
+  id: string;
+  userId: string;
+  customerId?: string;
+  phoneNumber: string;
+  consentType: string;
+  consentStatus: ConsentStatus;
+  consentDate?: Date;
+  consentMethod?: string;
+  ipAddress?: string;
+  regulatoryFramework?: RegulatoryFramework;
+  notes?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
