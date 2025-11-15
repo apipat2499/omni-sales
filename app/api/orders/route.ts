@@ -5,7 +5,7 @@ import type { Order, OrderItem } from '@/types';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { customerId, items, channel, paymentMethod, shippingAddress, notes } = body;
+    const { customerId, items, channel, paymentMethod, shippingAddress, notes, promotionId, couponCode, discount } = body;
 
     // Validation
     if (!customerId || !items || !Array.isArray(items) || items.length === 0) {
@@ -93,25 +93,37 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const tax = subtotal * 0.07; // 7% VAT
+    const discountAmount = discount || 0;
+    const tax = (subtotal - discountAmount) * 0.07; // 7% VAT on discounted subtotal
     const shipping = body.shipping || 0;
-    const total = subtotal + tax + shipping;
+    const total = subtotal - discountAmount + tax + shipping;
 
     // Create order
+    const orderData: any = {
+      customer_id: customerId,
+      subtotal,
+      tax,
+      shipping,
+      total,
+      status: 'pending',
+      channel,
+      payment_method: paymentMethod,
+      shipping_address: shippingAddress,
+      notes,
+    };
+
+    // Add promotion fields if discount is applied
+    if (discountAmount > 0 && promotionId) {
+      orderData.promotion_id = promotionId;
+      orderData.discount = discountAmount;
+    }
+    if (couponCode) {
+      orderData.coupon_code = couponCode;
+    }
+
     const { data: newOrder, error: orderError } = await supabase
       .from('orders')
-      .insert({
-        customer_id: customerId,
-        subtotal,
-        tax,
-        shipping,
-        total,
-        status: 'pending',
-        channel,
-        payment_method: paymentMethod,
-        shipping_address: shippingAddress,
-        notes,
-      })
+      .insert(orderData)
       .select()
       .single();
 
@@ -220,12 +232,15 @@ export async function POST(request: NextRequest) {
       subtotal: parseFloat(createdOrder.subtotal),
       tax: parseFloat(createdOrder.tax),
       shipping: parseFloat(createdOrder.shipping),
+      discountAmount: createdOrder.discount ? parseFloat(createdOrder.discount) : undefined,
       total: parseFloat(createdOrder.total),
       status: createdOrder.status,
       channel: createdOrder.channel,
       paymentMethod: createdOrder.payment_method,
       shippingAddress: createdOrder.shipping_address,
       notes: createdOrder.notes,
+      promotionId: createdOrder.promotion_id || undefined,
+      couponCode: createdOrder.coupon_code || undefined,
       createdAt: new Date(createdOrder.created_at),
       updatedAt: new Date(createdOrder.updated_at),
       deliveredAt: createdOrder.delivered_at ? new Date(createdOrder.delivered_at) : undefined,
@@ -328,12 +343,15 @@ export async function GET(request: NextRequest) {
           subtotal: parseFloat(order.subtotal),
           tax: parseFloat(order.tax),
           shipping: parseFloat(order.shipping),
+          discountAmount: order.discount ? parseFloat(order.discount) : undefined,
           total: parseFloat(order.total),
           status: order.status,
           channel: order.channel,
           paymentMethod: order.payment_method,
           shippingAddress: order.shipping_address,
           notes: order.notes,
+          promotionId: order.promotion_id || undefined,
+          couponCode: order.coupon_code || undefined,
           createdAt: new Date(order.created_at),
           updatedAt: new Date(order.updated_at),
           deliveredAt: order.delivered_at ? new Date(order.delivered_at) : undefined,

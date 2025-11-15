@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import BarcodeScanner from '@/components/BarcodeScanner';
+import CreateOrderModal from '@/components/orders/CreateOrderModal';
 import { useToast } from '@/lib/hooks/useToast';
 import { formatCurrency } from '@/lib/utils';
 import { Package, ShoppingCart, Plus, Minus, X } from 'lucide-react';
@@ -16,6 +17,7 @@ export default function ScannerPage() {
   const [scannedProduct, setScannedProduct] = useState<Product | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
   const { success, error: showError } = useToast();
 
   const handleScanSuccess = async (code: string, type: 'barcode' | 'qr') => {
@@ -84,6 +86,20 @@ export default function ScannerPage() {
     setCart([]);
     setScannedProduct(null);
     success('ล้างตะกร้าสินค้าแล้ว');
+  };
+
+  const handleCheckout = () => {
+    if (cart.length === 0) {
+      showError('ไม่มีสินค้าในตะกร้า');
+      return;
+    }
+    setIsCheckoutModalOpen(true);
+  };
+
+  const handleOrderSuccess = () => {
+    success('สร้างออเดอร์สำเร็จ');
+    setCart([]);
+    setScannedProduct(null);
   };
 
   const cartTotal = cart.reduce((sum, item) => sum + item.price * item.cartQuantity, 0);
@@ -254,7 +270,10 @@ export default function ScannerPage() {
                       {formatCurrency(cartTotal)}
                     </span>
                   </div>
-                  <button className="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium">
+                  <button
+                    onClick={handleCheckout}
+                    className="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+                  >
                     ดำเนินการชำระเงิน
                   </button>
                 </div>
@@ -262,6 +281,14 @@ export default function ScannerPage() {
             )}
           </div>
         </div>
+
+        {/* Create Order Modal */}
+        <CreateOrderModal
+          isOpen={isCheckoutModalOpen}
+          onClose={() => setIsCheckoutModalOpen(false)}
+          onSuccess={handleOrderSuccess}
+          cartItems={cart}
+        />
       </div>
     </DashboardLayout>
   );

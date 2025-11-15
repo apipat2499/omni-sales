@@ -279,6 +279,11 @@ export default function OrdersPage() {
                         </div>
                         <div className="text-xs text-gray-500 dark:text-gray-400">
                           สุทธิ: {formatCurrency(order.subtotal)}
+                          {order.discountAmount && order.discountAmount > 0 && (
+                            <span className="text-green-600 dark:text-green-400 ml-1">
+                              (-{formatCurrency(order.discountAmount)})
+                            </span>
+                          )}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">

@@ -248,6 +248,16 @@ export default function OrderDetailsModal({
                     {formatCurrency(order.subtotal)}
                   </span>
                 </div>
+                {order.discountAmount && order.discountAmount > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-green-600 dark:text-green-400">
+                      ส่วนลด{order.couponCode ? ` (${order.couponCode})` : ''}:
+                    </span>
+                    <span className="text-green-600 dark:text-green-400 font-medium">
+                      -{formatCurrency(order.discountAmount)}
+                    </span>
+                  </div>
+                )}
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600 dark:text-gray-400">ภาษี (7%):</span>
                   <span className="text-gray-900 dark:text-white font-medium">
