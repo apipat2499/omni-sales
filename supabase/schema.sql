@@ -4397,3 +4397,375 @@ CREATE POLICY "Allow all for operational_analytics" ON operational_analytics FOR
 CREATE POLICY "Allow all for dashboard_reports" ON dashboard_reports FOR ALL USING (true);
 CREATE POLICY "Allow all for report_snapshots" ON report_snapshots FOR ALL USING (true);
 CREATE POLICY "Allow all for kpi_tracking" ON kpi_tracking FOR ALL USING (true);
+
+-- ==========================================
+-- Feature #21: Customer Relationship Management (CRM) System
+-- ==========================================
+
+-- CRM Customer Profiles (Enhanced customer data with lifecycle tracking)
+CREATE TABLE IF NOT EXISTS crm_customer_profiles (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id VARCHAR(255) NOT NULL,
+  customer_id UUID REFERENCES customers(id) ON DELETE CASCADE,
+  segment VARCHAR(100),
+  lifecycle_stage VARCHAR(50),
+  company_name VARCHAR(255),
+  industry VARCHAR(100),
+  employee_count INT,
+  annual_revenue DECIMAL(15, 2),
+  website VARCHAR(500),
+  health_score INT DEFAULT 50,
+  engagement_level VARCHAR(50),
+  preferred_contact_method VARCHAR(50),
+  timezone VARCHAR(50),
+  language VARCHAR(50),
+  custom_fields JSONB,
+  notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- CRM Contacts (Multiple contacts per customer)
+CREATE TABLE IF NOT EXISTS crm_contacts (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id VARCHAR(255) NOT NULL,
+  customer_id UUID REFERENCES customers(id) ON DELETE CASCADE,
+  first_name VARCHAR(255) NOT NULL,
+  last_name VARCHAR(255) NOT NULL,
+  title VARCHAR(100),
+  department VARCHAR(100),
+  email VARCHAR(255),
+  phone VARCHAR(50),
+  mobile VARCHAR(50),
+  is_primary BOOLEAN DEFAULT false,
+  is_active BOOLEAN DEFAULT true,
+  last_contacted TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- CRM Interactions (Track all customer interactions)
+CREATE TABLE IF NOT EXISTS crm_interactions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id VARCHAR(255) NOT NULL,
+  customer_id UUID REFERENCES customers(id) ON DELETE CASCADE,
+  contact_id UUID REFERENCES crm_contacts(id) ON DELETE SET NULL,
+  interaction_type VARCHAR(50) NOT NULL,
+  subject VARCHAR(255),
+  description TEXT,
+  duration_minutes INT,
+  outcome VARCHAR(100),
+  next_step VARCHAR(255),
+  scheduled_for TIMESTAMP WITH TIME ZONE,
+  interaction_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  conducted_by VARCHAR(255),
+  sentiment VARCHAR(50),
+  attachments JSONB,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- CRM Opportunities (Sales pipeline management)
+CREATE TABLE IF NOT EXISTS crm_opportunities (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id VARCHAR(255) NOT NULL,
+  customer_id UUID REFERENCES customers(id) ON DELETE CASCADE,
+  name VARCHAR(255) NOT NULL,
+  description TEXT,
+  value DECIMAL(15, 2),
+  probability_percent INT DEFAULT 50,
+  stage VARCHAR(100) NOT NULL,
+  expected_close_date DATE,
+  actual_close_date DATE,
+  owner_id VARCHAR(255),
+  source VARCHAR(100),
+  type VARCHAR(100),
+  forecast_amount DECIMAL(15, 2),
+  days_in_pipeline INT,
+  status VARCHAR(50),
+  loss_reason VARCHAR(255),
+  competitor_info TEXT,
+  custom_fields JSONB,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- CRM Leads (Lead management and qualification)
+CREATE TABLE IF NOT EXISTS crm_leads (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id VARCHAR(255) NOT NULL,
+  first_name VARCHAR(255) NOT NULL,
+  last_name VARCHAR(255) NOT NULL,
+  email VARCHAR(255),
+  phone VARCHAR(50),
+  company_name VARCHAR(255),
+  job_title VARCHAR(100),
+  industry VARCHAR(100),
+  company_size VARCHAR(50),
+  budget DECIMAL(15, 2),
+  source VARCHAR(100) NOT NULL,
+  status VARCHAR(50) NOT NULL,
+  lead_quality VARCHAR(50),
+  converted_customer_id UUID REFERENCES customers(id) ON DELETE SET NULL,
+  converted_date TIMESTAMP WITH TIME ZONE,
+  assigned_to VARCHAR(255),
+  last_activity_date TIMESTAMP WITH TIME ZONE,
+  next_follow_up DATE,
+  notes TEXT,
+  custom_fields JSONB,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- CRM Lead Scores (Lead scoring for qualification)
+CREATE TABLE IF NOT EXISTS crm_lead_scores (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id VARCHAR(255) NOT NULL,
+  lead_id UUID REFERENCES crm_leads(id) ON DELETE CASCADE,
+  engagement_score INT DEFAULT 0,
+  fit_score INT DEFAULT 0,
+  activity_score INT DEFAULT 0,
+  total_score INT DEFAULT 0,
+  grade VARCHAR(10),
+  scoring_date DATE NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- CRM Pipeline Stages (Custom sales pipeline)
+CREATE TABLE IF NOT EXISTS crm_pipeline_stages (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id VARCHAR(255) NOT NULL,
+  stage_name VARCHAR(100) NOT NULL,
+  stage_order INT NOT NULL,
+  probability_percent INT DEFAULT 50,
+  expected_days INT,
+  is_active BOOLEAN DEFAULT true,
+  is_final_stage BOOLEAN DEFAULT false,
+  stage_description TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- CRM Tags (Customer and opportunity tagging)
+CREATE TABLE IF NOT EXISTS crm_tags (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id VARCHAR(255) NOT NULL,
+  tag_name VARCHAR(100) NOT NULL,
+  tag_category VARCHAR(50),
+  color VARCHAR(20),
+  usage_count INT DEFAULT 0,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- CRM Tagged Items (Tagging for customers, leads, opportunities)
+CREATE TABLE IF NOT EXISTS crm_tagged_items (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id VARCHAR(255) NOT NULL,
+  tag_id UUID REFERENCES crm_tags(id) ON DELETE CASCADE,
+  item_type VARCHAR(50) NOT NULL,
+  item_id UUID NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- CRM Notes (Notes on customers and opportunities)
+CREATE TABLE IF NOT EXISTS crm_notes (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id VARCHAR(255) NOT NULL,
+  customer_id UUID REFERENCES customers(id) ON DELETE CASCADE,
+  opportunity_id UUID REFERENCES crm_opportunities(id) ON DELETE CASCADE,
+  note_text TEXT NOT NULL,
+  note_type VARCHAR(50),
+  is_pinned BOOLEAN DEFAULT false,
+  created_by VARCHAR(255),
+  mentioned_users TEXT[] DEFAULT '{}',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- CRM Activity Timeline (Complete activity history)
+CREATE TABLE IF NOT EXISTS crm_activity_timeline (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id VARCHAR(255) NOT NULL,
+  customer_id UUID REFERENCES customers(id) ON DELETE CASCADE,
+  activity_type VARCHAR(50) NOT NULL,
+  activity_title VARCHAR(255),
+  activity_description TEXT,
+  related_entity_type VARCHAR(50),
+  related_entity_id UUID,
+  performed_by VARCHAR(255),
+  metadata JSONB,
+  is_important BOOLEAN DEFAULT false,
+  activity_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- CRM Customer Segments (Customer segmentation)
+CREATE TABLE IF NOT EXISTS crm_customer_segments (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id VARCHAR(255) NOT NULL,
+  segment_name VARCHAR(100) NOT NULL,
+  description TEXT,
+  segment_criteria JSONB,
+  segment_type VARCHAR(50),
+  member_count INT DEFAULT 0,
+  is_dynamic BOOLEAN DEFAULT true,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- CRM Segment Members (Many-to-many for segments)
+CREATE TABLE IF NOT EXISTS crm_segment_members (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id VARCHAR(255) NOT NULL,
+  segment_id UUID REFERENCES crm_customer_segments(id) ON DELETE CASCADE,
+  customer_id UUID REFERENCES customers(id) ON DELETE CASCADE,
+  added_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- CRM Email Addresses (Multiple email addresses per contact)
+CREATE TABLE IF NOT EXISTS crm_email_addresses (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id VARCHAR(255) NOT NULL,
+  contact_id UUID REFERENCES crm_contacts(id) ON DELETE CASCADE,
+  email_address VARCHAR(255) NOT NULL,
+  email_type VARCHAR(50),
+  is_primary BOOLEAN DEFAULT false,
+  is_verified BOOLEAN DEFAULT false,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- CRM Phone Numbers (Multiple phone numbers per contact)
+CREATE TABLE IF NOT EXISTS crm_phone_numbers (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id VARCHAR(255) NOT NULL,
+  contact_id UUID REFERENCES crm_contacts(id) ON DELETE CASCADE,
+  phone_number VARCHAR(50) NOT NULL,
+  phone_type VARCHAR(50),
+  country_code VARCHAR(10),
+  is_primary BOOLEAN DEFAULT false,
+  is_verified BOOLEAN DEFAULT false,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- CRM Deal Stages (Track deal progression)
+CREATE TABLE IF NOT EXISTS crm_deal_stages (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id VARCHAR(255) NOT NULL,
+  opportunity_id UUID REFERENCES crm_opportunities(id) ON DELETE CASCADE,
+  stage_name VARCHAR(100) NOT NULL,
+  stage_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  notes TEXT,
+  moved_by VARCHAR(255),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- CRM Customer Health Score (Customer health tracking)
+CREATE TABLE IF NOT EXISTS crm_customer_health_scores (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id VARCHAR(255) NOT NULL,
+  customer_id UUID REFERENCES customers(id) ON DELETE CASCADE,
+  score_date DATE NOT NULL,
+  health_score INT DEFAULT 50,
+  trend VARCHAR(50),
+  factors JSONB,
+  risk_level VARCHAR(50),
+  recommendations TEXT,
+  calculated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create Indexes for CRM Tables
+CREATE INDEX IF NOT EXISTS idx_crm_customer_profiles_user ON crm_customer_profiles(user_id);
+CREATE INDEX IF NOT EXISTS idx_crm_customer_profiles_segment ON crm_customer_profiles(segment);
+CREATE INDEX IF NOT EXISTS idx_crm_contacts_customer ON crm_contacts(customer_id);
+CREATE INDEX IF NOT EXISTS idx_crm_contacts_user ON crm_contacts(user_id);
+CREATE INDEX IF NOT EXISTS idx_crm_interactions_customer ON crm_interactions(customer_id);
+CREATE INDEX IF NOT EXISTS idx_crm_interactions_user_date ON crm_interactions(user_id, interaction_date DESC);
+CREATE INDEX IF NOT EXISTS idx_crm_opportunities_user_stage ON crm_opportunities(user_id, stage);
+CREATE INDEX IF NOT EXISTS idx_crm_opportunities_customer ON crm_opportunities(customer_id);
+CREATE INDEX IF NOT EXISTS idx_crm_opportunities_owner ON crm_opportunities(owner_id);
+CREATE INDEX IF NOT EXISTS idx_crm_leads_user_status ON crm_leads(user_id, status);
+CREATE INDEX IF NOT EXISTS idx_crm_leads_source ON crm_leads(source);
+CREATE INDEX IF NOT EXISTS idx_crm_lead_scores_lead ON crm_lead_scores(lead_id);
+CREATE INDEX IF NOT EXISTS idx_crm_tags_user ON crm_tags(user_id);
+CREATE INDEX IF NOT EXISTS idx_crm_tagged_items_item ON crm_tagged_items(user_id, item_type, item_id);
+CREATE INDEX IF NOT EXISTS idx_crm_notes_customer ON crm_notes(customer_id);
+CREATE INDEX IF NOT EXISTS idx_crm_notes_opportunity ON crm_notes(opportunity_id);
+CREATE INDEX IF NOT EXISTS idx_crm_activity_timeline_customer ON crm_activity_timeline(customer_id, activity_date DESC);
+CREATE INDEX IF NOT EXISTS idx_crm_customer_segments_user ON crm_customer_segments(user_id);
+CREATE INDEX IF NOT EXISTS idx_crm_segment_members_segment ON crm_segment_members(segment_id);
+CREATE INDEX IF NOT EXISTS idx_crm_segment_members_customer ON crm_segment_members(customer_id);
+CREATE INDEX IF NOT EXISTS idx_crm_email_addresses_contact ON crm_email_addresses(contact_id);
+CREATE INDEX IF NOT EXISTS idx_crm_phone_numbers_contact ON crm_phone_numbers(contact_id);
+CREATE INDEX IF NOT EXISTS idx_crm_deal_stages_opportunity ON crm_deal_stages(opportunity_id);
+CREATE INDEX IF NOT EXISTS idx_crm_customer_health_scores_customer ON crm_customer_health_scores(customer_id, score_date DESC);
+
+-- Create Triggers for CRM Tables
+CREATE TRIGGER update_crm_customer_profiles_updated_at BEFORE UPDATE ON crm_customer_profiles
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_crm_contacts_updated_at BEFORE UPDATE ON crm_contacts
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_crm_interactions_updated_at BEFORE UPDATE ON crm_interactions
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_crm_opportunities_updated_at BEFORE UPDATE ON crm_opportunities
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_crm_leads_updated_at BEFORE UPDATE ON crm_leads
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_crm_tags_updated_at BEFORE UPDATE ON crm_tags
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_crm_notes_updated_at BEFORE UPDATE ON crm_notes
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_crm_customer_segments_updated_at BEFORE UPDATE ON crm_customer_segments
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Enable RLS for CRM Tables
+ALTER TABLE crm_customer_profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE crm_contacts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE crm_interactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE crm_opportunities ENABLE ROW LEVEL SECURITY;
+ALTER TABLE crm_leads ENABLE ROW LEVEL SECURITY;
+ALTER TABLE crm_lead_scores ENABLE ROW LEVEL SECURITY;
+ALTER TABLE crm_pipeline_stages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE crm_tags ENABLE ROW LEVEL SECURITY;
+ALTER TABLE crm_tagged_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE crm_notes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE crm_activity_timeline ENABLE ROW LEVEL SECURITY;
+ALTER TABLE crm_customer_segments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE crm_segment_members ENABLE ROW LEVEL SECURITY;
+ALTER TABLE crm_email_addresses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE crm_phone_numbers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE crm_deal_stages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE crm_customer_health_scores ENABLE ROW LEVEL SECURITY;
+
+-- Create Policies for CRM Tables
+CREATE POLICY "Allow all for crm_customer_profiles" ON crm_customer_profiles FOR ALL USING (true);
+CREATE POLICY "Allow all for crm_contacts" ON crm_contacts FOR ALL USING (true);
+CREATE POLICY "Allow all for crm_interactions" ON crm_interactions FOR ALL USING (true);
+CREATE POLICY "Allow all for crm_opportunities" ON crm_opportunities FOR ALL USING (true);
+CREATE POLICY "Allow all for crm_leads" ON crm_leads FOR ALL USING (true);
+CREATE POLICY "Allow all for crm_lead_scores" ON crm_lead_scores FOR ALL USING (true);
+CREATE POLICY "Allow all for crm_pipeline_stages" ON crm_pipeline_stages FOR ALL USING (true);
+CREATE POLICY "Allow all for crm_tags" ON crm_tags FOR ALL USING (true);
+CREATE POLICY "Allow all for crm_tagged_items" ON crm_tagged_items FOR ALL USING (true);
+CREATE POLICY "Allow all for crm_notes" ON crm_notes FOR ALL USING (true);
+CREATE POLICY "Allow all for crm_activity_timeline" ON crm_activity_timeline FOR ALL USING (true);
+CREATE POLICY "Allow all for crm_customer_segments" ON crm_customer_segments FOR ALL USING (true);
+CREATE POLICY "Allow all for crm_segment_members" ON crm_segment_members FOR ALL USING (true);
+CREATE POLICY "Allow all for crm_email_addresses" ON crm_email_addresses FOR ALL USING (true);
+CREATE POLICY "Allow all for crm_phone_numbers" ON crm_phone_numbers FOR ALL USING (true);
+CREATE POLICY "Allow all for crm_deal_stages" ON crm_deal_stages FOR ALL USING (true);
+CREATE POLICY "Allow all for crm_customer_health_scores" ON crm_customer_health_scores FOR ALL USING (true);

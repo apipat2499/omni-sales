@@ -3210,3 +3210,248 @@ export interface AnalyticsFilter {
   channels?: string[];
   segments?: string[];
 }
+
+// ==========================================
+// Feature #21: Customer Relationship Management (CRM) Types
+// ==========================================
+
+export type InteractionType = 'call' | 'email' | 'meeting' | 'note' | 'task' | 'sms';
+export type LifecycleStage = 'prospect' | 'lead' | 'opportunity' | 'customer' | 'retained' | 'inactive';
+export type OpportunityStage = 'prospecting' | 'qualification' | 'proposal' | 'negotiation' | 'closed_won' | 'closed_lost';
+export type LeadStatus = 'new' | 'open' | 'qualified' | 'unqualified' | 'converted' | 'lost';
+export type CustomerSegment = 'vip' | 'high_value' | 'medium_value' | 'low_value' | 'at_risk' | 'churned';
+
+export interface CRMCustomerProfile {
+  id: string;
+  userId: string;
+  customerId: string;
+  segment: CustomerSegment;
+  lifecycleStage: LifecycleStage;
+  companyName?: string;
+  industry?: string;
+  employeeCount?: number;
+  annualRevenue?: number;
+  website?: string;
+  healthScore: number;
+  engagementLevel: string;
+  preferredContactMethod: string;
+  timezone?: string;
+  language?: string;
+  customFields?: Record<string, any>;
+  notes?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CRMContact {
+  id: string;
+  userId: string;
+  customerId: string;
+  firstName: string;
+  lastName: string;
+  title?: string;
+  department?: string;
+  email?: string;
+  phone?: string;
+  mobile?: string;
+  isPrimary: boolean;
+  isActive: boolean;
+  lastContacted?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CRMInteraction {
+  id: string;
+  userId: string;
+  customerId: string;
+  contactId?: string;
+  interactionType: InteractionType;
+  subject?: string;
+  description?: string;
+  durationMinutes?: number;
+  outcome?: string;
+  nextStep?: string;
+  scheduledFor?: Date;
+  interactionDate: Date;
+  conductedBy?: string;
+  sentiment?: string;
+  attachments?: any[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CRMOpportunity {
+  id: string;
+  userId: string;
+  customerId: string;
+  name: string;
+  description?: string;
+  value?: number;
+  probabilityPercent: number;
+  stage: OpportunityStage;
+  expectedCloseDate?: Date;
+  actualCloseDate?: Date;
+  ownerId?: string;
+  source?: string;
+  type?: string;
+  forecastAmount?: number;
+  daysInPipeline?: number;
+  status: string;
+  lossReason?: string;
+  competitorInfo?: string;
+  customFields?: Record<string, any>;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CRMLead {
+  id: string;
+  userId: string;
+  firstName: string;
+  lastName: string;
+  email?: string;
+  phone?: string;
+  companyName?: string;
+  jobTitle?: string;
+  industry?: string;
+  companySize?: string;
+  budget?: number;
+  source: string;
+  status: LeadStatus;
+  leadQuality?: string;
+  convertedCustomerId?: string;
+  convertedDate?: Date;
+  assignedTo?: string;
+  lastActivityDate?: Date;
+  nextFollowUp?: Date;
+  notes?: string;
+  customFields?: Record<string, any>;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CRMLeadScore {
+  id: string;
+  userId: string;
+  leadId: string;
+  engagementScore: number;
+  fitScore: number;
+  activityScore: number;
+  totalScore: number;
+  grade: string;
+  scoringDate: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CRMPipelineStage {
+  id: string;
+  userId: string;
+  stageName: string;
+  stageOrder: number;
+  probabilityPercent: number;
+  expectedDays?: number;
+  isActive: boolean;
+  isFinalStage: boolean;
+  stageDescription?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CRMTag {
+  id: string;
+  userId: string;
+  tagName: string;
+  tagCategory?: string;
+  color?: string;
+  usageCount: number;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CRMNote {
+  id: string;
+  userId: string;
+  customerId?: string;
+  opportunityId?: string;
+  noteText: string;
+  noteType?: string;
+  isPinned: boolean;
+  createdBy?: string;
+  mentionedUsers?: string[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CRMActivityTimeline {
+  id: string;
+  userId: string;
+  customerId: string;
+  activityType: string;
+  activityTitle?: string;
+  activityDescription?: string;
+  relatedEntityType?: string;
+  relatedEntityId?: string;
+  performedBy?: string;
+  metadata?: Record<string, any>;
+  isImportant: boolean;
+  activityDate: Date;
+  createdAt: Date;
+}
+
+export interface CRMCustomerSegment {
+  id: string;
+  userId: string;
+  segmentName: string;
+  description?: string;
+  segmentCriteria?: Record<string, any>;
+  segmentType?: string;
+  memberCount: number;
+  isDynamic: boolean;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CRMDealStage {
+  id: string;
+  userId: string;
+  opportunityId: string;
+  stageName: string;
+  stageDate: Date;
+  notes?: string;
+  movedBy?: string;
+  createdAt: Date;
+}
+
+export interface CRMCustomerHealthScore {
+  id: string;
+  userId: string;
+  customerId: string;
+  scoreDate: Date;
+  healthScore: number;
+  trend?: string;
+  factors?: Record<string, any>;
+  riskLevel?: string;
+  recommendations?: string;
+  calculatedAt: Date;
+  createdAt: Date;
+}
+
+export interface CRMDashboardData {
+  totalCustomers: number;
+  totalLeads: number;
+  totalOpportunities: number;
+  pipelineValue: number;
+  conversionRate: number;
+  averageDealSize: number;
+  salesCycle: number;
+  customerRetention: number;
+  recentInteractions: CRMInteraction[];
+  topOpportunities: CRMOpportunity[];
+  stagePipeline: Record<string, number>;
+  leadsBySource: Record<string, number>;
+  healthScoreDistribution: Record<string, number>;
+}
