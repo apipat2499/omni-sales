@@ -525,3 +525,129 @@ export interface EmailQueueItem {
   createdAt: Date;
   updatedAt: Date;
 }
+
+export interface Warehouse {
+  id: string;
+  userId: string;
+  name: string;
+  warehouseCode?: string;
+  address?: string;
+  phone?: string;
+  isDefault?: boolean;
+  isActive?: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface InventoryLevel {
+  id: string;
+  userId: string;
+  productId: string;
+  warehouseId?: string;
+  quantityOnHand: number;
+  quantityReserved: number;
+  quantityAvailable: number;
+  reorderPoint?: number;
+  reorderQuantity?: number;
+  lastCountedAt?: Date;
+  lastMovementAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface StockMovement {
+  id: string;
+  userId: string;
+  productId: string;
+  warehouseId?: string;
+  movementType: string;
+  quantityChange: number;
+  quantityBefore?: number;
+  quantityAfter?: number;
+  referenceType?: string;
+  referenceId?: string;
+  reason?: string;
+  notes?: string;
+  createdBy?: string;
+  createdAt: Date;
+}
+
+export interface ReorderPoint {
+  id: string;
+  userId: string;
+  productId: string;
+  warehouseId?: string;
+  minStock: number;
+  maxStock: number;
+  reorderQuantity: number;
+  leadTimeDays?: number;
+  autoReorder?: boolean;
+  isActive?: boolean;
+  lastReorderAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface StockTransfer {
+  id: string;
+  userId: string;
+  productId: string;
+  fromWarehouseId: string;
+  toWarehouseId: string;
+  quantity: number;
+  status: 'pending' | 'shipped' | 'received' | 'cancelled';
+  shippedAt?: Date;
+  receivedAt?: Date;
+  trackingNumber?: string;
+  notes?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Barcode {
+  id: string;
+  userId: string;
+  productId: string;
+  barcode: string;
+  barcodeType?: string;
+  quantityPerUnit?: number;
+  isActive?: boolean;
+  createdAt: Date;
+}
+
+export interface StockCount {
+  id: string;
+  userId: string;
+  warehouseId: string;
+  countDate: Date;
+  status: 'in_progress' | 'completed' | 'cancelled';
+  totalItems?: number;
+  totalVariance?: number;
+  variancePercentage?: number;
+  completedAt?: Date;
+  createdBy?: string;
+  notes?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface InventoryForecast {
+  id: string;
+  userId: string;
+  productId: string;
+  warehouseId?: string;
+  forecastDate: Date;
+  predictedQuantity?: number;
+  confidenceScore?: number;
+  method?: string;
+  createdAt: Date;
+}
+
+export interface InventoryStats {
+  totalProducts: number;
+  lowStockProducts: number;
+  outOfStockProducts: number;
+  totalValue: number;
+  turnoverRate: number;
+  accuracyRate: number;
+}
