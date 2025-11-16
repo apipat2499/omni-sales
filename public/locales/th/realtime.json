@@ -1,0 +1,162 @@
+{
+  "presence": {
+    "title": "ผู้ใช้งานที่ใช้งานอยู่",
+    "online": "ออนไลน์",
+    "away": "ไม่อยู่",
+    "offline": "ออฟไลน์",
+    "activeNow": "ใช้งานอยู่ขณะนี้",
+    "lastSeen": "เห็นล่าสุด {{time}}",
+    "you": "คุณ",
+    "noActiveUsers": "ไม่มีผู้ใช้งานที่ใช้งานอยู่",
+    "viewing": "กำลังดู {{page}}",
+    "editing": "กำลังแก้ไข {{entity}}",
+    "idle": "ไม่ได้ใช้งาน",
+    "status": {
+      "online": "ออนไลน์",
+      "away": "ไม่อยู่",
+      "offline": "ออฟไลน์"
+    },
+    "location": {
+      "dashboard": "แดชบอร์ด",
+      "orders": "คำสั่งซื้อ",
+      "customers": "ลูกค้า",
+      "inventory": "คลังสินค้า",
+      "products": "สินค้า",
+      "analytics": "การวิเคราะห์",
+      "settings": "การตั้งค่า"
+    }
+  },
+  "activity": {
+    "title": "บันทึกกิจกรรม",
+    "actions": {
+      "created": "สร้าง",
+      "updated": "อัปเดต",
+      "deleted": "ลบ",
+      "viewed": "ดู"
+    },
+    "entities": {
+      "order": "คำสั่งซื้อ",
+      "item": "รายการ",
+      "product": "สินค้า",
+      "customer": "ลูกค้า",
+      "payment": "การชำระเงิน",
+      "invoice": "ใบแจ้งหนี้",
+      "shipment": "การจัดส่ง"
+    },
+    "filters": {
+      "allActions": "การกระทำทั้งหมด",
+      "allEntities": "หน่วยงานทั้งหมด"
+    },
+    "noActivities": "ยังไม่มีกิจกรรม",
+    "showDetails": "แสดงรายละเอียด",
+    "hideDetails": "ซ่อนรายละเอียด",
+    "changes": "การเปลี่ยนแปลง",
+    "before": "ก่อน",
+    "after": "หลัง",
+    "timeAgo": {
+      "justNow": "เมื่อสักครู่",
+      "secondsAgo": "{{count}} วินาทีที่แล้ว",
+      "minutesAgo": "{{count}} นาทีที่แล้ว",
+      "hoursAgo": "{{count}} ชั่วโมงที่แล้ว",
+      "daysAgo": "{{count}} วันที่แล้ว"
+    }
+  },
+  "collaboration": {
+    "title": "การทำงานร่วมกัน",
+    "tabs": {
+      "collaborators": "ผู้ร่วมงาน",
+      "comments": "ความคิดเห็น",
+      "history": "ประวัติ",
+      "conflicts": "ข้อขัดแย้ง"
+    },
+    "lock": {
+      "available": "พร้อมสำหรับการแก้ไข",
+      "locked": "ถูกล็อคโดย {{user}}",
+      "lockedByYou": "คุณกำลังแก้ไขอยู่",
+      "acquire": "เริ่มแก้ไข",
+      "release": "เสร็จสิ้นการแก้ไข",
+      "acquiring": "กำลังรับล็อค...",
+      "releasing": "กำลังปล่อยล็อค...",
+      "readOnly": "กำลังแก้ไขอยู่ - โหมดอ่านอย่างเดียว"
+    },
+    "collaborators": {
+      "noCollaborators": "ไม่มีผู้ร่วมงานที่ใช้งานอยู่",
+      "currentlyViewing": "กำลังดูอยู่",
+      "currentlyEditing": "กำลังแก้ไขอยู่"
+    },
+    "comments": {
+      "add": "เพิ่มความคิดเห็น...",
+      "send": "ส่ง",
+      "sending": "กำลังส่ง...",
+      "noComments": "ยังไม่มีความคิดเห็น",
+      "resolve": "ทำเครื่องหมายว่าแก้ไขแล้ว",
+      "resolved": "แก้ไขแล้ว"
+    },
+    "history": {
+      "noHistory": "ไม่มีประวัติการเปลี่ยนแปลง",
+      "undo": "ยกเลิก",
+      "undoing": "กำลังยกเลิก...",
+      "version": "เวอร์ชัน {{version}}",
+      "operation": {
+        "insert": "แทรก",
+        "update": "อัปเดต",
+        "delete": "ลบ",
+        "move": "ย้าย"
+      }
+    },
+    "conflicts": {
+      "noConflicts": "ไม่มีข้อขัดแย้ง",
+      "conflictDetected": "ตรวจพบข้อขัดแย้ง",
+      "conflictIn": "ข้อขัดแย้งใน {{field}}",
+      "yourVersion": "เวอร์ชันของคุณ",
+      "remoteVersion": "เวอร์ชันระยะไกล",
+      "keepMine": "เก็บของฉัน",
+      "useRemote": "ใช้ระยะไกล",
+      "resolving": "กำลังแก้ไข...",
+      "description": "การเปลี่ยนแปลงของคุณขัดแย้งกับการเปลี่ยนแปลงระยะไกล"
+    }
+  },
+  "websocket": {
+    "status": {
+      "connecting": "กำลังเชื่อมต่อ...",
+      "connected": "เชื่อมต่อแล้ว",
+      "disconnected": "ตัดการเชื่อมต่อ",
+      "reconnecting": "กำลังเชื่อมต่อใหม่...",
+      "error": "ข้อผิดพลาดในการเชื่อมต่อ"
+    },
+    "latency": "ความหน่วง: {{ms}} มิลลิวินาที",
+    "queuedMessages": "ข้อความในคิว {{count}} รายการ"
+  },
+  "sync": {
+    "syncing": "กำลังซิงค์...",
+    "synced": "ซิงค์แล้ว",
+    "syncFailed": "การซิงค์ล้มเหลว",
+    "lastSynced": "ซิงค์ล่าสุด {{time}}",
+    "outOfSync": "ไม่ซิงค์",
+    "conflictDetected": "ตรวจพบข้อขัดแย้ง",
+    "conflictsDetected": "ตรวจพบข้อขัดแย้ง {{count}} รายการ",
+    "resolveConflicts": "แก้ไขข้อขัดแย้ง"
+  },
+  "notifications": {
+    "userJoined": "{{user}} เข้าร่วม",
+    "userLeft": "{{user}} ออกไป",
+    "userStartedEditing": "{{user}} เริ่มแก้ไข",
+    "userStoppedEditing": "{{user}} หยุดแก้ไข",
+    "changeDetected": "ตรวจพบการเปลี่ยนแปลง",
+    "conflictDetected": "ตรวจพบข้อขัดแย้ง",
+    "lockAcquired": "รับล็อคแล้ว",
+    "lockReleased": "ปล่อยล็อคแล้ว",
+    "commentAdded": "เพิ่มความคิดเห็นแล้ว",
+    "syncComplete": "ซิงค์เสร็จสมบูรณ์",
+    "syncFailed": "การซิงค์ล้มเหลว"
+  },
+  "errors": {
+    "connectionFailed": "ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์แบบเรียลไทม์",
+    "syncFailed": "ไม่สามารถซิงค์การเปลี่ยนแปลง",
+    "lockFailed": "ไม่สามารถรับล็อค",
+    "alreadyLocked": "ทรัพยากรนี้ถูกล็อคโดยผู้ใช้อื่นอยู่แล้ว",
+    "commentFailed": "ไม่สามารถเพิ่มความคิดเห็น",
+    "conflictResolutionFailed": "ไม่สามารถแก้ไขข้อขัดแย้ง",
+    "undoFailed": "ไม่สามารถยกเลิกการเปลี่ยนแปลง"
+  }
+}

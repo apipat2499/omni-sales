@@ -1,0 +1,160 @@
+{
+  "title": "Notifications",
+  "queueCenter": "Notification Queue Center",
+  "emails": "Emails",
+  "sms": "SMS Messages",
+  "analytics": "Analytics",
+
+  "processQueue": "Process Queue",
+  "noEmails": "No emails found",
+  "noSMS": "No SMS messages found",
+  "noNotifications": "No notifications",
+
+  "status": {
+    "pending": "Pending",
+    "sending": "Sending",
+    "sent": "Sent",
+    "delivered": "Delivered",
+    "failed": "Failed",
+    "bounced": "Bounced",
+    "opened": "Opened",
+    "clicked": "Clicked",
+    "optout": "Opted Out"
+  },
+
+  "emailAnalytics": "Email Analytics",
+  "smsAnalytics": "SMS Analytics",
+  "total": "Total",
+  "sent": "Sent",
+  "failed": "Failed",
+  "pending": "Pending",
+  "openRate": "Open Rate",
+  "clickRate": "Click Rate",
+  "deliveryRate": "Delivery Rate",
+  "optedOut": "Opted Out",
+
+  "emailDetails": "Email Details",
+  "smsDetails": "SMS Details",
+  "subject": "Subject",
+  "to": "To",
+  "htmlContent": "HTML Content",
+  "message": "Message",
+  "error": "Error",
+  "created": "Created",
+  "retry": "Retry",
+
+  "createTemplate": "Create Template",
+  "editTemplate": "Edit Template",
+  "createSMSTemplate": "Create SMS Template",
+  "editSMSTemplate": "Edit SMS Template",
+  "templateName": "Template Name",
+  "category": "Category",
+  "description": "Description",
+  "activeTemplate": "Active Template",
+
+  "categories": {
+    "order": "Order",
+    "customer": "Customer",
+    "payment": "Payment",
+    "inventory": "Inventory",
+    "marketing": "Marketing",
+    "system": "System"
+  },
+
+  "insertVariable": "Insert Variable",
+  "availableVariables": "Available Variables",
+  "example": "Example",
+  "visualEditor": "Visual Editor",
+  "htmlEditor": "HTML Editor",
+  "emailContent": "Email Content",
+  "plainTextVersion": "Plain Text Version",
+  "optional": "optional",
+  "preview": "Preview",
+  "testSend": "Test Send",
+
+  "emailPreview": "Email Preview",
+  "smsPreview": "SMS Preview",
+  "testSentSuccess": "Test email sent successfully!",
+  "testSMSSentSuccess": "Test SMS sent successfully!",
+  "testSendDescription": "Enter your email address to receive a test email:",
+  "testSMSDescription": "Enter your phone number to receive a test SMS:",
+  "phoneFormat": "Use international format (e.g., +1234567890)",
+
+  "smsMessage": "SMS Message",
+  "smsLimits": "SMS Character Limits",
+  "characters": "Characters",
+  "messages": "Messages",
+  "encoding": "Encoding",
+  "previewNote": "Variables will be replaced with actual values when sending",
+  "testSendSMS": "Test Send SMS",
+
+  "email": {
+    "orderConfirmation": "Order Confirmation",
+    "orderShipped": "Order Shipped",
+    "paymentReceipt": "Payment Receipt",
+    "welcome": "Welcome Email",
+    "lowStock": "Low Stock Alert",
+    "orderCancelled": "Order Cancelled",
+    "deliveryUpdate": "Delivery Update"
+  },
+
+  "sms": {
+    "orderConfirmation": "Order Confirmed",
+    "orderShipped": "Order Shipped",
+    "deliveryNotification": "Delivery Notification",
+    "paymentReminder": "Payment Reminder"
+  },
+
+  "schedule": {
+    "title": "Schedule Notifications",
+    "oneTime": "One-Time",
+    "recurring": "Recurring",
+    "triggered": "Event-Triggered",
+    "scheduledFor": "Scheduled For",
+    "recurrence": "Recurrence",
+    "daily": "Daily",
+    "weekly": "Weekly",
+    "monthly": "Monthly",
+    "custom": "Custom",
+    "trigger": "Trigger Event",
+    "delay": "Delay (minutes)"
+  },
+
+  "triggers": {
+    "orderCreated": "Order Created",
+    "orderPaid": "Order Paid",
+    "orderShipped": "Order Shipped",
+    "orderDelivered": "Order Delivered",
+    "orderCancelled": "Order Cancelled",
+    "customerRegistered": "Customer Registered",
+    "cartAbandoned": "Cart Abandoned",
+    "lowStock": "Low Stock",
+    "paymentFailed": "Payment Failed",
+    "paymentRefunded": "Payment Refunded"
+  },
+
+  "config": {
+    "title": "Notification Settings",
+    "sendgrid": "SendGrid Configuration",
+    "twilio": "Twilio Configuration",
+    "apiKey": "API Key",
+    "accountSid": "Account SID",
+    "authToken": "Auth Token",
+    "fromEmail": "From Email",
+    "fromName": "From Name",
+    "fromNumber": "From Number",
+    "enabled": "Enabled",
+    "maxRetries": "Max Retries",
+    "retryDelay": "Retry Delay (ms)",
+    "batchSize": "Batch Size"
+  },
+
+  "optOut": {
+    "title": "Opt-Out Management",
+    "addOptOut": "Add Opt-Out",
+    "removeOptOut": "Remove Opt-Out",
+    "phoneNumber": "Phone Number",
+    "reason": "Reason",
+    "optedOutAt": "Opted Out At"
+  }
+}
