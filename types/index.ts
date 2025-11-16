@@ -4443,3 +4443,452 @@ export interface PaymentDashboardData {
     amount: number;
   }>;
 }
+
+// ============================================
+// Authentication & Authorization Types
+// ============================================
+
+/**
+ * User role types with hierarchy
+ */
+export type UserRole = 'super_admin' | 'admin' | 'manager' | 'staff' | 'customer';
+
+/**
+ * Permission categories
+ */
+export type PermissionCategory =
+  | 'order'
+  | 'product'
+  | 'inventory'
+  | 'analytics'
+  | 'user'
+  | 'system';
+
+/**
+ * Specific permission actions
+ */
+export type PermissionAction =
+  // Order permissions
+  | 'order.create'
+  | 'order.read'
+  | 'order.update'
+  | 'order.delete'
+  | 'order.bulk-update'
+  // Product permissions
+  | 'product.create'
+  | 'product.read'
+  | 'product.update'
+  | 'product.delete'
+  | 'product.bulk-update'
+  // Inventory permissions
+  | 'inventory.read'
+  | 'inventory.update'
+  | 'inventory.adjust'
+  | 'inventory.forecast'
+  // Analytics permissions
+  | 'analytics.read'
+  | 'analytics.export'
+  | 'analytics.custom-reports'
+  // User permissions
+  | 'user.create'
+  | 'user.read'
+  | 'user.update'
+  | 'user.delete'
+  | 'user.manage-roles'
+  // System permissions
+  | 'system.settings'
+  | 'system.webhooks'
+  | 'system.api-keys'
+  | 'audit.read'
+  | 'audit.export';
+
+/**
+ * User theme preference
+ */
+export type ThemePreference = 'light' | 'dark' | 'auto';
+
+/**
+ * Email digest frequency
+ */
+export type EmailDigestFrequency = 'daily' | 'weekly' | 'none';
+
+/**
+ * User preferences interface
+ */
+export interface UserPreferences {
+  theme: ThemePreference;
+  language: 'th' | 'en';
+  notifications: boolean;
+  emailDigest: EmailDigestFrequency;
+}
+
+/**
+ * Permission interface
+ */
+export interface Permission {
+  id: string;
+  name: PermissionAction;
+  category: PermissionCategory;
+  description: string;
+}
+
+/**
+ * Role interface with permissions
+ */
+export interface Role {
+  id: string;
+  name: UserRole;
+  displayName: string;
+  description: string;
+  permissions: Permission[];
+  priority: number; // Lower number = higher priority
+  isSystem: boolean; // System roles cannot be deleted or modified
+}
+
+/**
+ * User interface
+ */
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  passwordHash: string;
+  roles: Role[];
+  permissions: Permission[]; // Direct permissions (override role permissions)
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  lastLogin?: Date;
+  preferences: UserPreferences;
+}
+
+/**
+ * User registration data
+ */
+export interface UserRegistration {
+  email: string;
+  password: string;
+  name: string;
+}
+
+/**
+ * User login credentials
+ */
+export interface UserCredentials {
+  email: string;
+  password: string;
+}
+
+/**
+ * Authentication token payload
+ */
+export interface AuthTokenPayload {
+  iss: string; // Issuer
+  sub: string; // Subject (user ID)
+  email: string;
+  roles: UserRole[];
+  permissions: PermissionAction[];
+  iat: number; // Issued at
+  exp: number; // Expiry time
+  aud: string; // Audience
+}
+
+/**
+ * Authentication session
+ */
+export interface AuthSession {
+  user: User;
+  token: string;
+  expiresAt: Date;
+}
+
+/**
+ * Login response
+ */
+export interface LoginResponse {
+  user: User;
+  token: string;
+}
+
+/**
+ * Password reset request
+ */
+export interface PasswordResetRequest {
+  email: string;
+}
+
+/**
+ * Password reset token
+ */
+export interface PasswordResetToken {
+  token: string;
+  userId: string;
+  email: string;
+  expiresAt: Date;
+  createdAt: Date;
+}
+
+/**
+ * User update payload
+ */
+export interface UserUpdate {
+  name?: string;
+  email?: string;
+  isActive?: boolean;
+  preferences?: Partial<UserPreferences>;
+}
+
+/**
+ * Role assignment
+ */
+export interface RoleAssignment {
+  userId: string;
+  roleId: string;
+  assignedBy: string;
+  assignedAt: Date;
+}
+
+/**
+ * Permission check result
+ */
+export interface PermissionCheckResult {
+  allowed: boolean;
+  reason?: string;
+  requiredPermissions: PermissionAction[];
+  userPermissions: PermissionAction[];
+}
+
+/**
+ * Auth error types
+ */
+export type AuthErrorType =
+  | 'invalid_credentials'
+  | 'user_not_found'
+  | 'user_inactive'
+  | 'token_expired'
+  | 'token_invalid'
+  | 'insufficient_permissions'
+  | 'email_already_exists'
+  | 'weak_password'
+  | 'rate_limit_exceeded';
+
+/**
+ * Auth error interface
+ */
+export interface AuthError {
+  type: AuthErrorType;
+  message: string;
+  details?: Record<string, any>;
+}
+
+/**
+ * Rate limit tracking
+ */
+export interface RateLimitTracker {
+  email: string;
+  attempts: number;
+  lastAttempt: Date;
+  lockedUntil?: Date;
+}
+
+/**
+ * Audit log entry for auth events
+ */
+export interface AuthAuditLog {
+  id: string;
+  userId?: string;
+  email: string;
+  action: 'login' | 'logout' | 'register' | 'password_reset' | 'password_change' | 'role_change';
+  success: boolean;
+  ipAddress?: string;
+  userAgent?: string;
+  errorType?: AuthErrorType;
+  timestamp: Date;
+}
+
+// ============================================================================
+// INVENTORY FORECASTING TYPES
+// ============================================================================
+
+/**
+ * Demand history for forecasting
+ */
+export interface DemandHistory {
+  date: Date;
+  quantity: number;
+  revenue: number;
+  trend?: 'up' | 'down' | 'stable';
+}
+
+/**
+ * Forecast result with predictions and confidence intervals
+ */
+export interface Forecast {
+  productId: string;
+  dates: Date[];
+  forecast: number[];
+  confidence: {
+    lower: number[];
+    upper: number[];
+  };
+  algorithm: 'sma' | 'exponential' | 'seasonal' | 'linear' | 'hybrid';
+  accuracy: number;
+  seasonality?: {
+    detected: boolean;
+    period: number;
+    factors: number[];
+    strength: number;
+  };
+  metrics?: {
+    mape: number;
+    mae: number;
+    rmse: number;
+    r2?: number;
+  };
+}
+
+/**
+ * Seasonality detection result
+ */
+export interface SeasonalityInfo {
+  detected: boolean;
+  period: number;
+  strength: number;
+  factors: number[];
+}
+
+/**
+ * Algorithm comparison for forecast methods
+ */
+export interface AlgorithmComparison {
+  algorithm: 'sma' | 'exponential' | 'seasonal' | 'linear';
+  mape: number;
+  mae: number;
+  rmse: number;
+  r2: number;
+  recommended: boolean;
+}
+
+/**
+ * Settings for forecast calculation
+ */
+export interface ForecastSettings {
+  algorithm?: 'sma' | 'exponential' | 'seasonal' | 'linear' | 'hybrid';
+  periods?: number;
+  confidenceLevel?: number;
+  smoothingFactor?: number;
+  smaWindow?: number;
+  minSeasonalPeriod?: number;
+  maxSeasonalPeriod?: number;
+}
+
+// ============================================================================
+// REORDER MANAGEMENT TYPES
+// ============================================================================
+
+/**
+ * Reorder rule configuration
+ */
+export interface ReorderRule {
+  id: string;
+  productId: string;
+  productName?: string;
+  productSKU?: string;
+  reorderPoint: number;
+  reorderQuantity: number;
+  minimumStock: number;
+  maximumStock: number;
+  leadTime: number;
+  supplierId: string;
+  supplierName?: string;
+  isActive: boolean;
+  autoGenerate: boolean;
+  lastTriggered?: Date;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+/**
+ * Reorder suggestion based on current stock levels
+ */
+export interface ReorderSuggestion {
+  productId: string;
+  productName: string;
+  currentStock: number;
+  reorderPoint: number;
+  suggestedQuantity: number;
+  supplierId: string;
+  supplierName: string;
+  estimatedCost: number;
+  priority: 'high' | 'medium' | 'low';
+  daysUntilStockout: number;
+}
+
+/**
+ * Safety stock calculation parameters
+ */
+export interface SafetyStockParams {
+  avgDailyDemand: number;
+  demandVariability: number;
+  leadTime: number;
+  leadTimeVariability?: number;
+  serviceLevel?: number;
+}
+
+/**
+ * Economic Order Quantity (EOQ) parameters
+ */
+export interface EOQParams {
+  annualDemand: number;
+  orderingCost: number;
+  holdingCost: number;
+  unitCost?: number;
+}
+
+/**
+ * Purchase order input for generation
+ */
+export interface PurchaseOrderInput {
+  supplierId: string;
+  warehouseId: string;
+  items: Array<{
+    productId: string;
+    quantity: number;
+    unitCost: number;
+  }>;
+  notes?: string;
+  expectedDeliveryDays?: number;
+}
+
+/**
+ * Purchase order result with calculated totals
+ */
+export interface PurchaseOrderResult {
+  id?: string;
+  supplierId: string;
+  warehouseId: string;
+  items: Array<{
+    productId: string;
+    productName?: string;
+    quantity: number;
+    unitCost: number;
+    totalCost: number;
+  }>;
+  totalCost: number;
+  status: 'draft' | 'sent' | 'confirmed' | 'received' | 'cancelled';
+  orderDate: Date;
+  expectedDeliveryDate: Date;
+  notes?: string;
+}
+
+/**
+ * Supplier performance metrics
+ */
+export interface SupplierPerformance {
+  supplierId: string;
+  onTimeDeliveryRate: number;
+  averageLeadTime: number;
+  qualityScore: number;
+  costScore: number;
+  overallScore: number;
+}
