@@ -1,6 +1,6 @@
 'use client';
 
-import { Trash2, Plus, Minus, Loader } from 'lucide-react';
+import { Trash2, Plus, Minus, Loader, Edit2 } from 'lucide-react';
 import type { OrderItem } from '@/types';
 import { formatCurrency } from '@/lib/utils';
 
@@ -10,6 +10,7 @@ interface OrderItemsTableProps {
   onAddClick: () => void;
   onQuantityChange: (itemId: string, newQuantity: number) => Promise<void>;
   onDelete: (itemId: string) => Promise<void>;
+  onEdit?: (item: OrderItem) => void;
 }
 
 export default function OrderItemsTable({
@@ -18,6 +19,7 @@ export default function OrderItemsTable({
   onAddClick,
   onQuantityChange,
   onDelete,
+  onEdit,
 }: OrderItemsTableProps) {
   const handleDecreaseQuantity = async (itemId: string, currentQuantity: number) => {
     if (currentQuantity > 1) {
@@ -87,6 +89,11 @@ export default function OrderItemsTable({
                       <p className="text-sm text-gray-500 dark:text-gray-400">
                         ID: {item.productId.slice(0, 8)}
                       </p>
+                      {item.notes && (
+                        <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 italic">
+                          หมายเหตุ: {item.notes}
+                        </p>
+                      )}
                     </div>
                   </td>
                   <td className="px-6 py-4 text-right text-gray-900 dark:text-white">
@@ -118,16 +125,35 @@ export default function OrderItemsTable({
                     </div>
                   </td>
                   <td className="px-6 py-4 text-right font-medium text-gray-900 dark:text-white">
-                    {formatCurrency((item.totalPrice || item.quantity * item.price))}
+                    <div className="flex flex-col items-end gap-1">
+                      <span>{formatCurrency((item.totalPrice || item.quantity * item.price))}</span>
+                      {item.discount && item.discount > 0 && (
+                        <span className="text-xs text-red-600 dark:text-red-400">
+                          -฿{item.discount.toFixed(2)}
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4 text-center">
-                    <button
-                      onClick={() => onDelete(item.id!)}
-                      disabled={loading}
-                      className="inline-flex items-center justify-center p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    <div className="flex items-center justify-center gap-2">
+                      {onEdit && (
+                        <button
+                          onClick={() => onEdit(item)}
+                          disabled={loading}
+                          className="inline-flex items-center justify-center p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          title="แก้ไขรายการ"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </button>
+                      )}
+                      <button
+                        onClick={() => onDelete(item.id!)}
+                        disabled={loading}
+                        className="inline-flex items-center justify-center p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

@@ -37,6 +37,8 @@ export async function GET(
       productName: item.product_name,
       quantity: item.quantity,
       price: parseFloat(item.price || 0),
+      discount: item.discount ? parseFloat(item.discount) : undefined,
+      notes: item.notes,
       createdAt: new Date(item.created_at),
     }));
 

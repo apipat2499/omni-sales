@@ -11,8 +11,10 @@ export const addOrderItemSchema = z.object({
 export const updateOrderItemSchema = z.object({
   quantity: z.number().int().positive('Quantity must be greater than 0').max(10000).optional(),
   price: z.number().positive('Price must be greater than 0').max(999999.99).optional(),
-}).refine((data) => data.quantity !== undefined || data.price !== undefined, {
-  message: 'At least one field (quantity or price) must be provided',
+  discount: z.number().nonnegative('Discount must be non-negative').max(999999.99).optional(),
+  notes: z.string().max(1000, 'Notes must be less than 1000 characters').optional(),
+}).refine((data) => data.quantity !== undefined || data.price !== undefined || data.discount !== undefined || data.notes !== undefined, {
+  message: 'At least one field must be provided',
 });
 
 export type AddOrderItemInput = z.infer<typeof addOrderItemSchema>;

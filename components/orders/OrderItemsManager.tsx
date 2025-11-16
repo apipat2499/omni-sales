@@ -5,8 +5,10 @@ import { useOrderItems } from '@/lib/hooks/useOrderItems';
 import { useToast } from '@/lib/hooks/useToast';
 import OrderItemsTable from './OrderItemsTable';
 import AddItemModal from './AddItemModal';
+import EditItemModal from './EditItemModal';
 import CartSummary from './CartSummary';
 import { Loader } from 'lucide-react';
+import type { OrderItem } from '@/types';
 
 interface OrderItemsManagerProps {
   orderId: string;
@@ -22,6 +24,8 @@ export default function OrderItemsManager({
   discount = 0,
 }: OrderItemsManagerProps) {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<OrderItem | null>(null);
   const [itemLoading, setItemLoading] = useState(false);
   const { success, error: showError } = useToast();
 
@@ -31,6 +35,7 @@ export default function OrderItemsManager({
     error,
     addItem,
     updateItemQuantity,
+    updateItem,
     deleteItem,
     fetchItems,
   } = useOrderItems(orderId);
@@ -89,6 +94,41 @@ export default function OrderItemsManager({
     }
   };
 
+  const handleEditItem = (item: OrderItem) => {
+    setEditingItem(item);
+    setIsEditModalOpen(true);
+  };
+
+  const handleUpdateItem = async (itemId: string, updates: { quantity?: number; price?: number; discount?: number; notes?: string }) => {
+    setItemLoading(true);
+    try {
+      const isSuccess = await updateItem(itemId, updates);
+      if (isSuccess) {
+        success('อัพเดตรายการเสร็จสิ้น');
+      } else {
+        showError('ไม่สามารถอัพเดตรายการได้');
+      }
+      return isSuccess;
+    } finally {
+      setItemLoading(false);
+    }
+  };
+
+  const handleDeleteFromEdit = async (itemId: string) => {
+    setItemLoading(true);
+    try {
+      const isSuccess = await deleteItem(itemId);
+      if (isSuccess) {
+        success('ลบรายการเสร็จสิ้น');
+      } else {
+        showError('ไม่สามารถลบรายการได้');
+      }
+      return isSuccess;
+    } finally {
+      setItemLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-12">
@@ -116,6 +156,7 @@ export default function OrderItemsManager({
         onAddClick={() => setIsAddModalOpen(true)}
         onQuantityChange={handleQuantityChange}
         onDelete={handleDeleteItem}
+        onEdit={handleEditItem}
       />
 
       {/* Summary */}
@@ -134,6 +175,19 @@ export default function OrderItemsManager({
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onAdd={handleAddItem}
+        loading={itemLoading}
+      />
+
+      {/* Edit Item Modal */}
+      <EditItemModal
+        isOpen={isEditModalOpen}
+        item={editingItem}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setEditingItem(null);
+        }}
+        onUpdate={handleUpdateItem}
+        onDelete={handleDeleteFromEdit}
         loading={itemLoading}
       />
     </div>
