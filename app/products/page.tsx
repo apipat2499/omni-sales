@@ -23,6 +23,7 @@ import {
   PackageCheck,
   DollarSign,
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import type { Product, ProductCategory } from '@/types';
 
 export default function ProductsPage() {
@@ -73,6 +74,51 @@ export default function ProductsPage() {
 
   const handleStockSuccess = () => {
     refresh();
+  };
+
+  const handleExport = () => {
+    // Prepare data for export
+    const exportData = products.map((product) => ({
+      'SKU': product.sku,
+      'ชื่อสินค้า': product.name,
+      'หมวดหมู่': product.category,
+      'ราคาขาย': product.price,
+      'ราคาทุน': product.cost,
+      'สต็อก': product.stock,
+      'มูลค่าสต็อก': product.cost * product.stock,
+      'กำไรต่อชิ้น': product.price - product.cost,
+      'กำไร %': (((product.price - product.cost) / product.price) * 100).toFixed(2),
+      'รายละเอียด': product.description || '',
+    }));
+
+    // Create worksheet
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+
+    // Set column widths
+    worksheet['!cols'] = [
+      { wch: 15 }, // SKU
+      { wch: 30 }, // ชื่อสินค้า
+      { wch: 20 }, // หมวดหมู่
+      { wch: 12 }, // ราคาขาย
+      { wch: 12 }, // ราคาทุน
+      { wch: 10 }, // สต็อก
+      { wch: 15 }, // มูลค่าสต็อก
+      { wch: 15 }, // กำไรต่อชิ้น
+      { wch: 10 }, // กำไร %
+      { wch: 40 }, // รายละเอียด
+    ];
+
+    // Create workbook
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'สินค้า');
+
+    // Generate filename with timestamp
+    const now = new Date();
+    const timestamp = now.toISOString().slice(0, 10).replace(/-/g, '');
+    const filename = `products_${timestamp}.xlsx`;
+
+    // Export file
+    XLSX.writeFile(workbook, filename);
   };
 
   const categories: (ProductCategory | 'all')[] = [
@@ -133,11 +179,20 @@ export default function ProductsPage() {
             </p>
           </div>
           <div className="flex gap-3">
-            <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+            <button
+              className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              title="นำเข้าข้อมูล (เร็วๆ นี้)"
+              disabled
+            >
               <Upload className="h-4 w-4" />
               Import
             </button>
-            <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+            <button
+              onClick={handleExport}
+              disabled={products.length === 0}
+              className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title="ส่งออกเป็น Excel"
+            >
               <Download className="h-4 w-4" />
               Export
             </button>
