@@ -76,25 +76,34 @@ export async function POST(request: NextRequest) {
 
     // Update product stock
     for (const item of items) {
-      const { error: stockError } = await supabase.rpc('decrement_stock', {
-        product_id: item.product_id,
-        quantity: item.quantity,
-      });
+      // Get current stock
+      const { data: product, error: productError } = await supabase
+        .from('products')
+        .select('stock')
+        .eq('id', item.product_id)
+        .single();
 
-      // If RPC doesn't exist, try direct update
-      if (stockError?.code === '42883') {
-        const { data: product } = await supabase
-          .from('products')
-          .select('stock')
-          .eq('id', item.product_id)
-          .single();
+      if (productError) {
+        console.error(`Error fetching product ${item.product_id}:`, productError);
+        continue;
+      }
 
-        if (product) {
-          await supabase
-            .from('products')
-            .update({ stock: product.stock - item.quantity })
-            .eq('id', item.product_id);
-        }
+      if (!product) {
+        console.error(`Product ${item.product_id} not found`);
+        continue;
+      }
+
+      // Update stock
+      const newStock = product.stock - item.quantity;
+      const { error: updateError } = await supabase
+        .from('products')
+        .update({ stock: newStock })
+        .eq('id', item.product_id);
+
+      if (updateError) {
+        console.error(`Error updating stock for product ${item.product_id}:`, updateError);
+      } else {
+        console.log(`Stock updated for product ${item.product_id}: ${product.stock} -> ${newStock}`);
       }
     }
 
