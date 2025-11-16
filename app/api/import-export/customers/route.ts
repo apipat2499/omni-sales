@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { batchInsertCustomers, importCustomersFromExcel } from "@/lib/services/excel";
-import { supabase } from "@/lib/auth";
+import { supabase } from "@/lib/supabase/client";
 
 export async function GET(request: NextRequest) {
   try {

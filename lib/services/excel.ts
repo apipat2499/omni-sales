@@ -1,5 +1,5 @@
 import * as XLSX from "xlsx";
-import { supabase } from "@/lib/auth";
+import { supabase } from "@/lib/supabase/client";
 
 export interface ProductExportData {
   id: string;

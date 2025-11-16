@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/auth";
+import { supabase } from "@/lib/supabase/client";
 
 export interface InventoryItem {
   id?: string;

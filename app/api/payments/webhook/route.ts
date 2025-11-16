@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getStripeWebhookEvent } from "@/lib/services/stripe";
-import { supabase } from "@/lib/auth";
+import { supabase } from "@/lib/supabase/client";
 
 export async function POST(request: NextRequest) {
   const signature = request.headers.get("stripe-signature");
