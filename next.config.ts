@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 const nextConfig: NextConfig = {
   /* config options here */
   typescript: {
@@ -17,8 +19,10 @@ const nextConfig: NextConfig = {
     '@google-cloud/storage',
   ],
 
-  // PWA Configuration
-  // Ensure service worker is served as static file
+  // Security: Disable x-powered-by header
+  poweredByHeader: false,
+
+  // Security: HTTP headers configuration
   async headers() {
     return [
       {
@@ -43,7 +47,80 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      // Security headers for all routes
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'X-DNS-Prefetch-Control',
+            value: 'on',
+          },
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY',
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'X-XSS-Protection',
+            value: '1; mode=block',
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'strict-origin-when-cross-origin',
+          },
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=(), payment=(self)',
+          },
+          ...(isProduction ? [{
+            key: 'Strict-Transport-Security',
+            value: 'max-age=31536000; includeSubDomains; preload',
+          }] : []),
+        ],
+      },
+      // API routes - no caching
+      {
+        source: '/api/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          },
+          {
+            key: 'Pragma',
+            value: 'no-cache',
+          },
+          {
+            key: 'Expires',
+            value: '0',
+          },
+        ],
+      },
     ];
+  },
+
+  // Security: Redirects for HTTPS enforcement
+  async redirects() {
+    if (isProduction && process.env.FORCE_HTTPS === 'true') {
+      return [
+        {
+          source: '/:path*',
+          has: [
+            {
+              type: 'header',
+              key: 'x-forwarded-proto',
+              value: 'http',
+            },
+          ],
+          destination: 'https://:path*',
+          permanent: true,
+        },
+      ];
+    }
+    return [];
   },
 };
 
