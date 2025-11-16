@@ -52,12 +52,12 @@ export function useOrders(options: UseOrdersOptions = {}): UseOrdersReturn {
 
       const data = await response.json();
 
-      // Transform date strings to Date objects
-      const ordersWithDates: Order[] = data.map((order: any) => ({
+      // API already returns transformed data with Date objects
+      const ordersWithDates: Order[] = (Array.isArray(data) ? data : data.data || []).map((order: any) => ({
         ...order,
-        createdAt: new Date(order.createdAt),
-        updatedAt: new Date(order.updatedAt),
-        deliveredAt: order.deliveredAt ? new Date(order.deliveredAt) : undefined,
+        createdAt: order.createdAt instanceof Date ? order.createdAt : new Date(order.createdAt),
+        updatedAt: order.updatedAt instanceof Date ? order.updatedAt : new Date(order.updatedAt),
+        deliveredAt: order.deliveredAt ? (order.deliveredAt instanceof Date ? order.deliveredAt : new Date(order.deliveredAt)) : undefined,
       }));
 
       setOrders(ordersWithDates);
