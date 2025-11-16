@@ -1,0 +1,1536 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Omni-Sales API",
+    "description": "REST API สำหรับระบบ Omni-Sales - ระบบจัดการการขายแบบครบวงจร\n\nOmni-Sales REST API - Comprehensive sales management system\n\nFeatures:\n- Order Management (การจัดการคำสั่งซื้อ)\n- Product Management (การจัดการสินค้า)\n- Customer Management (การจัดการลูกค้า)\n- Inventory Management (การจัดการสต็อก)\n- Payment Processing (การประมวลผลการชำระเงิน)\n- Analytics & Reporting (การวิเคราะห์และรายงาน)",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Omni-Sales API Support",
+      "email": "api@omni-sales.com"
+    },
+    "license": {
+      "name": "MIT",
+      "url": "https://opensource.org/licenses/MIT"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000/api",
+      "description": "Development server (เซิร์ฟเวอร์สำหรับพัฒนา)"
+    },
+    {
+      "url": "https://api.omni-sales.com",
+      "description": "Production server (เซิร์ฟเวอร์สำหรับใช้งานจริง)"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Orders",
+      "description": "Order management endpoints (จุดเชื่อมต่อสำหรับจัดการคำสั่งซื้อ)"
+    },
+    {
+      "name": "Order Items",
+      "description": "Order items management (จัดการรายการสินค้าในคำสั่งซื้อ)"
+    },
+    {
+      "name": "Products",
+      "description": "Product management endpoints (จุดเชื่อมต่อสำหรับจัดการสินค้า)"
+    },
+    {
+      "name": "Customers",
+      "description": "Customer management endpoints (จุดเชื่อมต่อสำหรับจัดการลูกค้า)"
+    },
+    {
+      "name": "Analytics",
+      "description": "Analytics and reporting endpoints (จุดเชื่อมต่อสำหรับการวิเคราะห์และรายงาน)"
+    },
+    {
+      "name": "Inventory",
+      "description": "Inventory management endpoints (จุดเชื่อมต่อสำหรับจัดการสต็อก)"
+    },
+    {
+      "name": "Payments",
+      "description": "Payment processing endpoints (จุดเชื่อมต่อสำหรับประมวลผลการชำระเงิน)"
+    }
+  ],
+  "paths": {
+    "/orders": {
+      "get": {
+        "tags": ["Orders"],
+        "summary": "Get all orders (ดึงข้อมูลคำสั่งซื้อทั้งหมด)",
+        "description": "Retrieve a list of orders with optional filtering (ดึงรายการคำสั่งซื้อพร้อมตัวกรองตามต้องการ)",
+        "operationId": "getOrders",
+        "parameters": [
+          {
+            "name": "customerId",
+            "in": "query",
+            "description": "Filter by customer ID (กรองตาม ID ลูกค้า)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Filter by order status (กรองตามสถานะคำสั่งซื้อ)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["all", "pending", "processing", "shipped", "delivered", "cancelled"]
+            }
+          },
+          {
+            "name": "channel",
+            "in": "query",
+            "description": "Filter by sales channel (กรองตามช่องทางการขาย)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["all", "online", "offline", "mobile", "phone"]
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Search by order ID or customer name (ค้นหาด้วย ID คำสั่งซื้อหรือชื่อลูกค้า)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Number of results to return (จำนวนผลลัพธ์ที่ต้องการ)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Offset for pagination (ตำแหน่งเริ่มต้นสำหรับแบ่งหน้า)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response (การตอบกลับสำเร็จ)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Order"
+                  }
+                },
+                "example": [
+                  {
+                    "id": "ORD-001",
+                    "customerId": "CUST-001",
+                    "customerName": "สมชาย ใจดี",
+                    "items": [
+                      {
+                        "id": "ITEM-001",
+                        "productId": "PROD-001",
+                        "productName": "สินค้าตัวอย่าง",
+                        "quantity": 2,
+                        "price": 500
+                      }
+                    ],
+                    "subtotal": 1000,
+                    "tax": 70,
+                    "shipping": 50,
+                    "total": 1120,
+                    "status": "processing",
+                    "channel": "online",
+                    "paymentMethod": "credit_card",
+                    "shippingAddress": "123 ถนนสุขุมวิท กรุงเทพฯ 10110",
+                    "notes": "กรุณาจัดส่งในช่วงบ่าย",
+                    "createdAt": "2025-11-16T10:00:00Z",
+                    "updatedAt": "2025-11-16T10:30:00Z"
+                  }
+                ]
+              }
+            }
+          },
+          "500": {
+            "description": "Server error (ข้อผิดพลาดของเซิร์ฟเวอร์)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": ["Orders"],
+        "summary": "Create a new order (สร้างคำสั่งซื้อใหม่)",
+        "description": "Create a new order with items (สร้างคำสั่งซื้อใหม่พร้อมรายการสินค้า)",
+        "operationId": "createOrder",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOrderRequest"
+              },
+              "example": {
+                "customerId": "CUST-001",
+                "customerName": "สมชาย ใจดี",
+                "items": [
+                  {
+                    "productId": "PROD-001",
+                    "productName": "สินค้าตัวอย่าง",
+                    "quantity": 2,
+                    "price": 500
+                  }
+                ],
+                "subtotal": 1000,
+                "tax": 70,
+                "shipping": 50,
+                "total": 1120,
+                "status": "pending",
+                "channel": "online",
+                "paymentMethod": "credit_card",
+                "shippingAddress": "123 ถนนสุขุมวิท กรุงเทพฯ 10110",
+                "notes": "กรุณาจัดส่งในช่วงบ่าย"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Order created successfully (สร้างคำสั่งซื้อสำเร็จ)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Order"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request (ข้อมูลไม่ถูกต้อง)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/orders/{orderId}": {
+      "get": {
+        "tags": ["Orders"],
+        "summary": "Get order by ID (ดึงข้อมูลคำสั่งซื้อด้วย ID)",
+        "description": "Retrieve a specific order by its ID (ดึงข้อมูลคำสั่งซื้อเฉพาะด้วย ID)",
+        "operationId": "getOrderById",
+        "parameters": [
+          {
+            "name": "orderId",
+            "in": "path",
+            "description": "Order ID (ID คำสั่งซื้อ)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response (การตอบกลับสำเร็จ)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Order"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Order not found (ไม่พบคำสั่งซื้อ)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "put": {
+        "tags": ["Orders"],
+        "summary": "Update order status (อัปเดตสถานะคำสั่งซื้อ)",
+        "description": "Update the status of an order (อัปเดตสถานะของคำสั่งซื้อ)",
+        "operationId": "updateOrderStatus",
+        "parameters": [
+          {
+            "name": "orderId",
+            "in": "path",
+            "description": "Order ID (ID คำสั่งซื้อ)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": ["pending", "processing", "shipped", "delivered", "cancelled"],
+                    "description": "New order status (สถานะใหม่ของคำสั่งซื้อ)"
+                  }
+                },
+                "required": ["status"]
+              },
+              "example": {
+                "status": "shipped"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Order status updated successfully (อัปเดตสถานะสำเร็จ)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateOrderStatusResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid status transition (การเปลี่ยนสถานะไม่ถูกต้อง)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Order not found (ไม่พบคำสั่งซื้อ)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/orders/{orderId}/items": {
+      "get": {
+        "tags": ["Order Items"],
+        "summary": "Get order items (ดึงรายการสินค้าในคำสั่งซื้อ)",
+        "description": "Retrieve all items in an order (ดึงรายการสินค้าทั้งหมดในคำสั่งซื้อ)",
+        "operationId": "getOrderItems",
+        "parameters": [
+          {
+            "name": "orderId",
+            "in": "path",
+            "description": "Order ID (ID คำสั่งซื้อ)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response (การตอบกลับสำเร็จ)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OrderItem"
+                  }
+                },
+                "example": [
+                  {
+                    "id": "ITEM-001",
+                    "orderId": "ORD-001",
+                    "productId": "PROD-001",
+                    "productName": "สินค้าตัวอย่าง",
+                    "quantity": 2,
+                    "price": 500,
+                    "discount": 0,
+                    "notes": "",
+                    "createdAt": "2025-11-16T10:00:00Z"
+                  }
+                ]
+              }
+            }
+          },
+          "404": {
+            "description": "Order not found (ไม่พบคำสั่งซื้อ)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": ["Order Items"],
+        "summary": "Add item to order (เพิ่มรายการสินค้าในคำสั่งซื้อ)",
+        "description": "Add a new item to an existing order (เพิ่มรายการสินค้าใหม่ในคำสั่งซื้อที่มีอยู่)",
+        "operationId": "addOrderItem",
+        "parameters": [
+          {
+            "name": "orderId",
+            "in": "path",
+            "description": "Order ID (ID คำสั่งซื้อ)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddOrderItemRequest"
+              },
+              "example": {
+                "productId": "PROD-002",
+                "productName": "สินค้าใหม่",
+                "quantity": 1,
+                "price": 750,
+                "discount": 50,
+                "notes": "สินค้าพิเศษ"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Item added successfully (เพิ่มรายการสำเร็จ)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderItem"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request or insufficient stock (ข้อมูลไม่ถูกต้องหรือสต็อกไม่เพียงพอ)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Order or product not found (ไม่พบคำสั่งซื้อหรือสินค้า)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/orders/{orderId}/items/{itemId}": {
+      "get": {
+        "tags": ["Order Items"],
+        "summary": "Get specific order item (ดึงรายการสินค้าเฉพาะ)",
+        "description": "Retrieve a specific item in an order (ดึงรายการสินค้าเฉพาะในคำสั่งซื้อ)",
+        "operationId": "getOrderItem",
+        "parameters": [
+          {
+            "name": "orderId",
+            "in": "path",
+            "description": "Order ID (ID คำสั่งซื้อ)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "description": "Item ID (ID รายการสินค้า)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response (การตอบกลับสำเร็จ)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderItem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Item not found (ไม่พบรายการสินค้า)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "put": {
+        "tags": ["Order Items"],
+        "summary": "Update order item (อัปเดตรายการสินค้า)",
+        "description": "Update an existing order item (อัปเดตรายการสินค้าที่มีอยู่)",
+        "operationId": "updateOrderItem",
+        "parameters": [
+          {
+            "name": "orderId",
+            "in": "path",
+            "description": "Order ID (ID คำสั่งซื้อ)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "description": "Item ID (ID รายการสินค้า)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "quantity": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "New quantity (จำนวนใหม่)"
+                  },
+                  "price": {
+                    "type": "number",
+                    "minimum": 0,
+                    "description": "New price (ราคาใหม่)"
+                  },
+                  "discount": {
+                    "type": "number",
+                    "minimum": 0,
+                    "description": "Discount amount (ส่วนลด)"
+                  },
+                  "notes": {
+                    "type": "string",
+                    "description": "Notes (หมายเหตุ)"
+                  }
+                }
+              },
+              "example": {
+                "quantity": 3,
+                "price": 500,
+                "discount": 100
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Item updated successfully (อัปเดตรายการสำเร็จ)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderItem"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request (ข้อมูลไม่ถูกต้อง)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Item not found (ไม่พบรายการสินค้า)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": ["Order Items"],
+        "summary": "Delete order item (ลบรายการสินค้า)",
+        "description": "Remove an item from an order (ลบรายการสินค้าออกจากคำสั่งซื้อ)",
+        "operationId": "deleteOrderItem",
+        "parameters": [
+          {
+            "name": "orderId",
+            "in": "path",
+            "description": "Order ID (ID คำสั่งซื้อ)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "description": "Item ID (ID รายการสินค้า)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Item deleted successfully (ลบรายการสำเร็จ)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Item not found (ไม่พบรายการสินค้า)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/products": {
+      "get": {
+        "tags": ["Products"],
+        "summary": "Get all products (ดึงข้อมูลสินค้าทั้งหมด)",
+        "description": "Retrieve a list of products (ดึงรายการสินค้า)",
+        "operationId": "getProducts",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Search by name or SKU (ค้นหาด้วยชื่อหรือ SKU)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "description": "Filter by category (กรองตามหมวดหมู่)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["all", "Electronics", "Clothing", "Food & Beverage", "Home & Garden", "Sports", "Books", "Other"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response (การตอบกลับสำเร็จ)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Product"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": ["Products"],
+        "summary": "Create a new product (สร้างสินค้าใหม่)",
+        "description": "Create a new product in the catalog (สร้างสินค้าใหม่ในแคตตาล็อก)",
+        "operationId": "createProduct",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProductRequest"
+              },
+              "example": {
+                "name": "สินค้าใหม่",
+                "category": "Electronics",
+                "price": 1500,
+                "cost": 1000,
+                "stock": 100,
+                "sku": "PROD-NEW-001",
+                "description": "รายละเอียดสินค้า"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Product created successfully (สร้างสินค้าสำเร็จ)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Product"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request (ข้อมูลไม่ถูกต้อง)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Product with SKU already exists (มีสินค้า SKU นี้อยู่แล้ว)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/customers": {
+      "get": {
+        "tags": ["Customers"],
+        "summary": "Get all customers (ดึงข้อมูลลูกค้าทั้งหมด)",
+        "description": "Retrieve a list of customers (ดึงรายการลูกค้า)",
+        "operationId": "getCustomers",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Search by name, email, or phone (ค้นหาด้วยชื่อ อีเมล หรือเบอร์โทร)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tag",
+            "in": "query",
+            "description": "Filter by customer tag (กรองตามแท็กลูกค้า)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["vip", "regular", "new", "wholesale"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response (การตอบกลับสำเร็จ)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Customer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/analytics/sales": {
+      "get": {
+        "tags": ["Analytics"],
+        "summary": "Get sales analytics (ดึงข้อมูลการวิเคราะห์การขาย)",
+        "description": "Retrieve sales analytics data (ดึงข้อมูลการวิเคราะห์การขาย)",
+        "operationId": "getSalesAnalytics",
+        "parameters": [
+          {
+            "name": "startDate",
+            "in": "query",
+            "description": "Start date for analytics (วันที่เริ่มต้น)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "description": "End date for analytics (วันที่สิ้นสุด)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "groupBy",
+            "in": "query",
+            "description": "Group results by period (จัดกลุ่มตามช่วงเวลา)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["day", "week", "month"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response (การตอบกลับสำเร็จ)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SalesAnalytics"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/inventory/stock": {
+      "get": {
+        "tags": ["Inventory"],
+        "summary": "Get inventory stock levels (ดึงข้อมูลระดับสต็อก)",
+        "description": "Retrieve current stock levels (ดึงข้อมูลระดับสต็อกปัจจุบัน)",
+        "operationId": "getInventoryStock",
+        "responses": {
+          "200": {
+            "description": "Successful response (การตอบกลับสำเร็จ)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "productId": {
+                        "type": "string"
+                      },
+                      "productName": {
+                        "type": "string"
+                      },
+                      "stock": {
+                        "type": "integer"
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": ["in_stock", "low_stock", "out_of_stock"]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/payments/process": {
+      "post": {
+        "tags": ["Payments"],
+        "summary": "Process a payment (ประมวลผลการชำระเงิน)",
+        "description": "Process a payment for an order (ประมวลผลการชำระเงินสำหรับคำสั่งซื้อ)",
+        "operationId": "processPayment",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "orderId": {
+                    "type": "string",
+                    "description": "Order ID (ID คำสั่งซื้อ)"
+                  },
+                  "paymentMethod": {
+                    "type": "string",
+                    "description": "Payment method (วิธีการชำระเงิน)"
+                  },
+                  "amount": {
+                    "type": "number",
+                    "description": "Payment amount (จำนวนเงิน)"
+                  }
+                },
+                "required": ["orderId", "paymentMethod", "amount"]
+              },
+              "example": {
+                "orderId": "ORD-001",
+                "paymentMethod": "credit_card",
+                "amount": 1120
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Payment processed successfully (ประมวลผลการชำระเงินสำเร็จ)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "transactionId": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payment request (คำขอชำระเงินไม่ถูกต้อง)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Order": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Order ID (ID คำสั่งซื้อ)"
+          },
+          "customerId": {
+            "type": "string",
+            "description": "Customer ID (ID ลูกค้า)"
+          },
+          "customerName": {
+            "type": "string",
+            "description": "Customer name (ชื่อลูกค้า)"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrderItem"
+            },
+            "description": "Order items (รายการสินค้า)"
+          },
+          "subtotal": {
+            "type": "number",
+            "description": "Subtotal amount (ยอดรวมก่อนภาษี)"
+          },
+          "tax": {
+            "type": "number",
+            "description": "Tax amount (ยอดภาษี)"
+          },
+          "shipping": {
+            "type": "number",
+            "description": "Shipping cost (ค่าจัดส่ง)"
+          },
+          "total": {
+            "type": "number",
+            "description": "Total amount (ยอดรวมทั้งหมด)"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "processing", "shipped", "delivered", "cancelled"],
+            "description": "Order status (สถานะคำสั่งซื้อ)"
+          },
+          "channel": {
+            "type": "string",
+            "enum": ["online", "offline", "mobile", "phone"],
+            "description": "Sales channel (ช่องทางการขาย)"
+          },
+          "paymentMethod": {
+            "type": "string",
+            "description": "Payment method (วิธีการชำระเงิน)"
+          },
+          "shippingAddress": {
+            "type": "string",
+            "description": "Shipping address (ที่อยู่จัดส่ง)"
+          },
+          "notes": {
+            "type": "string",
+            "description": "Order notes (หมายเหตุ)"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Creation timestamp (เวลาที่สร้าง)"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Last update timestamp (เวลาที่อัปเดตล่าสุด)"
+          },
+          "deliveredAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Delivery timestamp (เวลาที่จัดส่ง)"
+          }
+        },
+        "required": ["id", "customerId", "customerName", "items", "subtotal", "tax", "shipping", "total", "status", "channel", "createdAt", "updatedAt"]
+      },
+      "OrderItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Item ID (ID รายการ)"
+          },
+          "orderId": {
+            "type": "string",
+            "description": "Order ID (ID คำสั่งซื้อ)"
+          },
+          "productId": {
+            "type": "string",
+            "description": "Product ID (ID สินค้า)"
+          },
+          "productName": {
+            "type": "string",
+            "description": "Product name (ชื่อสินค้า)"
+          },
+          "quantity": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Quantity (จำนวน)"
+          },
+          "price": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Unit price (ราคาต่อหน่วย)"
+          },
+          "discount": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Discount amount (ส่วนลด)"
+          },
+          "notes": {
+            "type": "string",
+            "description": "Item notes (หมายเหตุ)"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Creation timestamp (เวลาที่สร้าง)"
+          }
+        },
+        "required": ["productId", "productName", "quantity", "price"]
+      },
+      "Product": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Product ID (ID สินค้า)"
+          },
+          "name": {
+            "type": "string",
+            "description": "Product name (ชื่อสินค้า)"
+          },
+          "category": {
+            "type": "string",
+            "enum": ["Electronics", "Clothing", "Food & Beverage", "Home & Garden", "Sports", "Books", "Other"],
+            "description": "Product category (หมวดหมู่สินค้า)"
+          },
+          "price": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Selling price (ราคาขาย)"
+          },
+          "cost": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Cost price (ราคาทุน)"
+          },
+          "stock": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Stock quantity (จำนวนสต็อก)"
+          },
+          "sku": {
+            "type": "string",
+            "description": "Stock keeping unit (รหัสสินค้า)"
+          },
+          "image": {
+            "type": "string",
+            "description": "Product image URL (URL รูปภาพ)"
+          },
+          "description": {
+            "type": "string",
+            "description": "Product description (รายละเอียดสินค้า)"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Creation timestamp (เวลาที่สร้าง)"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Last update timestamp (เวลาที่อัปเดตล่าสุด)"
+          }
+        },
+        "required": ["id", "name", "category", "price", "cost", "stock", "sku", "createdAt", "updatedAt"]
+      },
+      "Customer": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Customer ID (ID ลูกค้า)"
+          },
+          "name": {
+            "type": "string",
+            "description": "Customer name (ชื่อลูกค้า)"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "Email address (อีเมล)"
+          },
+          "phone": {
+            "type": "string",
+            "description": "Phone number (เบอร์โทรศัพท์)"
+          },
+          "address": {
+            "type": "string",
+            "description": "Address (ที่อยู่)"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Customer tags (แท็กลูกค้า)"
+          },
+          "totalSpent": {
+            "type": "number",
+            "description": "Total amount spent (ยอดเงินที่ใช้ทั้งหมด)"
+          },
+          "orderCount": {
+            "type": "integer",
+            "description": "Number of orders (จำนวนคำสั่งซื้อ)"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Creation timestamp (เวลาที่สร้าง)"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Last update timestamp (เวลาที่อัปเดตล่าสุด)"
+          }
+        },
+        "required": ["id", "name", "email", "phone", "createdAt", "updatedAt"]
+      },
+      "CreateOrderRequest": {
+        "type": "object",
+        "properties": {
+          "customerId": {
+            "type": "string",
+            "description": "Customer ID (ID ลูกค้า)"
+          },
+          "customerName": {
+            "type": "string",
+            "description": "Customer name (ชื่อลูกค้า)"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "productId": {
+                  "type": "string"
+                },
+                "productName": {
+                  "type": "string"
+                },
+                "quantity": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "price": {
+                  "type": "number",
+                  "minimum": 0
+                }
+              },
+              "required": ["productId", "productName", "quantity", "price"]
+            }
+          },
+          "subtotal": {
+            "type": "number"
+          },
+          "tax": {
+            "type": "number"
+          },
+          "shipping": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "processing", "shipped", "delivered", "cancelled"]
+          },
+          "channel": {
+            "type": "string",
+            "enum": ["online", "offline", "mobile", "phone"]
+          },
+          "paymentMethod": {
+            "type": "string"
+          },
+          "shippingAddress": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          }
+        },
+        "required": ["customerId", "customerName", "items", "subtotal", "tax", "shipping", "total"]
+      },
+      "AddOrderItemRequest": {
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "string",
+            "description": "Product ID (ID สินค้า)"
+          },
+          "productName": {
+            "type": "string",
+            "description": "Product name (ชื่อสินค้า)"
+          },
+          "quantity": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Quantity (จำนวน)"
+          },
+          "price": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Unit price (ราคาต่อหน่วย)"
+          },
+          "discount": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Discount amount (ส่วนลด)"
+          },
+          "notes": {
+            "type": "string",
+            "description": "Notes (หมายเหตุ)"
+          }
+        },
+        "required": ["productId", "productName", "quantity", "price"]
+      },
+      "CreateProductRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Product name (ชื่อสินค้า)"
+          },
+          "category": {
+            "type": "string",
+            "enum": ["Electronics", "Clothing", "Food & Beverage", "Home & Garden", "Sports", "Books", "Other"],
+            "description": "Product category (หมวดหมู่สินค้า)"
+          },
+          "price": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Selling price (ราคาขาย)"
+          },
+          "cost": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Cost price (ราคาทุน)"
+          },
+          "stock": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Stock quantity (จำนวนสต็อก)"
+          },
+          "sku": {
+            "type": "string",
+            "description": "Stock keeping unit (รหัสสินค้า)"
+          },
+          "image": {
+            "type": "string",
+            "description": "Product image URL (URL รูปภาพ)"
+          },
+          "description": {
+            "type": "string",
+            "description": "Product description (รายละเอียดสินค้า)"
+          }
+        },
+        "required": ["name", "category", "price", "cost", "stock", "sku"]
+      },
+      "UpdateOrderStatusResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Success status (สถานะความสำเร็จ)"
+          },
+          "message": {
+            "type": "string",
+            "description": "Response message (ข้อความตอบกลับ)"
+          },
+          "order": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              },
+              "deliveredAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "updatedAt": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          }
+        }
+      },
+      "SalesAnalytics": {
+        "type": "object",
+        "properties": {
+          "totalRevenue": {
+            "type": "number",
+            "description": "Total revenue (รายได้ทั้งหมด)"
+          },
+          "totalOrders": {
+            "type": "integer",
+            "description": "Total number of orders (จำนวนคำสั่งซื้อทั้งหมด)"
+          },
+          "averageOrderValue": {
+            "type": "number",
+            "description": "Average order value (มูลค่าเฉลี่ยต่อคำสั่งซื้อ)"
+          },
+          "revenueByPeriod": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "period": {
+                  "type": "string"
+                },
+                "revenue": {
+                  "type": "number"
+                },
+                "orders": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Error message (ข้อความแจ้งข้อผิดพลาด)"
+          },
+          "code": {
+            "type": "string",
+            "description": "Error code (รหัสข้อผิดพลาด)"
+          },
+          "details": {
+            "type": "object",
+            "description": "Additional error details (รายละเอียดเพิ่มเติม)"
+          }
+        },
+        "required": ["error"]
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "JWT Bearer token authentication (การยืนยันตัวตนด้วย JWT Bearer token)\n\nExample: Authorization: Bearer <token>"
+      },
+      "apiKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key",
+        "description": "API key authentication (การยืนยันตัวตนด้วย API key)\n\nExample: X-API-Key: <your-api-key>"
+      }
+    }
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ]
+}

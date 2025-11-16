@@ -1,335 +1,452 @@
-import { useEffect, useRef, useCallback } from 'react';
+/**
+ * Performance Monitoring Hook
+ * Enhanced hook for component performance tracking with re-render detection
+ */
 
-export interface PerformanceMetrics {
-  renderTime: number;
+import { useEffect, useRef, useCallback, useState } from 'react';
+import {
+  recordRenderTime,
+  recordAPICallTime,
+  recordMemorySnapshot,
+  recordInteractionTime,
+  getMemoryUsage,
+  getHistoricalData,
+  analyzePerformance,
+  type PerformanceMetric,
+  type PerformanceAnalysis,
+} from '@/lib/utils/performance-metrics';
+
+export interface UsePerformanceMonitoringOptions {
   componentName: string;
-  timestamp: Date;
+  threshold?: number;
+  trackMemory?: boolean;
+  trackRerenders?: boolean;
+  enabled?: boolean;
+}
+
+export interface PerformanceStats {
+  currentRenderTime: number;
+  averageRenderTime: number;
+  totalRenders: number;
+  slowRenders: number;
+  rerenderCount: number;
   memoryUsage?: {
-    jsHeapSizeLimit: number;
-    totalJSHeapSize: number;
-    usedJSHeapSize: number;
+    current: number;
+    average: number;
+    trend: 'increasing' | 'stable' | 'decreasing' | 'unknown';
   };
 }
 
-export interface PerformanceReport {
-  metrics: PerformanceMetrics[];
-  averageRenderTime: number;
-  maxRenderTime: number;
-  minRenderTime: number;
-  totalRenders: number;
-  slowRenders: number;
-  slowRenderThreshold: number;
-}
-
 /**
- * Performance monitoring hook for measuring component render times
+ * Hook for monitoring component performance
  */
 export function usePerformanceMonitoring(
-  componentName: string,
-  threshold: number = 100 // milliseconds
+  options: UsePerformanceMonitoringOptions
 ) {
-  const renderStartRef = useRef<number>(0);
-  const metricsRef = useRef<PerformanceMetrics[]>([]);
+  const {
+    componentName,
+    threshold = 16,
+    trackMemory = true,
+    trackRerenders = true,
+    enabled = true,
+  } = options;
 
-  // Mark render start
-  renderStartRef.current = performance.now();
+  const renderStartRef = useRef<number>(performance.now());
+  const renderCountRef = useRef<number>(0);
+  const rerenderCountRef = useRef<number>(0);
+  const prevPropsRef = useRef<any>(null);
+  const metricsRef = useRef<PerformanceMetric[]>([]);
+  const mountTimeRef = useRef<number>(Date.now());
 
-  // Mark render end and log
+  const [stats, setStats] = useState<PerformanceStats>({
+    currentRenderTime: 0,
+    averageRenderTime: 0,
+    totalRenders: 0,
+    slowRenders: 0,
+    rerenderCount: 0,
+  });
+
+  // Track re-renders
   useEffect(() => {
-    const renderEnd = performance.now();
-    const renderTime = renderEnd - renderStartRef.current;
+    if (!enabled) return;
 
-    const metric: PerformanceMetrics = {
-      renderTime,
-      componentName,
-      timestamp: new Date(),
-    };
+    renderCountRef.current++;
 
-    // Add memory usage if available
-    if (performance.memory) {
-      metric.memoryUsage = {
-        jsHeapSizeLimit: performance.memory.jsHeapSizeLimit,
-        totalJSHeapSize: performance.memory.totalJSHeapSize,
-        usedJSHeapSize: performance.memory.usedJSHeapSize,
-      };
-    }
-
-    metricsRef.current.push(metric);
-
-    // Log slow renders
-    if (renderTime > threshold) {
-      console.warn(
-        `[Performance] ${componentName} took ${renderTime.toFixed(2)}ms to render (threshold: ${threshold}ms)`
-      );
-    }
-
-    // Keep only last 100 metrics
-    if (metricsRef.current.length > 100) {
-      metricsRef.current.shift();
+    if (renderCountRef.current > 1 && trackRerenders) {
+      rerenderCountRef.current++;
     }
   });
 
-  const getReport = useCallback((): PerformanceReport => {
-    const metrics = metricsRef.current;
-    const renderTimes = metrics.map((m) => m.renderTime);
+  // Measure render time
+  useEffect(() => {
+    if (!enabled) return;
 
-    if (renderTimes.length === 0) {
-      return {
-        metrics: [],
-        averageRenderTime: 0,
-        maxRenderTime: 0,
-        minRenderTime: 0,
-        totalRenders: 0,
-        slowRenders: 0,
-        slowRenderThreshold: threshold,
-      };
+    const renderEnd = performance.now();
+    const renderTime = renderEnd - renderStartRef.current;
+
+    // Record the metric
+    const metric = recordRenderTime(componentName, renderTime, {
+      renderCount: renderCountRef.current,
+      rerenderCount: rerenderCountRef.current,
+    });
+
+    metricsRef.current.push(metric);
+
+    // Keep only last 50 metrics in memory
+    if (metricsRef.current.length > 50) {
+      metricsRef.current.shift();
     }
 
-    const slowRenders = renderTimes.filter((time) => time > threshold).length;
+    // Record memory if enabled
+    if (trackMemory && renderCountRef.current % 5 === 0) {
+      recordMemorySnapshot(`${componentName}-memory`);
+    }
 
-    return {
-      metrics,
-      averageRenderTime:
-        renderTimes.reduce((a, b) => a + b) / renderTimes.length,
-      maxRenderTime: Math.max(...renderTimes),
-      minRenderTime: Math.min(...renderTimes),
-      totalRenders: metrics.length,
-      slowRenders,
-      slowRenderThreshold: threshold,
-    };
-  }, [threshold]);
+    // Update stats
+    updateStats(renderTime);
 
-  const reset = useCallback(() => {
-    metricsRef.current = [];
-  }, []);
+    // Reset render start for next render
+    renderStartRef.current = performance.now();
+  });
 
-  return {
-    getReport,
-    reset,
-    getMetrics: () => metricsRef.current,
-  };
-}
+  const updateStats = useCallback((currentRenderTime: number) => {
+    const allMetrics = metricsRef.current;
+    const renderTimes = allMetrics.map((m) => m.duration);
+    const avgRenderTime =
+      renderTimes.reduce((a, b) => a + b, 0) / renderTimes.length || 0;
 
-/**
- * Hook for measuring async operation performance
- */
-export function useAsyncPerformance(operationName: string) {
-  const operationsRef = useRef<
-    Array<{
-      name: string;
-      startTime: number;
-      endTime: number;
-      duration: number;
-      success: boolean;
-    }>
-  >([]);
+    const slowRenders = renderTimes.filter((t) => t > threshold).length;
 
-  const startOperation = useCallback(() => {
-    const startTime = performance.now();
+    let memoryUsage;
+    if (trackMemory) {
+      const memoryMetrics = allMetrics
+        .filter((m) => m.memoryUsage)
+        .slice(-10);
 
-    return async <T,>(
-      operation: () => Promise<T>
-    ): Promise<{ result: T; duration: number }> => {
-      try {
-        const result = await operation();
-        const endTime = performance.now();
-        const duration = endTime - startTime;
+      if (memoryMetrics.length > 0) {
+        const currentMemory = getMemoryUsage();
+        const avgMemory =
+          memoryMetrics.reduce(
+            (sum, m) => sum + (m.memoryUsage?.percentUsed || 0),
+            0
+          ) / memoryMetrics.length;
 
-        operationsRef.current.push({
-          name: operationName,
-          startTime,
-          endTime,
-          duration,
-          success: true,
-        });
+        // Determine trend
+        let trend: 'increasing' | 'stable' | 'decreasing' | 'unknown' =
+          'unknown';
+        if (memoryMetrics.length >= 5) {
+          const firstHalf =
+            memoryMetrics
+              .slice(0, Math.floor(memoryMetrics.length / 2))
+              .reduce((sum, m) => sum + (m.memoryUsage?.percentUsed || 0), 0) /
+            Math.floor(memoryMetrics.length / 2);
+          const secondHalf =
+            memoryMetrics
+              .slice(Math.floor(memoryMetrics.length / 2))
+              .reduce((sum, m) => sum + (m.memoryUsage?.percentUsed || 0), 0) /
+            Math.ceil(memoryMetrics.length / 2);
 
-        if (duration > 1000) {
-          console.warn(
-            `[Performance] ${operationName} took ${duration.toFixed(2)}ms`
-          );
+          if (secondHalf - firstHalf > 2) {
+            trend = 'increasing';
+          } else if (firstHalf - secondHalf > 2) {
+            trend = 'decreasing';
+          } else {
+            trend = 'stable';
+          }
         }
 
-        return { result, duration };
-      } catch (error) {
-        const endTime = performance.now();
-        const duration = endTime - startTime;
-
-        operationsRef.current.push({
-          name: operationName,
-          startTime,
-          endTime,
-          duration,
-          success: false,
-        });
-
-        throw error;
+        memoryUsage = {
+          current: currentMemory?.percentUsed || 0,
+          average: avgMemory,
+          trend,
+        };
       }
-    };
-  }, [operationName]);
-
-  const getReport = useCallback(() => {
-    const operations = operationsRef.current;
-    const durations = operations.map((op) => op.duration);
-
-    if (durations.length === 0) {
-      return {
-        operationName,
-        totalOperations: 0,
-        successfulOperations: 0,
-        failedOperations: 0,
-        averageDuration: 0,
-        maxDuration: 0,
-        minDuration: 0,
-        operations: [],
-      };
     }
 
+    setStats({
+      currentRenderTime,
+      averageRenderTime: avgRenderTime,
+      totalRenders: renderCountRef.current,
+      slowRenders,
+      rerenderCount: rerenderCountRef.current,
+      memoryUsage,
+    });
+  }, [threshold, trackMemory]);
+
+  const getReport = useCallback((): PerformanceAnalysis => {
+    const data = getHistoricalData();
+    const componentMetrics = data.metrics.filter(
+      (m) => m.name === componentName && m.type === 'render'
+    );
+    return analyzePerformance(componentMetrics, 'render');
+  }, [componentName]);
+
+  const compareWithHistorical = useCallback(() => {
+    const data = getHistoricalData();
+    const now = Date.now();
+    const sessionStart = mountTimeRef.current;
+
+    const currentSession = data.metrics.filter(
+      (m) =>
+        m.name === componentName &&
+        m.type === 'render' &&
+        m.timestamp >= sessionStart
+    );
+
+    const previousSession = data.metrics.filter(
+      (m) =>
+        m.name === componentName &&
+        m.type === 'render' &&
+        m.timestamp < sessionStart &&
+        m.timestamp >= sessionStart - 24 * 60 * 60 * 1000 // Last 24h before this session
+    );
+
+    const currentAvg =
+      currentSession.reduce((sum, m) => sum + m.duration, 0) /
+        currentSession.length || 0;
+    const previousAvg =
+      previousSession.reduce((sum, m) => sum + m.duration, 0) /
+        previousSession.length || 0;
+
+    const improvement = previousAvg > 0
+      ? ((previousAvg - currentAvg) / previousAvg) * 100
+      : 0;
+
     return {
-      operationName,
-      totalOperations: operations.length,
-      successfulOperations: operations.filter((op) => op.success).length,
-      failedOperations: operations.filter((op) => !op.success).length,
-      averageDuration: durations.reduce((a, b) => a + b) / durations.length,
-      maxDuration: Math.max(...durations),
-      minDuration: Math.min(...durations),
-      operations,
+      currentAverage: currentAvg,
+      previousAverage: previousAvg,
+      improvement,
+      trend: improvement > 5 ? 'improving' : improvement < -5 ? 'degrading' : 'stable',
+      currentSample: currentSession.length,
+      previousSample: previousSession.length,
     };
-  }, [operationName]);
+  }, [componentName]);
 
   const reset = useCallback(() => {
-    operationsRef.current = [];
+    renderCountRef.current = 0;
+    rerenderCountRef.current = 0;
+    metricsRef.current = [];
+    setStats({
+      currentRenderTime: 0,
+      averageRenderTime: 0,
+      totalRenders: 0,
+      slowRenders: 0,
+      rerenderCount: 0,
+    });
   }, []);
 
   return {
-    startOperation,
+    stats,
     getReport,
+    compareWithHistorical,
     reset,
-    getOperations: () => operationsRef.current,
+    isSlowRender: stats.currentRenderTime > threshold,
   };
 }
 
 /**
- * Hook for measuring page load performance
+ * Hook for tracking API call performance
  */
-export function usePageLoadPerformance() {
-  const metricsRef = useRef<PerformanceMetrics | null>(null);
+export function useAPIPerformance(operationName: string) {
+  const [isLoading, setIsLoading] = useState(false);
+  const [lastDuration, setLastDuration] = useState<number>(0);
+  const [callCount, setCallCount] = useState(0);
 
-  useEffect(() => {
-    // Wait for page load to complete
-    window.addEventListener('load', () => {
-      const perfData = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
+  const measureAPI = useCallback(
+    async <T,>(apiCall: () => Promise<T>): Promise<T> => {
+      setIsLoading(true);
+      const startTime = performance.now();
 
-      if (perfData) {
-        metricsRef.current = {
-          renderTime: perfData.loadEventEnd - perfData.loadEventStart,
-          componentName: 'page-load',
-          timestamp: new Date(),
-          memoryUsage: performance.memory
-            ? {
-                jsHeapSizeLimit: performance.memory.jsHeapSizeLimit,
-                totalJSHeapSize: performance.memory.totalJSHeapSize,
-                usedJSHeapSize: performance.memory.usedJSHeapSize,
-              }
-            : undefined,
-        };
+      try {
+        const result = await apiCall();
+        const duration = performance.now() - startTime;
 
-        console.log('[Performance] Page load metrics:', {
-          domContentLoaded: perfData.domContentLoadedEventEnd - perfData.domContentLoadedEventStart,
-          loadComplete: perfData.loadEventEnd - perfData.loadEventStart,
-          totalTime: perfData.loadEventEnd - perfData.fetchStart,
+        recordAPICallTime(operationName, duration, {
+          success: true,
+          callNumber: callCount + 1,
         });
+
+        setLastDuration(duration);
+        setCallCount((c) => c + 1);
+
+        return result;
+      } catch (error) {
+        const duration = performance.now() - startTime;
+
+        recordAPICallTime(operationName, duration, {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+          callNumber: callCount + 1,
+        });
+
+        setLastDuration(duration);
+        setCallCount((c) => c + 1);
+
+        throw error;
+      } finally {
+        setIsLoading(false);
       }
-    });
-  }, []);
+    },
+    [operationName, callCount]
+  );
 
-  const getMetrics = useCallback(() => {
-    return metricsRef.current;
-  }, []);
+  const getReport = useCallback(() => {
+    const data = getHistoricalData();
+    const apiMetrics = data.metrics.filter(
+      (m) => m.name === operationName && m.type === 'api'
+    );
+    return analyzePerformance(apiMetrics, 'api');
+  }, [operationName]);
 
-  return { getMetrics };
+  return {
+    measureAPI,
+    isLoading,
+    lastDuration,
+    callCount,
+    getReport,
+  };
 }
 
 /**
- * Global performance monitor for multiple components
+ * Hook for monitoring memory usage
  */
-export class GlobalPerformanceMonitor {
-  private metrics: Map<string, PerformanceMetrics[]> = new Map();
+export function useMemoryMonitoring(interval: number = 5000) {
+  const [memoryInfo, setMemoryInfo] = useState(getMemoryUsage());
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  record(metric: PerformanceMetrics) {
-    if (!this.metrics.has(metric.componentName)) {
-      this.metrics.set(metric.componentName, []);
+  useEffect(() => {
+    if (typeof window === 'undefined' || !performance.memory) {
+      return;
     }
 
-    this.metrics.get(metric.componentName)!.push(metric);
+    intervalRef.current = setInterval(() => {
+      const info = getMemoryUsage();
+      setMemoryInfo(info);
 
-    // Keep max 1000 metrics per component
-    const componentMetrics = this.metrics.get(metric.componentName)!;
-    if (componentMetrics.length > 1000) {
-      componentMetrics.shift();
-    }
-  }
-
-  getReport(componentName?: string) {
-    if (componentName) {
-      const metrics = this.metrics.get(componentName) || [];
-      const renderTimes = metrics.map((m) => m.renderTime);
-
-      if (renderTimes.length === 0) {
-        return null;
+      if (info) {
+        recordMemorySnapshot('periodic-snapshot');
       }
+    }, interval);
 
-      return {
-        componentName,
-        metrics,
-        averageRenderTime:
-          renderTimes.reduce((a, b) => a + b) / renderTimes.length,
-        maxRenderTime: Math.max(...renderTimes),
-        minRenderTime: Math.min(...renderTimes),
-        totalRenders: metrics.length,
-      };
-    }
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [interval]);
 
-    // Return all components
-    const reports: Record<string, any> = {};
-    this.metrics.forEach((metrics, componentName) => {
-      const renderTimes = metrics.map((m) => m.renderTime);
-      reports[componentName] = {
-        averageRenderTime:
-          renderTimes.reduce((a, b) => a + b) / renderTimes.length,
-        maxRenderTime: Math.max(...renderTimes),
-        minRenderTime: Math.min(...renderTimes),
-        totalRenders: metrics.length,
-      };
-    });
-
-    return reports;
-  }
-
-  clear(componentName?: string) {
-    if (componentName) {
-      this.metrics.delete(componentName);
+  const forceGarbageCollection = useCallback(() => {
+    if (typeof window !== 'undefined' && 'gc' in window) {
+      (window as any).gc();
+      setTimeout(() => {
+        setMemoryInfo(getMemoryUsage());
+      }, 100);
     } else {
-      this.metrics.clear();
+      console.warn('Garbage collection not available. Run Chrome with --expose-gc flag.');
     }
-  }
+  }, []);
 
-  exportReport() {
-    return JSON.stringify(
-      Object.fromEntries(
-        Array.from(this.metrics.entries()).map(([name, metrics]) => [
-          name,
-          {
-            totalRenders: metrics.length,
-            averageTime: metrics.reduce((a, b) => a + b.renderTime, 0) / metrics.length,
-            metrics: metrics.slice(-10), // Last 10 metrics
-          },
-        ])
-      ),
-      null,
-      2
-    );
-  }
+  return {
+    memoryInfo,
+    forceGarbageCollection,
+    isHighUsage: memoryInfo && memoryInfo.percentUsed > 70,
+    isCriticalUsage: memoryInfo && memoryInfo.percentUsed > 90,
+  };
 }
 
-// Global instance
-export const globalPerformanceMonitor = new GlobalPerformanceMonitor();
+/**
+ * Hook for tracking user interactions
+ */
+export function useInteractionTracking() {
+  const trackInteraction = useCallback(
+    (interactionName: string, callback: () => void) => {
+      const startTime = performance.now();
+
+      return () => {
+        callback();
+        const duration = performance.now() - startTime;
+        recordInteractionTime(interactionName, duration);
+      };
+    },
+    []
+  );
+
+  const trackAsyncInteraction = useCallback(
+    async (interactionName: string, callback: () => Promise<void>) => {
+      const startTime = performance.now();
+
+      try {
+        await callback();
+        const duration = performance.now() - startTime;
+        recordInteractionTime(interactionName, duration, { success: true });
+      } catch (error) {
+        const duration = performance.now() - startTime;
+        recordInteractionTime(interactionName, duration, {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+        throw error;
+      }
+    },
+    []
+  );
+
+  return {
+    trackInteraction,
+    trackAsyncInteraction,
+  };
+}
+
+/**
+ * Hook for comparing performance across time periods
+ */
+export function usePerformanceComparison(
+  metricName: string,
+  type: PerformanceMetric['type']
+) {
+  const [comparison, setComparison] = useState<{
+    current: PerformanceAnalysis;
+    previous: PerformanceAnalysis;
+    percentChange: number;
+  } | null>(null);
+
+  useEffect(() => {
+    const data = getHistoricalData();
+    const now = Date.now();
+    const oneDayAgo = now - 24 * 60 * 60 * 1000;
+    const twoDaysAgo = now - 2 * 24 * 60 * 60 * 1000;
+
+    const currentMetrics = data.metrics.filter(
+      (m) =>
+        m.name === metricName &&
+        m.type === type &&
+        m.timestamp >= oneDayAgo &&
+        m.timestamp <= now
+    );
+
+    const previousMetrics = data.metrics.filter(
+      (m) =>
+        m.name === metricName &&
+        m.type === type &&
+        m.timestamp >= twoDaysAgo &&
+        m.timestamp < oneDayAgo
+    );
+
+    const current = analyzePerformance(currentMetrics, type);
+    const previous = analyzePerformance(previousMetrics, type);
+
+    const percentChange =
+      previous.avgDuration > 0
+        ? ((current.avgDuration - previous.avgDuration) / previous.avgDuration) *
+          100
+        : 0;
+
+    setComparison({
+      current,
+      previous,
+      percentChange,
+    });
+  }, [metricName, type]);
+
+  return comparison;
+}
