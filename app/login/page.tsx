@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { Store, Mail, Lock, LogIn, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import WebAuthnLoginButton from '@/components/auth/webauthn/WebAuthnLoginButton';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -12,6 +13,7 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showPasswordLogin, setShowPasswordLogin] = useState(true);
   const { login, user, loading: authLoading } = useAuth();
   const router = useRouter();
 
@@ -50,6 +52,16 @@ export default function LoginPage() {
     }
   };
 
+  const handleWebAuthnSuccess = (result: any) => {
+    // In a real implementation, you would handle the session creation here
+    // For now, we'll just redirect to dashboard
+    router.push('/dashboard');
+  };
+
+  const handleWebAuthnError = (error: string) => {
+    setError(error);
+  };
+
   // Show loading state while checking auth
   if (authLoading) {
     return (
@@ -84,16 +96,40 @@ export default function LoginPage() {
             </p>
           </div>
 
+          {/* Error Message */}
+          {error && (
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
+              <p className="text-sm text-red-800 dark:text-red-400 text-center">
+                {error}
+              </p>
+            </div>
+          )}
+
+          {/* WebAuthn Login */}
+          <div className="mb-6">
+            <WebAuthnLoginButton
+              email={email}
+              onSuccess={handleWebAuthnSuccess}
+              onError={handleWebAuthnError}
+              className="w-full"
+              variant="primary"
+            />
+          </div>
+
+          {/* Divider */}
+          <div className="relative mb-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">
+                หรือใช้รหัสผ่าน
+              </span>
+            </div>
+          </div>
+
           {/* Login Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Error Message */}
-            {error && (
-              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-                <p className="text-sm text-red-800 dark:text-red-400 text-center">
-                  {error}
-                </p>
-              </div>
-            )}
 
             {/* Email Field */}
             <div>
@@ -183,14 +219,24 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Back to Home Link */}
-          <div className="mt-6 text-center">
-            <Link
-              href="/"
-              className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
-            >
-              กลับสู่หน้าหลัก
-            </Link>
+          {/* Additional Links */}
+          <div className="mt-6 text-center space-y-2">
+            <div>
+              <Link
+                href="/auth/register-webauthn"
+                className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+              >
+                ตั้งค่าการเข้าสู่ระบบแบบไม่ใช้รหัสผ่าน
+              </Link>
+            </div>
+            <div>
+              <Link
+                href="/"
+                className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+              >
+                กลับสู่หน้าหลัก
+              </Link>
+            </div>
           </div>
         </div>
 
