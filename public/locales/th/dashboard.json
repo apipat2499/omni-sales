@@ -1,0 +1,10 @@
+{
+  "total_revenue": "รายได้รวม",
+  "total_orders": "จำนวนคำสั่งซื้อ",
+  "total_customers": "จำนวนลูกค้า",
+  "recent_orders": "คำสั่งซื้อล่าสุด",
+  "top_products": "สินค้าที่ขายดีที่สุด",
+  "channel_breakdown": "การแบ่งตามช่องทาง",
+  "sales_trend": "แนวโน้มการขาย",
+  "overview": "ภาพรวม"
+}

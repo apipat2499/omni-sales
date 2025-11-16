@@ -1,0 +1,15 @@
+{
+  "order_number": "Order Number",
+  "customer_name": "Customer Name",
+  "total_amount": "Total Amount",
+  "status": "Status",
+  "date": "Date",
+  "channel": "Channel",
+  "pending": "Pending",
+  "processing": "Processing",
+  "shipped": "Shipped",
+  "delivered": "Delivered",
+  "cancelled": "Cancelled",
+  "orders_list": "Orders List",
+  "no_orders": "No orders found"
+}

@@ -1,39 +1,60 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getStockLevel, getProductStock, updateStockLevel } from '@/lib/inventory/service';
+import { NextRequest, NextResponse } from "next/server";
+import { getTotalStock, adjustStock, getInventoryLevels } from "@/lib/services/inventory";
 
-export async function GET(req: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-    const productId = req.nextUrl.searchParams.get('productId');
-    const warehouseId = req.nextUrl.searchParams.get('warehouseId');
+    const searchParams = request.nextUrl.searchParams;
+    const productId = searchParams.get("productId");
 
-    if (!productId) return NextResponse.json({ error: 'Missing productId' }, { status: 400 });
-
-    if (warehouseId) {
-      const stock = await getStockLevel(productId, warehouseId);
-      return NextResponse.json({ data: stock });
-    } else {
-      const stocks = await getProductStock(productId);
-      return NextResponse.json({ data: stocks, total: stocks.length });
+    if (!productId) {
+      return NextResponse.json(
+        { error: "Product ID is required" },
+        { status: 400 }
+      );
     }
+
+    const levels = await getInventoryLevels(productId);
+    const total = await getTotalStock(productId);
+
+    return NextResponse.json({
+      productId,
+      levels,
+      totalStock: total,
+    });
   } catch (error) {
-    console.error('Error fetching stock:', error);
-    return NextResponse.json({ error: 'Failed to fetch stock' }, { status: 500 });
+    console.error("Error fetching stock:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch stock" },
+      { status: 500 }
+    );
   }
 }
 
-export async function POST(req: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    const { userId, productId, warehouseId, quantityChange, reason } = await req.json();
-    if (!userId || !productId || !warehouseId || quantityChange === undefined) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    const body = await request.json();
+    const { productId, quantityChange, reason, warehouseId } = body;
+
+    if (!productId || quantityChange === undefined || !reason) {
+      return NextResponse.json(
+        { error: "Missing required fields" },
+        { status: 400 }
+      );
     }
 
-    const success = await updateStockLevel(userId, productId, warehouseId, quantityChange, reason);
-    if (!success) return NextResponse.json({ error: 'Failed to update stock' }, { status: 500 });
+    const result = await adjustStock(
+      productId,
+      quantityChange,
+      reason,
+      warehouseId
+    );
 
-    return NextResponse.json({ success: true, message: 'Stock updated' }, { status: 201 });
+    return NextResponse.json(result);
   } catch (error) {
-    console.error('Error updating stock:', error);
-    return NextResponse.json({ error: 'Failed to update stock' }, { status: 500 });
+    console.error("Error adjusting stock:", error);
+    return NextResponse.json(
+      { error: "Failed to adjust stock" },
+      { status: 500 }
+    );
   }
 }

@@ -1,0 +1,36 @@
+{
+  "name": "omni-sales-mobile",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "eject": "expo eject"
+  },
+  "dependencies": {
+    "@react-navigation/bottom-tabs": "^6.5.16",
+    "@react-navigation/native": "^6.1.17",
+    "@react-navigation/stack": "^6.3.28",
+    "axios": "^1.6.7",
+    "expo": "^51.0.0",
+    "expo-splash-screen": "^0.26.5",
+    "i18next": "^23.7.6",
+    "react": "18.2.0",
+    "react-i18next": "^14.0.0",
+    "react-native": "^0.74.0",
+    "react-native-gesture-handler": "^2.14.1",
+    "react-native-reanimated": "^3.6.2",
+    "react-native-screens": "^3.27.0",
+    "react-native-stripe-sdk": "^1.0.0",
+    "zustand": "^4.4.7"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.24.0",
+    "@react-native-community/cli": "^12.3.5",
+    "@types/react": "^18.2.48",
+    "@types/react-native": "^0.73.0",
+    "typescript": "^5.3.3"
+  }
+}
