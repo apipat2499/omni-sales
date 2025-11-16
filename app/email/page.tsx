@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Mail, Send, Users, TrendingUp, Eye, Click, Zap, RefreshCw, Plus, BarChart3, Gauge } from "lucide-react";
+import { Mail, Send, Users, TrendingUp, Eye, Pointer, Zap, RefreshCw, Plus, BarChart3, Gauge } from "lucide-react";
 
 interface EmailMetrics {
   label: string;
@@ -74,7 +74,7 @@ export default function EmailMarketingPage() {
       {
         label: "Avg Click Rate",
         value: `${(dashboardData.avgClickRate || 0).toFixed(1)}%`,
-        icon: Click,
+        icon: Pointer,
         color: "bg-pink-500",
       },
       {

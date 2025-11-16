@@ -6,10 +6,10 @@ import {
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { wishlistId: string } }
+  { params }: { params: Promise<{ wishlistId: string }> }
 ) {
   try {
-    const wishlistId = params.wishlistId;
+    const { wishlistId: wishlistId } = await params;
     const { userId, wishlistItemId, newPrice } = await req.json();
 
     if (!userId || !wishlistItemId || newPrice === undefined) {
@@ -40,7 +40,7 @@ export async function POST(
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { wishlistId: string } }
+  { params }: { params: Promise<{ wishlistId: string }> }
 ) {
   try {
     const wishlistItemId = req.nextUrl.searchParams.get('itemId');

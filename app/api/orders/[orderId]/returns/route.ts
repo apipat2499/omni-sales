@@ -4,10 +4,10 @@ import { supabase } from '@/lib/supabase/client';
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { orderId: string } }
+  { params }: { params: Promise<{ orderId: string }> }
 ) {
   try {
-    const orderId = params.orderId;
+    const { orderId: orderId } = await params;
 
     if (!orderId) {
       return NextResponse.json(
@@ -43,10 +43,10 @@ export async function GET(
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { orderId: string } }
+  { params }: { params: Promise<{ orderId: string }> }
 ) {
   try {
-    const orderId = params.orderId;
+    const { orderId: orderId } = await params;
     const { returnReason, reasonDetails, items, notes } = await req.json();
 
     if (!orderId || !returnReason || !items || items.length === 0) {
@@ -82,7 +82,7 @@ export async function POST(
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { orderId: string } }
+  { params }: { params: Promise<{ orderId: string }> }
 ) {
   try {
     const { returnId, action, refundAmount } = await req.json();

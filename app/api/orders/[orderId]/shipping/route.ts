@@ -4,10 +4,10 @@ import { supabase } from '@/lib/supabase/client';
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { orderId: string } }
+  { params }: { params: Promise<{ orderId: string }> }
 ) {
   try {
-    const orderId = params.orderId;
+    const { orderId: orderId } = await params;
 
     if (!orderId) {
       return NextResponse.json(
@@ -40,10 +40,10 @@ export async function GET(
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { orderId: string } }
+  { params }: { params: Promise<{ orderId: string }> }
 ) {
   try {
-    const orderId = params.orderId;
+    const { orderId: orderId } = await params;
     const {
       shippingMethod,
       carrier,
@@ -92,7 +92,7 @@ export async function POST(
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { orderId: string } }
+  { params }: { params: Promise<{ orderId: string }> }
 ) {
   try {
     const { shippingId, status, trackingNumber } = await req.json();

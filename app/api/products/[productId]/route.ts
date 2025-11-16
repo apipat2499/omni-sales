@@ -4,10 +4,10 @@ import type { Product } from '@/types';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { productId: string } }
+  { params }: { params: Promise<{ productId: string }> }
 ) {
   try {
-    const { productId: id } = params;
+    const { productId: id } = await params;
 
     if (!id) {
       return NextResponse.json(
@@ -57,10 +57,10 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { productId: string } }
+  { params }: { params: Promise<{ productId: string }> }
 ) {
   try {
-    const { productId: id } = params;
+    const { productId: id } = await params;
 
     if (!id) {
       return NextResponse.json(
@@ -172,10 +172,10 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { productId: string } }
+  { params }: { params: Promise<{ productId: string }> }
 ) {
   try {
-    const { productId: id } = params;
+    const { productId: id } = await params;
 
     if (!id) {
       return NextResponse.json(

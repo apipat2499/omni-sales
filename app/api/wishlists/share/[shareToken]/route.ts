@@ -3,10 +3,10 @@ import { getSharedWishlist } from '@/lib/wishlist/service';
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { shareToken: string } }
+  { params }: { params: Promise<{ shareToken: string }> }
 ) {
   try {
-    const shareToken = params.shareToken;
+    const { shareToken: shareToken } = await params;
 
     if (!shareToken) {
       return NextResponse.json(

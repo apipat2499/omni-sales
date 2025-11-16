@@ -4,10 +4,10 @@ import type { Order, OrderStatus } from '@/types';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { orderId: string } }
+  { params }: { params: Promise<{ orderId: string }> }
 ) {
   try {
-    const orderId = params.orderId;
+    const { orderId: orderId } = await params;
 
     // Fetch order with customer information
     const { data: orderData, error: orderError } = await supabase
@@ -83,10 +83,10 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { orderId: string } }
+  { params }: { params: Promise<{ orderId: string }> }
 ) {
   try {
-    const orderId = params.orderId;
+    const { orderId: orderId } = await params;
     const body = await request.json();
 
     // Validate required fields

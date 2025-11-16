@@ -3,10 +3,10 @@ import { createPointRule } from '@/lib/loyalty/service';
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { programId: string } }
+  { params }: { params: Promise<{ programId: string }> }
 ) {
   try {
-    const programId = params.programId;
+    const { programId: programId } = await params;
     const {
       userId,
       ruleName,

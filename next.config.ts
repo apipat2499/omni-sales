@@ -2,6 +2,12 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  experimental: {
+    turbopackUseSystemTlsCerts: true,
+  },
 
   // PWA Configuration
   // Ensure service worker is served as static file

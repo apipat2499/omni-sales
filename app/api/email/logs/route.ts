@@ -70,13 +70,14 @@ export async function HEAD(req: NextRequest) {
       .select('status')
       .eq('user_id', userId);
 
+    const statsArray = stats as any[] || [];
     const aggregated = {
-      total: stats?.length || 0,
-      sent: stats?.filter((s) => s.status === 'sent').length || 0,
-      failed: stats?.filter((s) => s.status === 'failed').length || 0,
-      bounced: stats?.filter((s) => s.status === 'bounced').length || 0,
-      opened: stats?.filter((s) => s.opened).length || 0,
-      clicked: stats?.filter((s) => s.clicked).length || 0,
+      total: statsArray?.length || 0,
+      sent: statsArray?.filter((s: any) => s.status === 'sent').length || 0,
+      failed: statsArray?.filter((s: any) => s.status === 'failed').length || 0,
+      bounced: statsArray?.filter((s: any) => s.status === 'bounced').length || 0,
+      opened: statsArray?.filter((s: any) => s.opened || s.is_opened).length || 0,
+      clicked: statsArray?.filter((s: any) => s.clicked || s.is_clicked).length || 0,
     };
 
     return NextResponse.json(aggregated);

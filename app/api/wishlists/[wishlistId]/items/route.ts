@@ -6,10 +6,10 @@ import {
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { wishlistId: string } }
+  { params }: { params: Promise<{ wishlistId: string }> }
 ) {
   try {
-    const wishlistId = params.wishlistId;
+    const { wishlistId: wishlistId } = await params;
     const {
       userId,
       productId,
@@ -59,10 +59,10 @@ export async function POST(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { wishlistId: string } }
+  { params }: { params: Promise<{ wishlistId: string }> }
 ) {
   try {
-    const wishlistId = params.wishlistId;
+    const { wishlistId: wishlistId } = await params;
     const { userId, itemId } = await req.json();
 
     if (!userId || !wishlistId || !itemId) {

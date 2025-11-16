@@ -31,7 +31,7 @@ export default function PricingPage() {
 
   useEffect(() => {
     const storedUserId = localStorage.getItem("userId");
-    if (\!storedUserId) {
+    if (!storedUserId) {
       window.location.href = "/login";
       return;
     }

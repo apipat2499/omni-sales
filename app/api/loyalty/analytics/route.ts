@@ -6,19 +6,20 @@ import {
 
 export async function GET(req: NextRequest) {
   try {
+    const userId = req.nextUrl.searchParams.get('userId');
     const programId = req.nextUrl.searchParams.get('programId');
     const days = req.nextUrl.searchParams.get('days');
 
-    if (!programId) {
+    if (!userId) {
       return NextResponse.json(
-        { error: 'Missing programId' },
+        { error: 'Missing userId' },
         { status: 400 }
       );
     }
 
     const analytics = await getLoyaltyAnalytics(
-      programId,
-      days ? parseInt(days) : 30
+      userId,
+      programId || undefined
     );
 
     return NextResponse.json({

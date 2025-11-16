@@ -3,10 +3,10 @@ import { updateOrderStatus } from '@/lib/order/service';
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { orderId: string } }
+  { params }: { params: Promise<{ orderId: string }> }
 ) {
   try {
-    const orderId = params.orderId;
+    const { orderId: orderId } = await params;
     const { status, reason, notes, changedBy } = await req.json();
 
     if (!orderId || !status) {

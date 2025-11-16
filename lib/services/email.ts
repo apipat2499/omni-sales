@@ -252,4 +252,33 @@ export async function verifyEmailConfig() {
   }
 }
 
+// Email Campaign Functions
+export async function createEmailCampaign(
+  userId: string,
+  campaignData: any
+): Promise<any> {
+  try {
+    // This would typically use Supabase to store campaign data
+    return {
+      id: `campaign_${Date.now()}`,
+      ...campaignData,
+      createdAt: new Date().toISOString(),
+      status: 'draft',
+    };
+  } catch (error) {
+    console.error('Error creating email campaign:', error);
+    throw error;
+  }
+}
+
+export async function getEmailCampaigns(userId: string): Promise<any[]> {
+  try {
+    // This would typically fetch campaigns from Supabase
+    return [];
+  } catch (error) {
+    console.error('Error fetching email campaigns:', error);
+    return [];
+  }
+}
+
 export default transporter;

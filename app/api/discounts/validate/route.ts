@@ -37,17 +37,18 @@ export async function POST(req: NextRequest) {
       discountAmount = calculation?.discountAmount || 0;
     }
 
+    const discountData = discount as any;
     return NextResponse.json({
       valid: true,
       discount: {
-        id: discount?.id,
-        code: discount?.code,
-        discountType: discount?.discount_type,
-        discountValue: discount?.discount_value,
+        id: discountData?.id,
+        code: discountData?.code,
+        discountType: discountData?.discountType || discountData?.discount_type,
+        discountValue: discountData?.discountValue || discountData?.discount_value,
         discountAmount,
-        minimumOrderValue: discount?.minimum_order_value,
-        maximumDiscountAmount: discount?.maximum_discount_amount,
-        currency: discount?.currency,
+        minimumOrderValue: discountData?.minimumOrderValue || discountData?.minimum_order_value,
+        maximumDiscountAmount: discountData?.maximumDiscountAmount || discountData?.maximum_discount_amount,
+        currency: discountData?.currency,
       },
     });
   } catch (error) {

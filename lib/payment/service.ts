@@ -122,7 +122,7 @@ export async function createInvoice(
     // Generate invoice number
     const invoiceNumber = `INV-${Date.now()}`;
 
-    const { data: invoiceData: any, error: invoiceError } = await supabase
+    const { data: invoiceArray, error: invoiceError } = await supabase
       .from('invoices')
       .insert([
         {

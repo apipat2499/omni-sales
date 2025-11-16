@@ -6,10 +6,10 @@ import {
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { customerId: string } }
+  { params }: { params: Promise<{ customerId: string }> }
 ) {
   try {
-    const customerId = params.customerId;
+    const { customerId: customerId } = await params;
     const { userId, rewardId, loyaltyProgramId } = await req.json();
 
     if (!userId || !customerId || !rewardId) {

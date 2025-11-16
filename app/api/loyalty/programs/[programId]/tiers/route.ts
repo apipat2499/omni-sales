@@ -3,10 +3,10 @@ import { createLoyaltyTier, getLoyaltyTiers } from '@/lib/loyalty/service';
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { programId: string } }
+  { params }: { params: Promise<{ programId: string }> }
 ) {
   try {
-    const programId = params.programId;
+    const { programId: programId } = await params;
 
     if (!programId) {
       return NextResponse.json({ error: 'Missing programId' }, { status: 400 });
@@ -29,10 +29,10 @@ export async function GET(
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { programId: string } }
+  { params }: { params: Promise<{ programId: string }> }
 ) {
   try {
-    const programId = params.programId;
+    const { programId: programId } = await params;
     const {
       userId,
       tierName,

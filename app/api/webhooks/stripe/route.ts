@@ -31,8 +31,8 @@ async function handleCheckoutSessionCompleted(
     stripe_subscription_id: subscription.id,
     stripe_customer_id: subscription.customer as string,
     status: subscription.status,
-    current_period_start: new Date(subscription.current_period_start * 1000),
-    current_period_end: new Date(subscription.current_period_end * 1000),
+    current_period_start: new Date((subscription as any).current_period_start * 1000),
+    current_period_end: new Date((subscription as any).current_period_end * 1000),
   });
 
   if (error) {
@@ -41,7 +41,8 @@ async function handleCheckoutSessionCompleted(
 }
 
 async function handleInvoicePaid(invoice: Stripe.Invoice) {
-  const subscriptionId = invoice.subscription as string;
+  const inv = invoice as any;
+  const subscriptionId = inv.subscription as string;
 
   if (!subscriptionId) {
     console.log('Invoice not tied to subscription');
@@ -52,7 +53,7 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
   const { error: updateError } = await supabase
     .from('subscriptions')
     .update({
-      status: invoice.status,
+      status: inv.status,
     })
     .eq('stripe_subscription_id', subscriptionId);
 
@@ -62,11 +63,11 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
 
   // Record the payment
   const { error: paymentError } = await supabase.from('payments').insert({
-    stripe_payment_intent_id: invoice.payment_intent as string,
-    stripe_charge_id: invoice.charge as string,
-    stripe_invoice_id: invoice.id,
-    amount_cents: invoice.amount_paid,
-    currency: invoice.currency.toUpperCase(),
+    stripe_payment_intent_id: inv.payment_intent as string,
+    stripe_charge_id: inv.charge as string,
+    stripe_invoice_id: inv.id,
+    amount_cents: inv.amount_paid,
+    currency: inv.currency.toUpperCase(),
     status: 'succeeded',
   });
 
