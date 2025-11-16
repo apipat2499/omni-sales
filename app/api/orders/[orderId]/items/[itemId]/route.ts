@@ -26,7 +26,7 @@ export async function PUT(
       );
     }
 
-    const { quantity, price } = validation.data;
+    const { quantity, price, discount, notes } = validation.data;
 
     // Verify item belongs to order
     const { data: item, error: verifyError } = await supabase
@@ -47,6 +47,8 @@ export async function PUT(
     const updateData: any = {};
     if (quantity !== undefined) updateData.quantity = quantity;
     if (price !== undefined) updateData.price = price;
+    if (discount !== undefined) updateData.discount = discount;
+    if (notes !== undefined) updateData.notes = notes;
 
     const { data: updatedItem, error } = await supabase
       .from('order_items')
@@ -76,6 +78,8 @@ export async function PUT(
       productName: updatedItem.product_name,
       quantity: updatedItem.quantity,
       price: parseFloat(updatedItem.price || 0),
+      discount: updatedItem.discount ? parseFloat(updatedItem.discount) : undefined,
+      notes: updatedItem.notes,
       updatedAt: new Date(updatedItem.updated_at || new Date()),
     });
   } catch (error) {

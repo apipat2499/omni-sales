@@ -1,7 +1,9 @@
 'use client';
 
+import { Download, Printer } from 'lucide-react';
 import type { OrderItem } from '@/types';
 import { formatCurrency } from '@/lib/utils';
+import { exportOrderItemsToCSV, printOrderItems } from '@/lib/utils/export';
 
 interface CartSummaryProps {
   items: OrderItem[];
@@ -93,6 +95,26 @@ export default function CartSummary({
           </span>
         </p>
       </div>
+
+      {/* Export Actions */}
+      {items.length > 0 && (
+        <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 flex gap-2">
+          <button
+            onClick={() => exportOrderItemsToCSV(items)}
+            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
+          >
+            <Download className="h-4 w-4" />
+            CSV
+          </button>
+          <button
+            onClick={() => printOrderItems(items)}
+            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+          >
+            <Printer className="h-4 w-4" />
+            พิมพ์
+          </button>
+        </div>
+      )}
     </div>
   );
 }

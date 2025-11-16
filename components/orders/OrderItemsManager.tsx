@@ -2,10 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { useOrderItems } from '@/lib/hooks/useOrderItems';
+import { useToast } from '@/lib/hooks/useToast';
 import OrderItemsTable from './OrderItemsTable';
 import AddItemModal from './AddItemModal';
+import EditItemModal from './EditItemModal';
 import CartSummary from './CartSummary';
 import { Loader } from 'lucide-react';
+import type { OrderItem } from '@/types';
 
 interface OrderItemsManagerProps {
   orderId: string;
@@ -21,7 +24,10 @@ export default function OrderItemsManager({
   discount = 0,
 }: OrderItemsManagerProps) {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<OrderItem | null>(null);
   const [itemLoading, setItemLoading] = useState(false);
+  const { success, error: showError } = useToast();
 
   const {
     items,
@@ -29,6 +35,7 @@ export default function OrderItemsManager({
     error,
     addItem,
     updateItemQuantity,
+    updateItem,
     deleteItem,
     fetchItems,
   } = useOrderItems(orderId);
@@ -45,8 +52,13 @@ export default function OrderItemsManager({
   ) => {
     setItemLoading(true);
     try {
-      const success = await addItem(productId, productName, quantity, price);
-      return success;
+      const isSuccess = await addItem(productId, productName, quantity, price);
+      if (isSuccess) {
+        success(`เพิ่มรายการ ${productName} เสร็จสิ้น`);
+      } else {
+        showError('ไม่สามารถเพิ่มรายการได้');
+      }
+      return isSuccess;
     } finally {
       setItemLoading(false);
     }
@@ -55,7 +67,12 @@ export default function OrderItemsManager({
   const handleQuantityChange = async (itemId: string, newQuantity: number) => {
     setItemLoading(true);
     try {
-      await updateItemQuantity(itemId, newQuantity);
+      const isSuccess = await updateItemQuantity(itemId, newQuantity);
+      if (isSuccess) {
+        success('อัพเดตจำนวนเสร็จสิ้น');
+      } else {
+        showError('ไม่สามารถอัพเดตจำนวนได้');
+      }
     } finally {
       setItemLoading(false);
     }
@@ -65,10 +82,50 @@ export default function OrderItemsManager({
     if (confirm('คุณแน่ใจหรือว่าต้องการลบรายการนี้?')) {
       setItemLoading(true);
       try {
-        await deleteItem(itemId);
+        const isSuccess = await deleteItem(itemId);
+        if (isSuccess) {
+          success('ลบรายการเสร็จสิ้น');
+        } else {
+          showError('ไม่สามารถลบรายการได้');
+        }
       } finally {
         setItemLoading(false);
       }
+    }
+  };
+
+  const handleEditItem = (item: OrderItem) => {
+    setEditingItem(item);
+    setIsEditModalOpen(true);
+  };
+
+  const handleUpdateItem = async (itemId: string, updates: { quantity?: number; price?: number; discount?: number; notes?: string }) => {
+    setItemLoading(true);
+    try {
+      const isSuccess = await updateItem(itemId, updates);
+      if (isSuccess) {
+        success('อัพเดตรายการเสร็จสิ้น');
+      } else {
+        showError('ไม่สามารถอัพเดตรายการได้');
+      }
+      return isSuccess;
+    } finally {
+      setItemLoading(false);
+    }
+  };
+
+  const handleDeleteFromEdit = async (itemId: string) => {
+    setItemLoading(true);
+    try {
+      const isSuccess = await deleteItem(itemId);
+      if (isSuccess) {
+        success('ลบรายการเสร็จสิ้น');
+      } else {
+        showError('ไม่สามารถลบรายการได้');
+      }
+      return isSuccess;
+    } finally {
+      setItemLoading(false);
     }
   };
 
@@ -99,6 +156,7 @@ export default function OrderItemsManager({
         onAddClick={() => setIsAddModalOpen(true)}
         onQuantityChange={handleQuantityChange}
         onDelete={handleDeleteItem}
+        onEdit={handleEditItem}
       />
 
       {/* Summary */}
@@ -117,6 +175,19 @@ export default function OrderItemsManager({
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onAdd={handleAddItem}
+        loading={itemLoading}
+      />
+
+      {/* Edit Item Modal */}
+      <EditItemModal
+        isOpen={isEditModalOpen}
+        item={editingItem}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setEditingItem(null);
+        }}
+        onUpdate={handleUpdateItem}
+        onDelete={handleDeleteFromEdit}
         loading={itemLoading}
       />
     </div>

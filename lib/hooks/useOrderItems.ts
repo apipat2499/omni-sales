@@ -7,7 +7,7 @@ interface UseOrderItemsReturn {
   error: string | null;
   addItem: (productId: string, productName: string, quantity: number, price: number) => Promise<boolean>;
   updateItemQuantity: (itemId: string, quantity: number) => Promise<boolean>;
-  updateItem: (itemId: string, quantity?: number, price?: number) => Promise<boolean>;
+  updateItem: (itemId: string, updates: { quantity?: number; price?: number; discount?: number; notes?: string }) => Promise<boolean>;
   deleteItem: (itemId: string) => Promise<boolean>;
   fetchItems: (orderId: string) => Promise<void>;
   refresh: (orderId: string) => Promise<void>;
@@ -171,7 +171,7 @@ export function useOrderItems(initialOrderId?: string): UseOrderItemsReturn {
   );
 
   const updateItem = useCallback(
-    async (itemId: string, quantity?: number, price?: number): Promise<boolean> => {
+    async (itemId: string, updates: { quantity?: number; price?: number; discount?: number; notes?: string }): Promise<boolean> => {
       if (!orderId) {
         setError('Order ID is not set');
         return false;
@@ -180,8 +180,10 @@ export function useOrderItems(initialOrderId?: string): UseOrderItemsReturn {
       try {
         setError(null);
         const body: any = {};
-        if (quantity !== undefined) body.quantity = quantity;
-        if (price !== undefined) body.price = price;
+        if (updates.quantity !== undefined) body.quantity = updates.quantity;
+        if (updates.price !== undefined) body.price = updates.price;
+        if (updates.discount !== undefined) body.discount = updates.discount;
+        if (updates.notes !== undefined) body.notes = updates.notes;
 
         const response = await fetch(`/api/orders/${orderId}/items/${itemId}`, {
           method: 'PUT',
@@ -202,9 +204,11 @@ export function useOrderItems(initialOrderId?: string): UseOrderItemsReturn {
             item.id === itemId
               ? {
                   ...item,
-                  quantity: updatedItem.quantity,
-                  price: updatedItem.price,
-                  totalPrice: updatedItem.quantity * updatedItem.price,
+                  quantity: updatedItem.quantity ?? item.quantity,
+                  price: updatedItem.price ?? item.price,
+                  discount: updatedItem.discount ?? item.discount,
+                  notes: updatedItem.notes ?? item.notes,
+                  totalPrice: (updatedItem.quantity ?? item.quantity) * (updatedItem.price ?? item.price),
                 }
               : item
           )
