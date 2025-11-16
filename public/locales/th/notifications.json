@@ -1,0 +1,160 @@
+{
+  "title": "การแจ้งเตือน",
+  "queueCenter": "ศูนย์คิวการแจ้งเตือน",
+  "emails": "อีเมล",
+  "sms": "ข้อความ SMS",
+  "analytics": "การวิเคราะห์",
+
+  "processQueue": "ประมวลผลคิว",
+  "noEmails": "ไม่พบอีเมล",
+  "noSMS": "ไม่พบข้อความ SMS",
+  "noNotifications": "ไม่มีการแจ้งเตือน",
+
+  "status": {
+    "pending": "รอดำเนินการ",
+    "sending": "กำลังส่ง",
+    "sent": "ส่งแล้ว",
+    "delivered": "จัดส่งแล้ว",
+    "failed": "ล้มเหลว",
+    "bounced": "ตีกลับ",
+    "opened": "เปิดแล้ว",
+    "clicked": "คลิกแล้ว",
+    "optout": "ยกเลิกการรับ"
+  },
+
+  "emailAnalytics": "การวิเคราะห์อีเมล",
+  "smsAnalytics": "การวิเคราะห์ SMS",
+  "total": "ทั้งหมด",
+  "sent": "ส่งแล้ว",
+  "failed": "ล้มเหลว",
+  "pending": "รอดำเนินการ",
+  "openRate": "อัตราการเปิด",
+  "clickRate": "อัตราการคลิก",
+  "deliveryRate": "อัตราการจัดส่ง",
+  "optedOut": "ยกเลิกการรับ",
+
+  "emailDetails": "รายละเอียดอีเมล",
+  "smsDetails": "รายละเอียด SMS",
+  "subject": "หัวเรื่อง",
+  "to": "ถึง",
+  "htmlContent": "เนื้อหา HTML",
+  "message": "ข้อความ",
+  "error": "ข้อผิดพลาด",
+  "created": "สร้างเมื่อ",
+  "retry": "ลองอีกครั้ง",
+
+  "createTemplate": "สร้างเทมเพลต",
+  "editTemplate": "แก้ไขเทมเพลต",
+  "createSMSTemplate": "สร้างเทมเพลต SMS",
+  "editSMSTemplate": "แก้ไขเทมเพลต SMS",
+  "templateName": "ชื่อเทมเพลต",
+  "category": "หมวดหมู่",
+  "description": "คำอธิบาย",
+  "activeTemplate": "เทมเพลตที่ใช้งาน",
+
+  "categories": {
+    "order": "คำสั่งซื้อ",
+    "customer": "ลูกค้า",
+    "payment": "การชำระเงิน",
+    "inventory": "สินค้าคงคลัง",
+    "marketing": "การตลาด",
+    "system": "ระบบ"
+  },
+
+  "insertVariable": "แทรกตัวแปร",
+  "availableVariables": "ตัวแปรที่มี",
+  "example": "ตัวอย่าง",
+  "visualEditor": "ตัวแก้ไขแบบกราฟิก",
+  "htmlEditor": "ตัวแก้ไข HTML",
+  "emailContent": "เนื้อหาอีเมล",
+  "plainTextVersion": "เวอร์ชันข้อความธรรมดา",
+  "optional": "ไม่บังคับ",
+  "preview": "ดูตัวอย่าง",
+  "testSend": "ส่งทดสอบ",
+
+  "emailPreview": "ตัวอย่างอีเมล",
+  "smsPreview": "ตัวอย่าง SMS",
+  "testSentSuccess": "ส่งอีเมลทดสอบสำเร็จ!",
+  "testSMSSentSuccess": "ส่ง SMS ทดสอบสำเร็จ!",
+  "testSendDescription": "ป้อนที่อยู่อีเมลของคุณเพื่อรับอีเมลทดสอบ:",
+  "testSMSDescription": "ป้อนหมายเลขโทรศัพท์ของคุณเพื่อรับ SMS ทดสอบ:",
+  "phoneFormat": "ใช้รูปแบบสากล (เช่น +1234567890)",
+
+  "smsMessage": "ข้อความ SMS",
+  "smsLimits": "ขีดจำกัดตัวอักษร SMS",
+  "characters": "ตัวอักษร",
+  "messages": "ข้อความ",
+  "encoding": "การเข้ารหัส",
+  "previewNote": "ตัวแปรจะถูกแทนที่ด้วยค่าจริงเมื่อส่ง",
+  "testSendSMS": "ส่ง SMS ทดสอบ",
+
+  "email": {
+    "orderConfirmation": "ยืนยันคำสั่งซื้อ",
+    "orderShipped": "จัดส่งคำสั่งซื้อ",
+    "paymentReceipt": "ใบเสร็จการชำระเงิน",
+    "welcome": "อีเมลต้อนรับ",
+    "lowStock": "แจ้งเตือนสินค้าใกล้หมด",
+    "orderCancelled": "ยกเลิกคำสั่งซื้อ",
+    "deliveryUpdate": "อัพเดทการจัดส่ง"
+  },
+
+  "sms": {
+    "orderConfirmation": "ยืนยันคำสั่งซื้อ",
+    "orderShipped": "จัดส่งคำสั่งซื้อ",
+    "deliveryNotification": "แจ้งเตือนการจัดส่ง",
+    "paymentReminder": "เตือนการชำระเงิน"
+  },
+
+  "schedule": {
+    "title": "กำหนดเวลาการแจ้งเตือน",
+    "oneTime": "ครั้งเดียว",
+    "recurring": "ซ้ำ",
+    "triggered": "ทริกเกอร์จากเหตุการณ์",
+    "scheduledFor": "กำหนดเวลาสำหรับ",
+    "recurrence": "การเกิดซ้ำ",
+    "daily": "รายวัน",
+    "weekly": "รายสัปดาห์",
+    "monthly": "รายเดือน",
+    "custom": "กำหนดเอง",
+    "trigger": "เหตุการณ์ทริกเกอร์",
+    "delay": "ความล่าช้า (นาที)"
+  },
+
+  "triggers": {
+    "orderCreated": "สร้างคำสั่งซื้อ",
+    "orderPaid": "ชำระคำสั่งซื้อ",
+    "orderShipped": "จัดส่งคำสั่งซื้อ",
+    "orderDelivered": "ส่งมอบคำสั่งซื้อ",
+    "orderCancelled": "ยกเลิกคำสั่งซื้อ",
+    "customerRegistered": "ลงทะเบียนลูกค้า",
+    "cartAbandoned": "ทิ้งตะกร้า",
+    "lowStock": "สินค้าใกล้หมด",
+    "paymentFailed": "การชำระเงินล้มเหลว",
+    "paymentRefunded": "คืนเงิน"
+  },
+
+  "config": {
+    "title": "การตั้งค่าการแจ้งเตือน",
+    "sendgrid": "การตั้งค่า SendGrid",
+    "twilio": "การตั้งค่า Twilio",
+    "apiKey": "คีย์ API",
+    "accountSid": "Account SID",
+    "authToken": "โทเค็นการยืนยัน",
+    "fromEmail": "อีเมลผู้ส่ง",
+    "fromName": "ชื่อผู้ส่ง",
+    "fromNumber": "หมายเลขผู้ส่ง",
+    "enabled": "เปิดใช้งาน",
+    "maxRetries": "จำนวนครั้งลองใหม่สูงสุด",
+    "retryDelay": "ความล่าช้าการลองใหม่ (ms)",
+    "batchSize": "ขนาดชุด"
+  },
+
+  "optOut": {
+    "title": "การจัดการการยกเลิกการรับ",
+    "addOptOut": "เพิ่มการยกเลิกการรับ",
+    "removeOptOut": "ลบการยกเลิกการรับ",
+    "phoneNumber": "หมายเลขโทรศัพท์",
+    "reason": "เหตุผล",
+    "optedOutAt": "ยกเลิกเมื่อ"
+  }
+}
