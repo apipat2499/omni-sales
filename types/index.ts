@@ -4048,3 +4048,181 @@ export interface LoyaltyDashboardData {
   membershipTrendLastMonth: number[];
   redemptionTrendLastMonth: number[];
 }
+
+// ============================================================================
+// FEATURE #25: Live Chat & Customer Support System Types
+// ============================================================================
+
+// Support System Type Definitions
+export type TicketStatus = 'open' | 'in_progress' | 'waiting_customer' | 'resolved' | 'closed';
+export type TicketPriority = 'low' | 'medium' | 'high' | 'urgent';
+export type AgentStatus = 'available' | 'busy' | 'away' | 'offline';
+export type ChatSessionStatus = 'active' | 'waiting' | 'transferred' | 'closed';
+export type SenderType = 'customer' | 'agent' | 'system';
+
+// Support System Interfaces
+export interface SupportTicket {
+  id: string;
+  userId: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone?: string;
+  subject: string;
+  description: string;
+  category: string;
+  priority: TicketPriority;
+  status: TicketStatus;
+  assignedAgentId?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  resolvedAt?: Date;
+  firstResponseTime?: number;
+  resolutionTime?: number;
+  customFields?: Record<string, any>;
+}
+
+export interface TicketConversation {
+  id: string;
+  ticketId: string;
+  userId: string;
+  senderType: SenderType;
+  senderName: string;
+  senderEmail?: string;
+  message: string;
+  isInternal: boolean;
+  attachments?: Array<{
+    id: string;
+    url: string;
+    fileName: string;
+    fileSize: number;
+    mimeType: string;
+  }>;
+  createdAt: Date;
+  updatedAt?: Date;
+}
+
+export interface SupportAgent {
+  id: string;
+  userId: string;
+  agentName: string;
+  agentEmail: string;
+  department: string;
+  skills: string[];
+  status: AgentStatus;
+  currentChats: number;
+  maxConcurrentChats: number;
+  totalTicketsResolved: number;
+  averageResolutionTime: number;
+  averageRating: number;
+  responseTimeAverage: number;
+  createdAt: Date;
+  updatedAt: Date;
+  lastActivityAt?: Date;
+}
+
+export interface LiveChatSession {
+  id: string;
+  userId: string;
+  visitorId: string;
+  visitorName: string;
+  visitorEmail?: string;
+  status: ChatSessionStatus;
+  assignedAgentId?: string;
+  transferredFromAgentId?: string;
+  visitorIp?: string;
+  visitorBrowser?: string;
+  sessionStartTime: Date;
+  sessionEndTime?: Date;
+  totalMessages: number;
+  messageCount: number;
+  duration?: number;
+  rating?: number;
+  feedback?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ChatMessage {
+  id: string;
+  sessionId: string;
+  userId: string;
+  senderType: SenderType;
+  senderName: string;
+  message: string;
+  attachmentUrl?: string;
+  attachmentType?: string;
+  isRead: boolean;
+  readAt?: Date;
+  createdAt: Date;
+}
+
+export interface CannedResponse {
+  id: string;
+  userId: string;
+  responseTitle: string;
+  responseContent: string;
+  shortcutKey?: string;
+  category: string;
+  usageCount: number;
+  lastUsedAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SupportAnalytics {
+  id: string;
+  userId: string;
+  analyticsDate: Date;
+  totalTicketsCreated: number;
+  totalTicketsResolved: number;
+  totalChatsStarted: number;
+  totalChatsCompleted: number;
+  averageResolutionTime: number;
+  averageFirstResponseTime: number;
+  averageChatDuration: number;
+  customerSatisfactionScore: number;
+  agentResponseTime: number;
+  ticketsByStatus: Record<string, number>;
+  ticketsByPriority: Record<string, number>;
+  ticketsByCategory: Record<string, number>;
+  chatsByAgent: Record<string, number>;
+  createdAt: Date;
+}
+
+export interface TicketFeedback {
+  id: string;
+  ticketId: string;
+  userId: string;
+  rating: number;
+  recommendation: boolean;
+  feedback?: string;
+  resolvedIssue: boolean;
+  agentRating?: number;
+  responseTimeRating?: number;
+  communicationRating?: number;
+  createdAt: Date;
+}
+
+export interface SupportDashboardData {
+  totalTickets: number;
+  openTickets: number;
+  resolvedTickets: number;
+  totalChats: number;
+  activeChats: number;
+  totalAgents: number;
+  availableAgents: number;
+  averageResolutionTime: number;
+  averageFirstResponseTime: number;
+  customerSatisfactionScore: number;
+  averageChatDuration: number;
+  ticketsCreatedToday: number;
+  chatsStartedToday: number;
+  recentTickets: SupportTicket[];
+  topAgents: SupportAgent[];
+  ticketsByStatus: Record<string, number>;
+  ticketsByPriority: Record<string, number>;
+  ticketsByCategory: Record<string, number>;
+  agentAvailability: Record<string, number>;
+  satisfactionTrendLastWeek: number[];
+  ticketVolumeTrendLastWeek: number[];
+}
