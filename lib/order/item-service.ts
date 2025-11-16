@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase/client';
+import { recordItemHistory } from './item-history';
 
 export interface OrderItemInput {
   productId: string;
@@ -60,6 +61,14 @@ export async function addOrderItem(
       return null;
     }
 
+    // Record history
+    await recordItemHistory(orderId, newItem.id, 'added', {
+      productId: item.productId,
+      productName: item.productName,
+      newQuantity: item.quantity,
+      newPrice: item.price,
+    });
+
     // Recalculate order total
     await recalculateOrderTotal(orderId);
 
@@ -107,6 +116,29 @@ export async function updateOrderItem(
       return null;
     }
 
+    // Record history based on what was updated
+    if (updates.quantity !== undefined && updates.quantity !== item.quantity) {
+      await recordItemHistory(orderId, itemId, 'quantity_changed', {
+        productId: item.product_id,
+        productName: item.product_name,
+        oldQuantity: item.quantity,
+        newQuantity: updates.quantity,
+        oldPrice: item.price,
+        newPrice: item.price,
+      });
+    }
+
+    if (updates.price !== undefined && updates.price !== item.price) {
+      await recordItemHistory(orderId, itemId, 'price_changed', {
+        productId: item.product_id,
+        productName: item.product_name,
+        oldQuantity: item.quantity,
+        newQuantity: item.quantity,
+        oldPrice: item.price,
+        newPrice: updates.price,
+      });
+    }
+
     // Recalculate order total
     await recalculateOrderTotal(orderId);
 
@@ -147,6 +179,14 @@ export async function deleteOrderItem(
       console.error('Error deleting order item:', error);
       return false;
     }
+
+    // Record history
+    await recordItemHistory(orderId, itemId, 'deleted', {
+      productId: item.product_id,
+      productName: item.product_name,
+      oldQuantity: item.quantity,
+      oldPrice: item.price,
+    });
 
     // Recalculate order total
     await recalculateOrderTotal(orderId);
