@@ -1,0 +1,297 @@
+import { createClient } from '@supabase/supabase-js';
+import {
+  LoyaltyProgram,
+  LoyaltyTier,
+  LoyaltyMember,
+  LoyaltyPointsTransaction,
+  LoyaltyReward,
+  LoyaltyRedemption,
+  LoyaltyDashboardData,
+  LoyaltyMemberActivity,
+} from '@/types';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+);
+
+// Program Functions
+export async function getLoyaltyPrograms(userId: string): Promise<LoyaltyProgram[]> {
+  const { data, error } = await supabase
+    .from('loyalty_programs')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+
+  if (error) throw new Error(error.message);
+  return data || [];
+}
+
+export async function createLoyaltyProgram(
+  userId: string,
+  programData: Partial<LoyaltyProgram>
+): Promise<LoyaltyProgram> {
+  const { data, error } = await supabase
+    .from('loyalty_programs')
+    .insert({
+      user_id: userId,
+      status: 'active',
+      ...programData,
+    })
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+// Tier Functions
+export async function getLoyaltyTiers(programId: string): Promise<LoyaltyTier[]> {
+  const { data, error } = await supabase
+    .from('loyalty_tiers')
+    .select('*')
+    .eq('program_id', programId)
+    .order('tier_level', { ascending: true });
+
+  if (error) throw new Error(error.message);
+  return data || [];
+}
+
+export async function createLoyaltyTier(
+  userId: string,
+  programId: string,
+  tierData: Partial<LoyaltyTier>
+): Promise<LoyaltyTier> {
+  const { data, error } = await supabase
+    .from('loyalty_tiers')
+    .insert({
+      user_id: userId,
+      program_id: programId,
+      ...tierData,
+    })
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+// Member Functions
+export async function getLoyaltyMembers(
+  programId: string,
+  userId: string
+): Promise<LoyaltyMember[]> {
+  const { data, error } = await supabase
+    .from('loyalty_members')
+    .select('*')
+    .eq('program_id', programId)
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+
+  if (error) throw new Error(error.message);
+  return data || [];
+}
+
+export async function enrollLoyaltyMember(
+  userId: string,
+  programId: string,
+  memberData: Partial<LoyaltyMember>
+): Promise<LoyaltyMember> {
+  const { data, error } = await supabase
+    .from('loyalty_members')
+    .insert({
+      user_id: userId,
+      program_id: programId,
+      membership_status: 'active',
+      ...memberData,
+    })
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export async function updateLoyaltyMember(
+  userId: string,
+  memberId: string,
+  updates: Partial<LoyaltyMember>
+): Promise<LoyaltyMember> {
+  const { data, error } = await supabase
+    .from('loyalty_members')
+    .update(updates)
+    .eq('id', memberId)
+    .eq('user_id', userId)
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+// Points Transaction Functions
+export async function addPointsTransaction(
+  userId: string,
+  programId: string,
+  memberId: string,
+  transactionData: Partial<LoyaltyPointsTransaction>
+): Promise<LoyaltyPointsTransaction> {
+  const { data, error } = await supabase
+    .from('loyalty_points_transactions')
+    .insert({
+      user_id: userId,
+      program_id: programId,
+      member_id: memberId,
+      status: 'completed',
+      ...transactionData,
+    })
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export async function getMemberPointsHistory(
+  memberId: string
+): Promise<LoyaltyPointsTransaction[]> {
+  const { data, error } = await supabase
+    .from('loyalty_points_transactions')
+    .select('*')
+    .eq('member_id', memberId)
+    .order('created_at', { ascending: false });
+
+  if (error) throw new Error(error.message);
+  return data || [];
+}
+
+// Reward Functions
+export async function getLoyaltyRewards(
+  programId: string,
+  userId: string
+): Promise<LoyaltyReward[]> {
+  const { data, error } = await supabase
+    .from('loyalty_rewards')
+    .select('*')
+    .eq('program_id', programId)
+    .eq('user_id', userId)
+    .eq('active', true)
+    .order('points_cost', { ascending: true });
+
+  if (error) throw new Error(error.message);
+  return data || [];
+}
+
+export async function createLoyaltyReward(
+  userId: string,
+  programId: string,
+  rewardData: Partial<LoyaltyReward>
+): Promise<LoyaltyReward> {
+  const { data, error } = await supabase
+    .from('loyalty_rewards')
+    .insert({
+      user_id: userId,
+      program_id: programId,
+      active: true,
+      ...rewardData,
+    })
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+// Redemption Functions
+export async function createRedemption(
+  userId: string,
+  programId: string,
+  memberId: string,
+  rewardId: string,
+  pointsRedeemed: number
+): Promise<LoyaltyRedemption> {
+  const { data, error } = await supabase
+    .from('loyalty_redemptions')
+    .insert({
+      user_id: userId,
+      program_id: programId,
+      member_id: memberId,
+      reward_id: rewardId,
+      points_redeemed: pointsRedeemed,
+      fulfillment_status: 'pending',
+    })
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export async function getMemberRedemptions(
+  memberId: string
+): Promise<LoyaltyRedemption[]> {
+  const { data, error } = await supabase
+    .from('loyalty_redemptions')
+    .select('*')
+    .eq('member_id', memberId)
+    .order('redemption_date', { ascending: false });
+
+  if (error) throw new Error(error.message);
+  return data || [];
+}
+
+// Dashboard Data Function
+export async function getLoyaltyDashboardData(
+  userId: string
+): Promise<LoyaltyDashboardData> {
+  const [programs, members, rewards] = await Promise.all([
+    getLoyaltyPrograms(userId),
+    supabase
+      .from('loyalty_members')
+      .select('*')
+      .eq('user_id', userId),
+    supabase
+      .from('loyalty_rewards')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('active', true),
+  ]);
+
+  const membersData = members.data || [];
+  const rewardsData = rewards.data || [];
+  
+  const activeMembers = membersData.filter((m) => m.membership_status === 'active');
+  const totalPoints = membersData.reduce((sum, m) => sum + (m.current_points || 0), 0);
+  const averagePoints = membersData.length > 0 ? totalPoints / membersData.length : 0;
+  const redemptionCount = membersData.reduce((sum, m) => sum + (m.redemption_count || 0), 0);
+  const redemptionRate = membersData.length > 0 ? (redemptionCount / membersData.length) * 100 : 0;
+
+  const tierDistribution: Record<string, number> = {};
+  membersData.forEach((member) => {
+    const tier = member.current_tier_id || 'unassigned';
+    tierDistribution[tier] = (tierDistribution[tier] || 0) + 1;
+  });
+
+  const programsByStatus: Record<string, number> = {
+    active: programs.filter((p) => p.status === 'active').length,
+    inactive: programs.filter((p) => p.status === 'inactive').length,
+  };
+
+  return {
+    totalPrograms: programs.length,
+    activePrograms: programs.filter((p) => p.status === 'active').length,
+    totalMembers: membersData.length,
+    activeMembers: activeMembers.length,
+    totalPointsOutstanding: totalPoints,
+    totalPointsRedeemed: 0,
+    averagePointsPerMember: averagePoints,
+    redemptionRate,
+    recentMembers: membersData.slice(0, 5),
+    topMembers: [...membersData].sort((a, b) => (b.current_points || 0) - (a.current_points || 0)).slice(0, 5),
+    upcomingRewards: rewardsData.filter((r) => !r.end_date || new Date(r.end_date) > new Date()).slice(0, 5),
+    tierDistribution,
+    programsByStatus,
+    membershipTrendLastMonth: Array(30).fill(0),
+    redemptionTrendLastMonth: Array(30).fill(0),
+  };
+}

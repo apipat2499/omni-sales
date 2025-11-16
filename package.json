@@ -13,6 +13,7 @@
     "pwa:setup": "npm run setup:playwright && echo 'Run npm run generate:icons and npm run generate:screenshots'"
   },
   "dependencies": {
+    "@stripe/stripe-js": "^8.4.0",
     "@supabase/supabase-js": "^2.81.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
@@ -22,6 +23,7 @@
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "recharts": "^3.4.1",
+    "stripe": "^19.3.1",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
