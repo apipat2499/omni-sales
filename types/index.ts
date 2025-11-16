@@ -4226,3 +4226,216 @@ export interface SupportDashboardData {
   satisfactionTrendLastWeek: number[];
   ticketVolumeTrendLastWeek: number[];
 }
+
+// ============================================================================
+// FEATURE #26: Payment Processing & Invoicing System Types
+// ============================================================================
+
+// Payment System Type Definitions
+export type PaymentStatus = 'pending' | 'completed' | 'failed' | 'cancelled' | 'refunded';
+export type PaymentType = 'card' | 'bank_transfer' | 'paypal' | 'stripe' | 'apple_pay' | 'google_pay';
+export type PaymentProvider = 'stripe' | 'paypal' | 'square' | 'razorpay' | 'wise' | 'manual';
+export type InvoiceStatus = 'draft' | 'sent' | 'viewed' | 'partially_paid' | 'paid' | 'overdue' | 'cancelled';
+export type RefundStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'rejected';
+export type DisputeStatus = 'open' | 'under_review' | 'won' | 'lost' | 'resolved';
+export type TransactionType = 'payment' | 'refund' | 'adjustment' | 'fee';
+export type ReconciliationStatus = 'pending' | 'in_progress' | 'completed' | 'discrepancy_found';
+
+// Payment System Interfaces
+export interface PaymentMethod {
+  id: string;
+  userId: string;
+  paymentMethodName: string;
+  paymentType: PaymentType;
+  isActive: boolean;
+  apiKeyEncrypted?: string;
+  secretKeyEncrypted?: string;
+  webhookSecret?: string;
+  testMode: boolean;
+  configuration: Record<string, any>;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Payment {
+  id: string;
+  userId: string;
+  invoiceId?: string;
+  orderId?: string;
+  customerId: string;
+  customerName: string;
+  customerEmail?: string;
+  paymentMethodId?: string;
+  paymentType: PaymentType;
+  provider: PaymentProvider;
+  providerTransactionId?: string;
+  amount: number;
+  currency: string;
+  status: PaymentStatus;
+  paymentDate?: Date;
+  refundStatus: string;
+  refundAmount?: number;
+  refundedAt?: Date;
+  description?: string;
+  metadata: Record<string, any>;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Invoice {
+  id: string;
+  userId: string;
+  orderId?: string;
+  invoiceNumber: string;
+  customerId: string;
+  customerName: string;
+  customerEmail?: string;
+  customerPhone?: string;
+  billingAddress: Record<string, any>;
+  shippingAddress: Record<string, any>;
+  subtotal: number;
+  tax: number;
+  taxRate?: number;
+  discountAmount?: number;
+  shippingCost?: number;
+  totalAmount: number;
+  paidAmount: number;
+  dueAmount: number;
+  status: InvoiceStatus;
+  paymentTerms?: string;
+  dueDate?: Date;
+  issuedDate: Date;
+  invoiceDate: Date;
+  paidDate?: Date;
+  notes?: string;
+  termsAndConditions?: string;
+  pdfUrl?: string;
+  emailSent: boolean;
+  emailSentAt?: Date;
+  remindersSent: number;
+  lastReminderSentAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+  items?: InvoiceItem[];
+}
+
+export interface InvoiceItem {
+  id: string;
+  invoiceId: string;
+  productId?: string;
+  productName: string;
+  description?: string;
+  quantity: number;
+  unitPrice: number;
+  discountPercent?: number;
+  lineTotal: number;
+  taxRate?: number;
+  taxAmount?: number;
+  createdAt: Date;
+}
+
+export interface Transaction {
+  id: string;
+  userId: string;
+  invoiceId?: string;
+  paymentId?: string;
+  transactionType: TransactionType;
+  amount: number;
+  currency: string;
+  status: string;
+  referenceId?: string;
+  notes?: string;
+  createdAt: Date;
+}
+
+export interface Refund {
+  id: string;
+  userId: string;
+  paymentId: string;
+  invoiceId?: string;
+  refundAmount: number;
+  reason: string;
+  status: RefundStatus;
+  providerRefundId?: string;
+  notes?: string;
+  processedAt?: Date;
+  requestedAt: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface PaymentDispute {
+  id: string;
+  userId: string;
+  paymentId: string;
+  invoiceId?: string;
+  disputeId?: string;
+  reason: string;
+  status: DisputeStatus;
+  amountDisputed?: number;
+  amountWon?: number;
+  evidenceUrls: string[];
+  createdAt: Date;
+  resolvedAt?: Date;
+  updatedAt: Date;
+}
+
+export interface PaymentReconciliation {
+  id: string;
+  userId: string;
+  reconciliationDate: Date;
+  paymentMethodId?: string;
+  totalExpected: number;
+  totalReceived: number;
+  discrepancy?: number;
+  status: ReconciliationStatus;
+  notes?: string;
+  reconciledAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface PaymentAnalytics {
+  id: string;
+  userId: string;
+  analyticsDate: Date;
+  totalRevenue: number;
+  totalPayments: number;
+  successfulPayments: number;
+  failedPayments: number;
+  totalInvoices: number;
+  paidInvoices: number;
+  unpaidInvoices: number;
+  overdueInvoices: number;
+  totalRefunded: number;
+  averagePaymentAmount?: number;
+  paymentSuccessRate?: number;
+  revenueByPaymentType: Record<string, number>;
+  revenueByProvider: Record<string, number>;
+  createdAt: Date;
+}
+
+export interface PaymentDashboardData {
+  totalRevenue: number;
+  todayRevenue: number;
+  pendingPayments: number;
+  failedPayments: number;
+  refundedAmount: number;
+  totalInvoices: number;
+  paidInvoices: number;
+  unpaidInvoices: number;
+  overdueInvoices: number;
+  averagePaymentAmount: number;
+  paymentSuccessRate: number;
+  recentPayments: Payment[];
+  recentInvoices: Invoice[];
+  topPaymentMethods: Record<string, number>;
+  revenueByProvider: Record<string, number>;
+  revenueTrendLastWeek: number[];
+  invoiceStatusDistribution: Record<string, number>;
+  paymentMethodStats: Array<{
+    method: PaymentType;
+    count: number;
+    amount: number;
+  }>;
+}
