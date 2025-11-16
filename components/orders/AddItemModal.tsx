@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Loader, AlertCircle, CheckCircle } from 'lucide-react';
+import { X, Loader, AlertCircle, CheckCircle, Image as ImageIcon } from 'lucide-react';
 
 interface Product {
   id: string;
@@ -9,6 +9,8 @@ interface Product {
   price: number;
   stock?: number;
   sku?: string;
+  image?: string;
+  imageUrl?: string;
 }
 
 interface AddItemModalProps {
@@ -57,6 +59,8 @@ export default function AddItemModal({
         price: parseFloat(p.price || 0),
         stock: p.stock,
         sku: p.sku,
+        image: p.image,
+        imageUrl: p.imageUrl || p.image,
       }));
 
       setProducts(transformedProducts);
@@ -213,23 +217,39 @@ export default function AddItemModal({
                             : ''
                         }`}
                       >
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <p className="font-medium text-gray-900 dark:text-white">
+                        <div className="flex items-start justify-between gap-3">
+                          {/* Product Image Thumbnail */}
+                          <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-gray-200 dark:bg-gray-600 flex items-center justify-center overflow-hidden">
+                            {product.imageUrl ? (
+                              <img
+                                src={product.imageUrl}
+                                alt={product.name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <ImageIcon className="h-6 w-6 text-gray-400 dark:text-gray-500" />
+                            )}
+                          </div>
+
+                          {/* Product Info */}
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-gray-900 dark:text-white truncate">
                               {product.name}
                             </p>
                             <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                               {product.sku && `SKU: ${product.sku}`}
                             </p>
                           </div>
-                          <div className="text-right ml-4">
+
+                          {/* Price & Stock */}
+                          <div className="text-right flex-shrink-0">
                             <p className="font-medium text-gray-900 dark:text-white">
                               ฿{product.price.toFixed(2)}
                             </p>
                             <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                               {product.stock !== undefined
                                 ? `สต็อก: ${product.stock}`
-                                : 'สต็อก: ไม่จำกัด'}
+                                : 'ไม่จำกัด'}
                             </p>
                           </div>
                         </div>
@@ -246,6 +266,17 @@ export default function AddItemModal({
             {/* Product Details & Quantity */}
             {selectedProduct && (
               <div className="space-y-4">
+                {/* Product Image Preview */}
+                {selectedProduct.imageUrl && (
+                  <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4 flex items-center justify-center max-h-48 overflow-hidden">
+                    <img
+                      src={selectedProduct.imageUrl}
+                      alt={selectedProduct.name}
+                      className="max-h-full max-w-full object-contain"
+                    />
+                  </div>
+                )}
+
                 <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
