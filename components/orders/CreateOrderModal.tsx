@@ -102,13 +102,24 @@ export default function CreateOrderModal({
       if (product) {
         newItems[index].productName = product.name;
         newItems[index].price = product.price;
-        newItems[index].subtotal = product.price * newItems[index].quantity;
+        // Set quantity to 1 or max available stock
+        const maxQty = Math.min(1, product.stock);
+        newItems[index].quantity = maxQty;
+        newItems[index].subtotal = product.price * maxQty;
       }
     }
 
-    // If quantity changed, recalculate subtotal
+    // If quantity changed, validate against stock and recalculate subtotal
     if (field === 'quantity') {
-      newItems[index].subtotal = newItems[index].price * value;
+      const product = products.find((p) => p.id === newItems[index].productId);
+      if (product) {
+        // Limit quantity to available stock
+        const validQuantity = Math.min(Math.max(1, value), product.stock);
+        newItems[index].quantity = validQuantity;
+        newItems[index].subtotal = newItems[index].price * validQuantity;
+      } else {
+        newItems[index].subtotal = newItems[index].price * value;
+      }
     }
 
     setItems(newItems);
@@ -130,6 +141,19 @@ export default function CreateOrderModal({
     if (items.length === 0 || items.some((item) => !item.productId)) {
       alert('กรุณาเลือกสินค้าอย่างน้อย 1 รายการ');
       return;
+    }
+
+    // Validate stock availability
+    for (const item of items) {
+      const product = products.find((p) => p.id === item.productId);
+      if (product && item.quantity > product.stock) {
+        alert(`สินค้า "${product.name}" มีสต็อกเหลือเพียง ${product.stock} ชิ้น\nไม่สามารถสั่งซื้อ ${item.quantity} ชิ้นได้`);
+        return;
+      }
+      if (product && product.stock === 0) {
+        alert(`สินค้า "${product.name}" หมดสต็อก\nกรุณาเลือกสินค้าอื่น`);
+        return;
+      }
     }
 
     setSubmitting(true);
@@ -297,33 +321,61 @@ export default function CreateOrderModal({
                         key={index}
                         className="flex gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
                       >
-                        <select
-                          value={item.productId}
-                          onChange={(e) =>
-                            updateItem(index, 'productId', e.target.value)
-                          }
-                          className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
-                          required
-                        >
-                          <option value="">-- เลือกสินค้า --</option>
-                          {products.map((product) => (
-                            <option key={product.id} value={product.id}>
-                              {product.name} ({formatCurrency(product.price)})
-                            </option>
-                          ))}
-                        </select>
+                        <div className="flex-1">
+                          <select
+                            value={item.productId}
+                            onChange={(e) =>
+                              updateItem(index, 'productId', e.target.value)
+                            }
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                            required
+                          >
+                            <option value="">-- เลือกสินค้า --</option>
+                            {products.map((product) => (
+                              <option
+                                key={product.id}
+                                value={product.id}
+                                disabled={product.stock === 0}
+                              >
+                                {product.name} ({formatCurrency(product.price)}) - สต็อก: {product.stock}
+                              </option>
+                            ))}
+                          </select>
+                          {item.productId && (() => {
+                            const product = products.find((p) => p.id === item.productId);
+                            return product && product.stock < 10 ? (
+                              <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                                ⚠️ สต็อกเหลือน้อย: เหลือเพียง {product.stock} ชิ้น
+                              </p>
+                            ) : null;
+                          })()}
+                        </div>
 
-                        <input
-                          type="number"
-                          min="1"
-                          value={item.quantity}
-                          onChange={(e) =>
-                            updateItem(index, 'quantity', parseInt(e.target.value))
-                          }
-                          className="w-24 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
-                          placeholder="จำนวน"
-                          required
-                        />
+                        <div className="w-24">
+                          <input
+                            type="number"
+                            min="1"
+                            max={(() => {
+                              const product = products.find((p) => p.id === item.productId);
+                              return product ? product.stock : undefined;
+                            })()}
+                            value={item.quantity}
+                            onChange={(e) =>
+                              updateItem(index, 'quantity', parseInt(e.target.value))
+                            }
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                            placeholder="จำนวน"
+                            required
+                          />
+                          {item.productId && (() => {
+                            const product = products.find((p) => p.id === item.productId);
+                            return product ? (
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 text-center">
+                                max: {product.stock}
+                              </p>
+                            ) : null;
+                          })()}
+                        </div>
 
                         <div className="w-32 flex items-center justify-end px-3 py-2 bg-gray-100 dark:bg-gray-600 rounded-lg">
                           <span className="text-sm font-semibold text-gray-900 dark:text-white">

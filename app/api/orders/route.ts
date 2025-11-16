@@ -15,6 +15,36 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate stock availability before creating order
+    for (const item of items) {
+      const { data: product, error: productError } = await supabase
+        .from('products')
+        .select('id, name, stock')
+        .eq('id', item.product_id)
+        .single();
+
+      if (productError || !product) {
+        return NextResponse.json(
+          { error: `Product with ID ${item.product_id} not found` },
+          { status: 404 }
+        );
+      }
+
+      if (product.stock < item.quantity) {
+        return NextResponse.json(
+          { error: `สินค้า "${product.name}" มีสต็อกเหลือเพียง ${product.stock} ชิ้น ไม่สามารถสั่งซื้อ ${item.quantity} ชิ้นได้` },
+          { status: 400 }
+        );
+      }
+
+      if (product.stock === 0) {
+        return NextResponse.json(
+          { error: `สินค้า "${product.name}" หมดสต็อก กรุณาเลือกสินค้าอื่น` },
+          { status: 400 }
+        );
+      }
+    }
+
     // Create the order
     const { data: orderData, error: orderError } = await supabase
       .from('orders')

@@ -35,7 +35,14 @@ export async function GET(request: NextRequest) {
 
     // Transform dates to Date objects and convert snake_case to camelCase
     const customers: Customer[] = (data || []).map((customer) => ({
-      ...customer,
+      id: customer.id,
+      name: customer.name,
+      email: customer.email,
+      phone: customer.phone,
+      address: customer.address,
+      tags: customer.tags || [],
+      totalOrders: customer.total_orders || 0,
+      totalSpent: parseFloat(customer.total_spent) || 0,
       createdAt: new Date(customer.created_at),
       updatedAt: new Date(customer.updated_at),
       lastOrderDate: customer.last_order_date ? new Date(customer.last_order_date) : undefined,
