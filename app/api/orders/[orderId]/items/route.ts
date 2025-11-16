@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase/client';
+import { validateAddOrderItem } from '@/lib/validations/order-items';
 
 export async function GET(
   req: NextRequest,
@@ -55,18 +56,48 @@ export async function POST(
 ) {
   try {
     const { orderId } = await params;
-    const { productId, productName, quantity, price } = await req.json();
+    const body = await req.json();
 
-    if (!orderId || !productId || !productName || !quantity || !price) {
+    if (!orderId) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: 'Missing orderId' },
         { status: 400 }
       );
     }
 
-    if (quantity <= 0) {
+    // Validate request body
+    const validation = validateAddOrderItem(body);
+    if (!validation.success) {
       return NextResponse.json(
-        { error: 'Quantity must be greater than 0' },
+        { error: validation.error, details: validation.details },
+        { status: 400 }
+      );
+    }
+
+    const { productId, productName, quantity, price } = validation.data;
+
+    // Check stock availability
+    const { data: product, error: productError } = await supabase
+      .from('products')
+      .select('stock, name')
+      .eq('id', productId)
+      .single();
+
+    if (productError || !product) {
+      return NextResponse.json(
+        { error: 'Product not found' },
+        { status: 404 }
+      );
+    }
+
+    // Check if enough stock
+    if (product.stock !== null && product.stock < quantity) {
+      return NextResponse.json(
+        {
+          error: 'Insufficient stock',
+          available: product.stock,
+          requested: quantity,
+        },
         { status: 400 }
       );
     }

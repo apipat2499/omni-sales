@@ -76,7 +76,18 @@ export function useOrderItems(initialOrderId?: string): UseOrderItemsReturn {
 
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to add item');
+
+          // Handle specific error types
+          if (errorData.error === 'Insufficient stock') {
+            setError(
+              `สินค้าไม่เพียงพอ (มี: ${errorData.available} หน่วย, ต้องการ: ${errorData.requested} หน่วย)`
+            );
+          } else if (errorData.error === 'Product not found') {
+            setError('ไม่พบสินค้า');
+          } else {
+            setError(errorData.error || 'ไม่สามารถเพิ่มรายการได้');
+          }
+          return false;
         }
 
         const newItem = await response.json();
@@ -108,6 +119,11 @@ export function useOrderItems(initialOrderId?: string): UseOrderItemsReturn {
         return false;
       }
 
+      if (quantity <= 0) {
+        setError('Quantity must be greater than 0');
+        return false;
+      }
+
       try {
         setError(null);
         const response = await fetch(`/api/orders/${orderId}/items/${itemId}`, {
@@ -120,7 +136,15 @@ export function useOrderItems(initialOrderId?: string): UseOrderItemsReturn {
 
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to update item');
+
+          if (errorData.error === 'Item not found in this order') {
+            setError('ไม่พบรายการ');
+          } else if (errorData.details?.length > 0) {
+            setError(errorData.details[0].message);
+          } else {
+            setError(errorData.error || 'ไม่สามารถอัพเดตรายการได้');
+          }
+          return false;
         }
 
         const updatedItem = await response.json();

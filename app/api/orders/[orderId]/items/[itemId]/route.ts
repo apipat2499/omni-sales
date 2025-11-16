@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase/client';
+import { validateUpdateOrderItem } from '@/lib/validations/order-items';
 
 export async function PUT(
   req: NextRequest,
@@ -7,7 +8,7 @@ export async function PUT(
 ) {
   try {
     const { orderId, itemId } = await params;
-    const { quantity, price } = await req.json();
+    const body = await req.json();
 
     if (!orderId || !itemId) {
       return NextResponse.json(
@@ -16,12 +17,16 @@ export async function PUT(
       );
     }
 
-    if (quantity !== undefined && quantity <= 0) {
+    // Validate request body
+    const validation = validateUpdateOrderItem(body);
+    if (!validation.success) {
       return NextResponse.json(
-        { error: 'Quantity must be greater than 0' },
+        { error: validation.error, details: validation.details },
         { status: 400 }
       );
     }
+
+    const { quantity, price } = validation.data;
 
     // Verify item belongs to order
     const { data: item, error: verifyError } = await supabase
