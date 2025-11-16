@@ -1,0 +1,1331 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Omni Sales API",
+    "version": "1.0.0",
+    "description": "Comprehensive API documentation for the Omni Sales e-commerce platform. This API provides endpoints for managing products, orders, customers, analytics, payments, marketplace integrations, and more.",
+    "contact": {
+      "name": "API Support",
+      "email": "support@omnisales.com"
+    },
+    "license": {
+      "name": "MIT",
+      "url": "https://opensource.org/licenses/MIT"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Development server"
+    },
+    {
+      "url": "https://api.omnisales.com",
+      "description": "Production server"
+    }
+  ],
+  "tags": [
+    { "name": "Products", "description": "Product management endpoints" },
+    { "name": "Orders", "description": "Order management endpoints" },
+    { "name": "Customers", "description": "Customer management endpoints" },
+    { "name": "Analytics", "description": "Analytics and reporting endpoints" },
+    { "name": "Payments", "description": "Payment processing endpoints" },
+    { "name": "Subscriptions", "description": "Subscription management endpoints" },
+    { "name": "Marketplace", "description": "Marketplace integration endpoints (Shopee, Lazada)" },
+    { "name": "Inventory", "description": "Inventory management endpoints" },
+    { "name": "CRM", "description": "Customer relationship management endpoints" },
+    { "name": "Email", "description": "Email campaign and template endpoints" },
+    { "name": "SMS", "description": "SMS messaging endpoints" },
+    { "name": "Returns", "description": "Return and refund management" },
+    { "name": "Reviews", "description": "Product review management" },
+    { "name": "Discounts", "description": "Discount and promotion management" },
+    { "name": "Loyalty", "description": "Loyalty program management" },
+    { "name": "Segmentation", "description": "Customer segmentation" },
+    { "name": "Complaints", "description": "Complaint and support ticket management" },
+    { "name": "Pricing", "description": "Dynamic pricing management" },
+    { "name": "Recommendations", "description": "Product recommendations" },
+    { "name": "Search", "description": "Global search endpoints" },
+    { "name": "Forecasting", "description": "Sales forecasting" },
+    { "name": "Wishlists", "description": "Customer wishlist management" },
+    { "name": "Notifications", "description": "Push notification management" },
+    { "name": "Import/Export", "description": "Data import and export" },
+    { "name": "Currency", "description": "Currency conversion" },
+    { "name": "Authentication", "description": "Authentication and authorization" }
+  ],
+  "paths": {
+    "/api/orders": {
+      "get": {
+        "tags": ["Orders"],
+        "summary": "List all orders",
+        "description": "Retrieve a paginated list of orders with optional filtering",
+        "operationId": "listOrders",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/limitParam" },
+          { "$ref": "#/components/parameters/offsetParam" },
+          { "$ref": "#/components/parameters/searchParam" },
+          {
+            "name": "customerId",
+            "in": "query",
+            "description": "Filter by customer ID",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Filter by order status",
+            "schema": { "$ref": "#/components/schemas/OrderStatus" }
+          },
+          {
+            "name": "channel",
+            "in": "query",
+            "description": "Filter by order channel",
+            "schema": { "$ref": "#/components/schemas/OrderChannel" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Order" }
+                }
+              }
+            },
+            "headers": {
+              "X-RateLimit-Limit": {
+                "schema": { "type": "integer" },
+                "description": "Request limit per hour"
+              },
+              "X-RateLimit-Remaining": {
+                "schema": { "type": "integer" },
+                "description": "Requests remaining"
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/UnauthorizedError" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    },
+    "/api/orders/{orderId}": {
+      "get": {
+        "tags": ["Orders"],
+        "summary": "Get order by ID",
+        "description": "Retrieve a specific order by its ID",
+        "operationId": "getOrder",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "orderId",
+            "in": "path",
+            "required": true,
+            "description": "Order ID",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Order" }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      },
+      "put": {
+        "tags": ["Orders"],
+        "summary": "Update order",
+        "description": "Update an existing order",
+        "operationId": "updateOrder",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "orderId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Order" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Order updated successfully",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Order" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      },
+      "delete": {
+        "tags": ["Orders"],
+        "summary": "Delete order",
+        "description": "Delete an order by ID",
+        "operationId": "deleteOrder",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "orderId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Order deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SuccessMessage" }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    },
+    "/api/orders/{orderId}/status": {
+      "put": {
+        "tags": ["Orders"],
+        "summary": "Update order status",
+        "description": "Update the status of an order",
+        "operationId": "updateOrderStatus",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "orderId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["status"],
+                "properties": {
+                  "status": { "$ref": "#/components/schemas/OrderStatus" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Status updated successfully" },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "404": { "$ref": "#/components/responses/NotFoundError" }
+        }
+      }
+    },
+    "/api/customers/{customerId}": {
+      "get": {
+        "tags": ["Customers"],
+        "summary": "Get customer by ID",
+        "description": "Retrieve a specific customer with their statistics",
+        "operationId": "getCustomer",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "customerId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Customer" }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      },
+      "put": {
+        "tags": ["Customers"],
+        "summary": "Update customer",
+        "description": "Update customer information",
+        "operationId": "updateCustomer",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "customerId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string" },
+                  "email": { "type": "string", "format": "email" },
+                  "phone": { "type": "string" },
+                  "address": { "type": "string" },
+                  "tags": {
+                    "type": "array",
+                    "items": { "$ref": "#/components/schemas/CustomerTag" }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Customer updated successfully",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Customer" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "409": {
+            "description": "Conflict - Email already exists",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Customers"],
+        "summary": "Delete customer",
+        "description": "Delete a customer and all associated data",
+        "operationId": "deleteCustomer",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "customerId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/SuccessMessage" },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    },
+    "/api/customers/segments": {
+      "get": {
+        "tags": ["Customers"],
+        "summary": "Get customer segments",
+        "description": "Retrieve customer segmentation data",
+        "operationId": "getCustomerSegments",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "type": "object" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/customers/rfm": {
+      "get": {
+        "tags": ["Customers"],
+        "summary": "Get RFM analysis",
+        "description": "Retrieve Recency, Frequency, Monetary analysis of customers",
+        "operationId": "getRFMAnalysis",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": { "type": "array", "items": { "type": "object" } }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/analytics/dashboard": {
+      "get": {
+        "tags": ["Analytics"],
+        "summary": "Get dashboard analytics",
+        "description": "Retrieve comprehensive dashboard analytics",
+        "operationId": "getDashboardAnalytics",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "startDate",
+            "in": "query",
+            "schema": { "type": "string", "format": "date" }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "schema": { "type": "string", "format": "date" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SalesStats" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/analytics/sales": {
+      "get": {
+        "tags": ["Analytics"],
+        "summary": "Get sales analytics",
+        "description": "Retrieve detailed sales analytics and trends",
+        "operationId": "getSalesAnalytics",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/api/payments/process": {
+      "post": {
+        "tags": ["Payments"],
+        "summary": "Process payment",
+        "description": "Process a payment using Stripe",
+        "operationId": "processPayment",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["amount", "currency", "paymentMethodId"],
+                "properties": {
+                  "amount": { "type": "integer", "description": "Amount in cents" },
+                  "currency": { "type": "string", "example": "usd" },
+                  "paymentMethodId": { "type": "string" },
+                  "customerId": { "type": "string" },
+                  "description": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Payment processed successfully",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Payment" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    },
+    "/api/payments/webhook": {
+      "post": {
+        "tags": ["Payments"],
+        "summary": "Stripe webhook",
+        "description": "Handle Stripe webhook events",
+        "operationId": "handleStripeWebhook",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "type": "object" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Webhook processed successfully" },
+          "400": { "description": "Invalid webhook signature" }
+        }
+      }
+    },
+    "/api/billing/plans": {
+      "get": {
+        "tags": ["Subscriptions"],
+        "summary": "List subscription plans",
+        "description": "Get all available subscription plans",
+        "operationId": "listPlans",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/SubscriptionPlan" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/billing/user-subscriptions": {
+      "get": {
+        "tags": ["Subscriptions"],
+        "summary": "Get user subscriptions",
+        "description": "Get all subscriptions for the authenticated user",
+        "operationId": "getUserSubscriptions",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Subscription" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/billing/checkout": {
+      "post": {
+        "tags": ["Subscriptions"],
+        "summary": "Create checkout session",
+        "description": "Create a Stripe checkout session for subscription",
+        "operationId": "createCheckout",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["planId"],
+                "properties": {
+                  "planId": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Checkout session created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sessionId": { "type": "string" },
+                    "url": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/marketplace/platforms": {
+      "get": {
+        "tags": ["Marketplace"],
+        "summary": "List marketplace platforms",
+        "description": "Get all available marketplace platforms (Shopee, Lazada, etc.)",
+        "operationId": "listMarketplacePlatforms",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/MarketplacePlatform" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/marketplace/connections": {
+      "get": {
+        "tags": ["Marketplace"],
+        "summary": "List marketplace connections",
+        "description": "Get user's marketplace connections",
+        "operationId": "listMarketplaceConnections",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      },
+      "post": {
+        "tags": ["Marketplace"],
+        "summary": "Create marketplace connection",
+        "description": "Connect to a marketplace platform",
+        "operationId": "createMarketplaceConnection",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["platformId", "apiKey", "apiSecret"],
+                "properties": {
+                  "platformId": { "type": "string" },
+                  "apiKey": { "type": "string" },
+                  "apiSecret": { "type": "string" },
+                  "shopId": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Connection created successfully" }
+        }
+      }
+    },
+    "/api/marketplace/sync-orders": {
+      "post": {
+        "tags": ["Marketplace"],
+        "summary": "Sync marketplace orders",
+        "description": "Synchronize orders from marketplace platforms",
+        "operationId": "syncMarketplaceOrders",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "platformId": { "type": "string" },
+                  "startDate": { "type": "string", "format": "date-time" },
+                  "endDate": { "type": "string", "format": "date-time" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Orders synced successfully" }
+        }
+      }
+    },
+    "/api/inventory/stock": {
+      "get": {
+        "tags": ["Inventory"],
+        "summary": "Get inventory stock levels",
+        "description": "Retrieve current stock levels for all products",
+        "operationId": "getInventoryStock",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/InventoryItem" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/inventory/movements": {
+      "get": {
+        "tags": ["Inventory"],
+        "summary": "Get inventory movements",
+        "description": "Retrieve inventory movement history",
+        "operationId": "getInventoryMovements",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Successful response" }
+        }
+      }
+    },
+    "/api/inventory/alerts": {
+      "get": {
+        "tags": ["Inventory"],
+        "summary": "Get inventory alerts",
+        "description": "Get low stock and reorder alerts",
+        "operationId": "getInventoryAlerts",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Successful response" }
+        }
+      }
+    },
+    "/api/crm/leads": {
+      "get": {
+        "tags": ["CRM"],
+        "summary": "List leads",
+        "description": "Get all CRM leads",
+        "operationId": "listLeads",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Lead" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["CRM"],
+        "summary": "Create lead",
+        "description": "Create a new CRM lead",
+        "operationId": "createLead",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Lead" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Lead created successfully" }
+        }
+      }
+    },
+    "/api/email/send": {
+      "post": {
+        "tags": ["Email"],
+        "summary": "Send email",
+        "description": "Send a transactional email",
+        "operationId": "sendEmail",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["to", "subject", "content"],
+                "properties": {
+                  "to": { "type": "string", "format": "email" },
+                  "subject": { "type": "string" },
+                  "content": { "type": "string" },
+                  "templateId": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Email sent successfully" },
+          "400": { "$ref": "#/components/responses/ValidationError" }
+        }
+      }
+    },
+    "/api/email/templates": {
+      "get": {
+        "tags": ["Email"],
+        "summary": "List email templates",
+        "description": "Get all email templates",
+        "operationId": "listEmailTemplates",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/EmailTemplate" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sms/send": {
+      "post": {
+        "tags": ["SMS"],
+        "summary": "Send SMS",
+        "description": "Send an SMS message",
+        "operationId": "sendSMS",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["to", "message"],
+                "properties": {
+                  "to": { "type": "string" },
+                  "message": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "SMS sent successfully" }
+        }
+      }
+    },
+    "/api/returns": {
+      "get": {
+        "tags": ["Returns"],
+        "summary": "List returns",
+        "description": "Get all product returns",
+        "operationId": "listReturns",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Successful response" }
+        }
+      },
+      "post": {
+        "tags": ["Returns"],
+        "summary": "Create return",
+        "description": "Create a new product return",
+        "operationId": "createReturn",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "201": { "description": "Return created successfully" }
+        }
+      }
+    },
+    "/api/reviews/product": {
+      "get": {
+        "tags": ["Reviews"],
+        "summary": "Get product reviews",
+        "description": "Get reviews for a specific product",
+        "operationId": "getProductReviews",
+        "parameters": [
+          {
+            "name": "productId",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Successful response" }
+        }
+      }
+    },
+    "/api/discounts/codes": {
+      "get": {
+        "tags": ["Discounts"],
+        "summary": "List discount codes",
+        "description": "Get all discount codes",
+        "operationId": "listDiscountCodes",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Successful response" }
+        }
+      },
+      "post": {
+        "tags": ["Discounts"],
+        "summary": "Create discount code",
+        "description": "Create a new discount code",
+        "operationId": "createDiscountCode",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "201": { "description": "Discount code created" }
+        }
+      }
+    },
+    "/api/discounts/validate": {
+      "post": {
+        "tags": ["Discounts"],
+        "summary": "Validate discount code",
+        "description": "Validate a discount code for an order",
+        "operationId": "validateDiscountCode",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["code", "orderTotal"],
+                "properties": {
+                  "code": { "type": "string" },
+                  "orderTotal": { "type": "number" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Code is valid" },
+          "400": { "description": "Code is invalid or expired" }
+        }
+      }
+    },
+    "/api/search/global": {
+      "get": {
+        "tags": ["Search"],
+        "summary": "Global search",
+        "description": "Search across all entities (products, customers, orders)",
+        "operationId": "globalSearch",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "description": "Search query",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "description": "Entity type to search",
+            "schema": {
+              "type": "string",
+              "enum": ["products", "customers", "orders", "all"]
+            }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Search results" }
+        }
+      }
+    },
+    "/api/currency/convert": {
+      "post": {
+        "tags": ["Currency"],
+        "summary": "Convert currency",
+        "description": "Convert amount from one currency to another",
+        "operationId": "convertCurrency",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["amount", "from", "to"],
+                "properties": {
+                  "amount": { "type": "number" },
+                  "from": { "type": "string", "example": "USD" },
+                  "to": { "type": "string", "example": "THB" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Conversion result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "amount": { "type": "number" },
+                    "convertedAmount": { "type": "number" },
+                    "rate": { "type": "number" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ProductCategory": {
+        "type": "string",
+        "enum": ["Electronics", "Clothing", "Food & Beverage", "Home & Garden", "Sports", "Books", "Other"]
+      },
+      "OrderStatus": {
+        "type": "string",
+        "enum": ["pending", "processing", "shipped", "delivered", "cancelled"]
+      },
+      "OrderChannel": {
+        "type": "string",
+        "enum": ["online", "offline", "mobile", "phone"]
+      },
+      "CustomerTag": {
+        "type": "string",
+        "enum": ["vip", "regular", "new", "wholesale"]
+      },
+      "SubscriptionStatus": {
+        "type": "string",
+        "enum": ["active", "past_due", "unpaid", "canceled", "incomplete", "incomplete_expired"]
+      },
+      "MarketplaceCode": {
+        "type": "string",
+        "enum": ["shopee", "lazada", "facebook"]
+      },
+      "Product": {
+        "type": "object",
+        "required": ["id", "name", "category", "price", "cost", "stock", "sku"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "category": { "$ref": "#/components/schemas/ProductCategory" },
+          "price": { "type": "number", "format": "float" },
+          "cost": { "type": "number", "format": "float" },
+          "stock": { "type": "integer" },
+          "sku": { "type": "string" },
+          "image": { "type": "string" },
+          "description": { "type": "string" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "OrderItem": {
+        "type": "object",
+        "required": ["productId", "productName", "quantity", "price"],
+        "properties": {
+          "id": { "type": "string" },
+          "productId": { "type": "string" },
+          "productName": { "type": "string" },
+          "quantity": { "type": "integer" },
+          "price": { "type": "number" },
+          "totalPrice": { "type": "number" },
+          "discount": { "type": "number" },
+          "notes": { "type": "string" }
+        }
+      },
+      "Order": {
+        "type": "object",
+        "required": ["id", "customerId", "customerName", "items", "subtotal", "tax", "shipping", "total", "status", "channel"],
+        "properties": {
+          "id": { "type": "string" },
+          "customerId": { "type": "string" },
+          "customerName": { "type": "string" },
+          "items": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/OrderItem" }
+          },
+          "subtotal": { "type": "number" },
+          "tax": { "type": "number" },
+          "shipping": { "type": "number" },
+          "total": { "type": "number" },
+          "status": { "$ref": "#/components/schemas/OrderStatus" },
+          "channel": { "$ref": "#/components/schemas/OrderChannel" },
+          "paymentMethod": { "type": "string" },
+          "shippingAddress": { "type": "string" },
+          "notes": { "type": "string" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" },
+          "deliveredAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Customer": {
+        "type": "object",
+        "required": ["id", "name", "email", "phone", "totalOrders", "totalSpent", "tags"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "phone": { "type": "string" },
+          "address": { "type": "string" },
+          "totalOrders": { "type": "integer" },
+          "totalSpent": { "type": "number" },
+          "tags": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/CustomerTag" }
+          },
+          "lastOrderDate": { "type": "string", "format": "date-time" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "SalesStats": {
+        "type": "object",
+        "properties": {
+          "totalRevenue": { "type": "number" },
+          "totalOrders": { "type": "integer" },
+          "totalCustomers": { "type": "integer" },
+          "averageOrderValue": { "type": "number" },
+          "revenueGrowth": { "type": "number" },
+          "ordersGrowth": { "type": "number" },
+          "customersGrowth": { "type": "number" }
+        }
+      },
+      "SubscriptionPlan": {
+        "type": "object",
+        "required": ["id", "name", "stripeProductId", "stripePriceId", "amountCents", "currency", "billingInterval", "productLimit", "features", "isActive"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "stripeProductId": { "type": "string" },
+          "stripePriceId": { "type": "string" },
+          "amountCents": { "type": "integer" },
+          "currency": { "type": "string" },
+          "billingInterval": { "type": "string" },
+          "productLimit": { "type": "integer" },
+          "features": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "description": { "type": "string" },
+          "isActive": { "type": "boolean" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Subscription": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "userId": { "type": "string" },
+          "planId": { "type": "string" },
+          "stripeSubscriptionId": { "type": "string" },
+          "stripeCustomerId": { "type": "string" },
+          "status": { "$ref": "#/components/schemas/SubscriptionStatus" },
+          "currentPeriodStart": { "type": "string", "format": "date-time" },
+          "currentPeriodEnd": { "type": "string", "format": "date-time" },
+          "cancelAtPeriodEnd": { "type": "boolean" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Payment": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "stripeChargeId": { "type": "string" },
+          "stripePaymentIntentId": { "type": "string" },
+          "amountCents": { "type": "integer" },
+          "currency": { "type": "string" },
+          "status": { "type": "string" },
+          "paymentMethod": { "type": "string" },
+          "receiptUrl": { "type": "string" },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "MarketplacePlatform": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "code": { "$ref": "#/components/schemas/MarketplaceCode" },
+          "iconUrl": { "type": "string" },
+          "apiBaseUrl": { "type": "string" },
+          "isActive": { "type": "boolean" }
+        }
+      },
+      "InventoryItem": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "productId": { "type": "string" },
+          "warehouseId": { "type": "string" },
+          "quantity": { "type": "integer" },
+          "reservedQuantity": { "type": "integer" },
+          "reorderPoint": { "type": "integer" }
+        }
+      },
+      "Lead": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "phone": { "type": "string" },
+          "company": { "type": "string" },
+          "status": { "type": "string" },
+          "source": { "type": "string" }
+        }
+      },
+      "EmailTemplate": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "subject": { "type": "string" },
+          "htmlContent": { "type": "string" },
+          "isActive": { "type": "boolean" }
+        }
+      },
+      "SMSTemplate": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "content": { "type": "string" },
+          "isActive": { "type": "boolean" }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "required": ["error"],
+        "properties": {
+          "error": { "type": "string" },
+          "details": { "type": "string" },
+          "code": { "type": "string" }
+        }
+      },
+      "SuccessMessage": {
+        "type": "object",
+        "properties": {
+          "message": { "type": "string" }
+        }
+      }
+    },
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "JWT token authentication. Include the token in the Authorization header as 'Bearer {token}'"
+      },
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key",
+        "description": "API key authentication for service-to-service communication"
+      }
+    },
+    "parameters": {
+      "limitParam": {
+        "name": "limit",
+        "in": "query",
+        "description": "Number of items to return",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "default": 50,
+          "minimum": 1,
+          "maximum": 100
+        }
+      },
+      "offsetParam": {
+        "name": "offset",
+        "in": "query",
+        "description": "Number of items to skip",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
+        }
+      },
+      "searchParam": {
+        "name": "search",
+        "in": "query",
+        "description": "Search query string",
+        "required": false,
+        "schema": {
+          "type": "string"
+        }
+      }
+    },
+    "responses": {
+      "UnauthorizedError": {
+        "description": "Authentication required",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/Error" },
+            "example": { "error": "Authentication required" }
+          }
+        }
+      },
+      "ForbiddenError": {
+        "description": "Insufficient permissions",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/Error" },
+            "example": { "error": "Insufficient permissions" }
+          }
+        }
+      },
+      "NotFoundError": {
+        "description": "Resource not found",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/Error" },
+            "example": { "error": "Resource not found" }
+          }
+        }
+      },
+      "ValidationError": {
+        "description": "Validation error",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/Error" },
+            "example": { "error": "Validation failed", "details": "Invalid input data" }
+          }
+        }
+      },
+      "ServerError": {
+        "description": "Internal server error",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/Error" },
+            "example": { "error": "Internal server error" }
+          }
+        }
+      },
+      "SuccessMessage": {
+        "description": "Operation successful",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/SuccessMessage" }
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    { "BearerAuth": [] }
+  ]
+}

@@ -1,0 +1,606 @@
+{
+  "info": {
+    "name": "Omni Sales API",
+    "description": "Complete Postman collection for the Omni Sales e-commerce platform API. Import this collection into Postman to test all endpoints.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{JWT_TOKEN}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "BASE_URL",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "JWT_TOKEN",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "API_KEY",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "List Orders",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/orders?limit=50&offset=0&status=all",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "orders"],
+              "query": [
+                { "key": "limit", "value": "50" },
+                { "key": "offset", "value": "0" },
+                { "key": "status", "value": "all" },
+                { "key": "customerId", "value": "", "disabled": true },
+                { "key": "channel", "value": "", "disabled": true },
+                { "key": "search", "value": "", "disabled": true }
+              ]
+            },
+            "description": "Retrieve a paginated list of orders with optional filtering by customer, status, channel, or search query."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Order by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/orders/:orderId",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "orders", ":orderId"],
+              "variable": [
+                { "key": "orderId", "value": "" }
+              ]
+            },
+            "description": "Retrieve a specific order by its ID."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Order Status",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"processing\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/orders/:orderId/status",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "orders", ":orderId", "status"],
+              "variable": [
+                { "key": "orderId", "value": "" }
+              ]
+            },
+            "description": "Update the status of an order."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Customers",
+      "item": [
+        {
+          "name": "Get Customer",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/customers/:customerId",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "customers", ":customerId"],
+              "variable": [
+                { "key": "customerId", "value": "" }
+              ]
+            },
+            "description": "Retrieve a specific customer with their statistics."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Customer",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"phone\": \"+1234567890\",\n  \"address\": \"123 Main St\",\n  \"tags\": [\"vip\"]\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/customers/:customerId",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "customers", ":customerId"],
+              "variable": [
+                { "key": "customerId", "value": "" }
+              ]
+            },
+            "description": "Update customer information."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Customer Segments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/customers/segments",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "customers", "segments"]
+            },
+            "description": "Retrieve customer segmentation data."
+          },
+          "response": []
+        },
+        {
+          "name": "Get RFM Analysis",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/customers/rfm",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "customers", "rfm"]
+            },
+            "description": "Get Recency, Frequency, Monetary analysis."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Analytics",
+      "item": [
+        {
+          "name": "Dashboard Analytics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/analytics/dashboard?startDate=&endDate=",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "analytics", "dashboard"],
+              "query": [
+                { "key": "startDate", "value": "" },
+                { "key": "endDate", "value": "" }
+              ]
+            },
+            "description": "Get comprehensive dashboard analytics."
+          },
+          "response": []
+        },
+        {
+          "name": "Sales Analytics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/analytics/sales",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "analytics", "sales"]
+            },
+            "description": "Get detailed sales analytics and trends."
+          },
+          "response": []
+        },
+        {
+          "name": "Product Analytics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/analytics/products",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "analytics", "products"]
+            },
+            "description": "Get product performance analytics."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Payments",
+      "item": [
+        {
+          "name": "Process Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 10000,\n  \"currency\": \"usd\",\n  \"paymentMethodId\": \"pm_123456\",\n  \"customerId\": \"cus_123456\",\n  \"description\": \"Test payment\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/payments/process",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "payments", "process"]
+            },
+            "description": "Process a payment using Stripe."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Subscriptions",
+      "item": [
+        {
+          "name": "List Plans",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/billing/plans",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "billing", "plans"]
+            },
+            "description": "Get all available subscription plans."
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Subscriptions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/billing/user-subscriptions",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "billing", "user-subscriptions"]
+            },
+            "description": "Get all subscriptions for the authenticated user."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Checkout Session",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"planId\": \"plan_123456\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/billing/checkout",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "billing", "checkout"]
+            },
+            "description": "Create a Stripe checkout session."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Marketplace",
+      "item": [
+        {
+          "name": "List Platforms",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/marketplace/platforms",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "marketplace", "platforms"]
+            },
+            "description": "Get all available marketplace platforms."
+          },
+          "response": []
+        },
+        {
+          "name": "List Connections",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/marketplace/connections",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "marketplace", "connections"]
+            },
+            "description": "Get user's marketplace connections."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Connection",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"platformId\": \"platform_123\",\n  \"apiKey\": \"your-api-key\",\n  \"apiSecret\": \"your-api-secret\",\n  \"shopId\": \"your-shop-id\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/marketplace/connections",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "marketplace", "connections"]
+            },
+            "description": "Connect to a marketplace platform."
+          },
+          "response": []
+        },
+        {
+          "name": "Sync Orders",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"platformId\": \"platform_123\",\n  \"startDate\": \"2024-01-01T00:00:00Z\",\n  \"endDate\": \"2024-12-31T23:59:59Z\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/marketplace/sync-orders",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "marketplace", "sync-orders"]
+            },
+            "description": "Synchronize orders from marketplace."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Inventory",
+      "item": [
+        {
+          "name": "Get Stock Levels",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/inventory/stock",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "inventory", "stock"]
+            },
+            "description": "Get current stock levels for all products."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Inventory Movements",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/inventory/movements",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "inventory", "movements"]
+            },
+            "description": "Get inventory movement history."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Inventory Alerts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/inventory/alerts",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "inventory", "alerts"]
+            },
+            "description": "Get low stock and reorder alerts."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "CRM",
+      "item": [
+        {
+          "name": "List Leads",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/crm/leads",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "crm", "leads"]
+            },
+            "description": "Get all CRM leads."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Lead",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Jane Doe\",\n  \"email\": \"jane@example.com\",\n  \"phone\": \"+1234567890\",\n  \"company\": \"Acme Inc\",\n  \"status\": \"new\",\n  \"source\": \"website\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/crm/leads",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "crm", "leads"]
+            },
+            "description": "Create a new CRM lead."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Email & SMS",
+      "item": [
+        {
+          "name": "Send Email",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"customer@example.com\",\n  \"subject\": \"Order Confirmation\",\n  \"content\": \"Your order has been confirmed.\",\n  \"templateId\": \"template_123\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/email/send",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "email", "send"]
+            },
+            "description": "Send a transactional email."
+          },
+          "response": []
+        },
+        {
+          "name": "List Email Templates",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/email/templates",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "email", "templates"]
+            },
+            "description": "Get all email templates."
+          },
+          "response": []
+        },
+        {
+          "name": "Send SMS",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"+1234567890\",\n  \"message\": \"Your order #12345 has been shipped!\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/sms/send",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "sms", "send"]
+            },
+            "description": "Send an SMS message."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Discounts",
+      "item": [
+        {
+          "name": "List Discount Codes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/discounts/codes",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "discounts", "codes"]
+            },
+            "description": "Get all discount codes."
+          },
+          "response": []
+        },
+        {
+          "name": "Validate Discount Code",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"SUMMER2024\",\n  \"orderTotal\": 100.00\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/discounts/validate",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "discounts", "validate"]
+            },
+            "description": "Validate a discount code."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Search & Currency",
+      "item": [
+        {
+          "name": "Global Search",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/search/global?q=search-query&type=all",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "search", "global"],
+              "query": [
+                { "key": "q", "value": "search-query" },
+                { "key": "type", "value": "all" }
+              ]
+            },
+            "description": "Search across all entities."
+          },
+          "response": []
+        },
+        {
+          "name": "Convert Currency",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 100.00,\n  \"from\": \"USD\",\n  \"to\": \"THB\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/currency/convert",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "currency", "convert"]
+            },
+            "description": "Convert currency amount."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

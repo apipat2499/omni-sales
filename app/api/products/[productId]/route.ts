@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase/client';
 import type { Product } from '@/types';
+import { getCachedProduct, invalidateProductCache } from '@/lib/cache/strategies/products-cache';
 
 export async function GET(
   request: NextRequest,
@@ -16,36 +17,30 @@ export async function GET(
       );
     }
 
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .eq('id', id)
-      .single();
+    // Use cached product
+    const cachedProduct = await getCachedProduct(id);
 
-    if (error) {
-      console.error('Error fetching product:', error);
-
-      if (error.code === 'PGRST116') {
-        return NextResponse.json(
-          { error: 'Product not found' },
-          { status: 404 }
-        );
-      }
-
+    if (!cachedProduct) {
       return NextResponse.json(
-        { error: 'Failed to fetch product', details: error.message },
-        { status: 500 }
+        { error: 'Product not found' },
+        { status: 404 }
       );
     }
 
-    // Transform dates to Date objects
+    // Transform to Product type with Date objects
     const product: Product = {
-      ...data,
-      createdAt: new Date(data.createdAt),
-      updatedAt: new Date(data.updatedAt),
+      ...cachedProduct,
+      createdAt: new Date(cachedProduct.created_at),
+      updatedAt: new Date(cachedProduct.updated_at),
     };
 
-    return NextResponse.json(product, { status: 200 });
+    // Add cache header (6 hours cache)
+    return NextResponse.json(product, {
+      status: 200,
+      headers: {
+        'Cache-Control': 'public, s-maxage=21600, stale-while-revalidate=43200',
+      },
+    });
   } catch (error) {
     console.error('Unexpected error in GET /api/products/[id]:', error);
     return NextResponse.json(
@@ -160,6 +155,9 @@ export async function PUT(
       updatedAt: new Date(data.updatedAt),
     };
 
+    // Invalidate product cache
+    await invalidateProductCache(id);
+
     return NextResponse.json(product, { status: 200 });
   } catch (error) {
     console.error('Unexpected error in PUT /api/products/[id]:', error);
@@ -198,6 +196,9 @@ export async function DELETE(
         { status: 500 }
       );
     }
+
+    // Invalidate product cache
+    await invalidateProductCache(id);
 
     return NextResponse.json(
       { message: 'Product deleted successfully' },
