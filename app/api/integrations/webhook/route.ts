@@ -1,24 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
-import { sendSMS } from "@/lib/services/sms-notifications";
+import { notifyOrderStatus } from "@/lib/services/integrations";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { phoneNumber, message } = body;
+    const { orderId, status, slackWebhook, discordWebhook } = body;
 
-    if (!phoneNumber || !message) {
+    if (!orderId || !status) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
       );
     }
 
-    const result = await sendSMS(phoneNumber, message);
+    const result = await notifyOrderStatus(orderId, status, slackWebhook, discordWebhook);
     return NextResponse.json(result);
   } catch (error) {
-    console.error("Send SMS error:", error);
+    console.error("Webhook error:", error);
     return NextResponse.json(
-      { error: "Failed to send SMS" },
+      { error: "Webhook notification failed" },
       { status: 500 }
     );
   }
