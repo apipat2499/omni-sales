@@ -1,393 +1,338 @@
+/**
+ * useWebSocket Hook
+ *
+ * React hook for managing WebSocket connections with:
+ * - Connection state management
+ * - Message sending/receiving
+ * - Channel subscriptions
+ * - Auto-reconnection
+ * - Message queueing
+ */
+
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import {
-  WebSocketEvent,
-  WebSocketEventType,
-  WebSocketNamespace,
-  WebSocketAuthToken,
-  UserRole,
-} from '@/lib/websocket/types';
+  WebSocketClient,
+  createWebSocketClient,
+  ConnectionStatus,
+  WebSocketMessage,
+  WebSocketConfig,
+  getWebSocketState,
+} from '../utils/websocket-client';
 
-interface UseWebSocketOptions {
-  url?: string;
+export interface UseWebSocketOptions {
+  url: string;
   autoConnect?: boolean;
   reconnect?: boolean;
   reconnectInterval?: number;
+  maxReconnectInterval?: number;
+  reconnectDecay?: number;
   maxReconnectAttempts?: number;
-  auth?: WebSocketAuthToken;
-  namespaces?: WebSocketNamespace[];
+  heartbeatInterval?: number;
   debug?: boolean;
+  onOpen?: () => void;
+  onClose?: (event: CloseEvent) => void;
+  onError?: (error: Event) => void;
+  onMessage?: (message: WebSocketMessage) => void;
+  onReconnecting?: (attempt: number) => void;
+  onReconnected?: () => void;
 }
 
-interface WebSocketState {
-  isConnected: boolean;
-  isConnecting: boolean;
-  isAuthenticated: boolean;
-  error: Error | null;
-  reconnectAttempts: number;
-}
+export interface UseWebSocketReturn {
+  // Connection state
+  status: ConnectionStatus;
+  connected: boolean;
+  connecting: boolean;
+  disconnected: boolean;
+  latency: number;
+  queuedMessages: number;
 
-type EventHandler<T = any> = (data: T, event: WebSocketEvent<T>) => void;
+  // Connection methods
+  connect: () => void;
+  disconnect: () => void;
+
+  // Messaging
+  send: (message: Omit<WebSocketMessage, 'messageId' | 'timestamp'>) => Promise<void>;
+  subscribe: (channel: string) => Promise<void>;
+  unsubscribe: (channel: string) => Promise<void>;
+  publish: (channel: string, payload: any) => Promise<void>;
+
+  // Subscriptions
+  subscriptions: string[];
+
+  // Utilities
+  clearQueue: () => void;
+}
 
 /**
- * Custom hook for WebSocket connection management
- * Handles connection, reconnection, authentication, and event handling
+ * Hook for WebSocket connection management
  */
-export function useWebSocket(options: UseWebSocketOptions = {}) {
+export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
   const {
-    url = typeof window !== 'undefined'
-      ? `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/api/ws`
-      : '',
+    url,
     autoConnect = true,
     reconnect = true,
     reconnectInterval = 1000,
-    maxReconnectAttempts = 5,
-    auth,
-    namespaces = [],
+    maxReconnectInterval = 30000,
+    reconnectDecay = 1.5,
+    maxReconnectAttempts = Infinity,
+    heartbeatInterval = 30000,
     debug = false,
+    onOpen,
+    onClose,
+    onError,
+    onMessage,
+    onReconnecting,
+    onReconnected,
   } = options;
 
-  const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const eventHandlersRef = useRef<Map<WebSocketEventType, Set<EventHandler>>>(new Map());
-  const subscribedNamespacesRef = useRef<Set<WebSocketNamespace>>(new Set());
+  const clientRef = useRef<WebSocketClient | null>(null);
+  const [status, setStatus] = useState<ConnectionStatus>('disconnected');
+  const [latency, setLatency] = useState<number>(0);
+  const [queuedMessages, setQueuedMessages] = useState<number>(0);
+  const [subscriptions, setSubscriptions] = useState<string[]>([]);
 
-  const [state, setState] = useState<WebSocketState>({
-    isConnected: false,
-    isConnecting: false,
-    isAuthenticated: false,
-    error: null,
-    reconnectAttempts: 0,
-  });
+  // Initialize WebSocket client
+  useEffect(() => {
+    const config: WebSocketConfig = {
+      url,
+      reconnect,
+      reconnectInterval,
+      maxReconnectInterval,
+      reconnectDecay,
+      maxReconnectAttempts,
+      heartbeatInterval,
+      debug,
+    };
 
-  const log = useCallback((...args: any[]) => {
-    if (debug) {
-      console.log('[useWebSocket]', ...args);
+    clientRef.current = createWebSocketClient(config);
+
+    // Setup event listeners
+    const unsubscribers: (() => void)[] = [];
+
+    unsubscribers.push(
+      clientRef.current.on('statusChange', (newStatus) => {
+        setStatus(newStatus);
+      })
+    );
+
+    if (onOpen) {
+      unsubscribers.push(clientRef.current.on('open', onOpen));
     }
-  }, [debug]);
 
-  /**
-   * Calculate exponential backoff delay
-   */
-  const getReconnectDelay = useCallback((attempt: number): number => {
-    return Math.min(reconnectInterval * Math.pow(2, attempt), 30000); // Max 30s
-  }, [reconnectInterval]);
-
-  /**
-   * Send message through WebSocket
-   */
-  const send = useCallback((message: any) => {
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify(message));
-      log('Sent message:', message);
-    } else {
-      console.warn('[useWebSocket] Cannot send message: WebSocket not connected');
+    if (onClose) {
+      unsubscribers.push(clientRef.current.on('close', onClose));
     }
-  }, [log]);
 
-  /**
-   * Subscribe to a namespace
-   */
-  const subscribe = useCallback((namespace: WebSocketNamespace) => {
-    if (!subscribedNamespacesRef.current.has(namespace)) {
-      subscribedNamespacesRef.current.add(namespace);
-      send({ type: 'subscribe', data: { namespace } });
-      log('Subscribed to namespace:', namespace);
+    if (onError) {
+      unsubscribers.push(clientRef.current.on('error', onError));
     }
-  }, [send, log]);
 
-  /**
-   * Unsubscribe from a namespace
-   */
-  const unsubscribe = useCallback((namespace: WebSocketNamespace) => {
-    if (subscribedNamespacesRef.current.has(namespace)) {
-      subscribedNamespacesRef.current.delete(namespace);
-      send({ type: 'unsubscribe', data: { namespace } });
-      log('Unsubscribed from namespace:', namespace);
+    if (onMessage) {
+      unsubscribers.push(clientRef.current.on('message', onMessage));
     }
-  }, [send, log]);
 
-  /**
-   * Register event handler
-   */
-  const on = useCallback(<T = any>(eventType: WebSocketEventType, handler: EventHandler<T>) => {
-    if (!eventHandlersRef.current.has(eventType)) {
-      eventHandlersRef.current.set(eventType, new Set());
+    if (onReconnecting) {
+      unsubscribers.push(clientRef.current.on('reconnecting', onReconnecting));
     }
-    eventHandlersRef.current.get(eventType)!.add(handler as EventHandler);
-    log('Registered handler for:', eventType);
 
-    // Return cleanup function
+    if (onReconnected) {
+      unsubscribers.push(clientRef.current.on('reconnected', onReconnected));
+    }
+
+    // Auto-connect
+    if (autoConnect) {
+      clientRef.current.connect();
+    }
+
+    // Cleanup
     return () => {
-      const handlers = eventHandlersRef.current.get(eventType);
-      if (handlers) {
-        handlers.delete(handler as EventHandler);
-        if (handlers.size === 0) {
-          eventHandlersRef.current.delete(eventType);
-        }
+      unsubscribers.forEach((unsub) => unsub());
+      if (clientRef.current) {
+        clientRef.current.disconnect();
       }
     };
-  }, [log]);
+  }, [
+    url,
+    reconnect,
+    reconnectInterval,
+    maxReconnectInterval,
+    reconnectDecay,
+    maxReconnectAttempts,
+    heartbeatInterval,
+    debug,
+    autoConnect,
+  ]);
 
-  /**
-   * Unregister event handler
-   */
-  const off = useCallback((eventType: WebSocketEventType, handler?: EventHandler) => {
-    if (handler) {
-      const handlers = eventHandlersRef.current.get(eventType);
-      if (handlers) {
-        handlers.delete(handler);
-        if (handlers.size === 0) {
-          eventHandlersRef.current.delete(eventType);
-        }
+  // Update state periodically
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (clientRef.current) {
+        const state = getWebSocketState(clientRef.current);
+        setLatency(state.latency);
+        setQueuedMessages(state.queuedMessages);
+        setSubscriptions(state.subscriptions);
       }
-    } else {
-      eventHandlersRef.current.delete(eventType);
-    }
-    log('Unregistered handler for:', eventType);
-  }, [log]);
+    }, 1000);
 
-  /**
-   * Handle incoming messages
-   */
-  const handleMessage = useCallback((event: MessageEvent) => {
-    try {
-      const message: WebSocketEvent = JSON.parse(event.data);
-      log('Received message:', message);
+    return () => clearInterval(interval);
+  }, []);
 
-      // Handle special system messages
-      if (message.type === 'system:notification') {
-        if (message.data.message === 'Authentication successful') {
-          setState(prev => ({ ...prev, isAuthenticated: true }));
-        }
-      }
-
-      // Call registered handlers
-      const handlers = eventHandlersRef.current.get(message.type);
-      if (handlers) {
-        handlers.forEach(handler => {
-          try {
-            handler(message.data, message);
-          } catch (error) {
-            console.error('[useWebSocket] Error in event handler:', error);
-          }
-        });
-      }
-    } catch (error) {
-      console.error('[useWebSocket] Error parsing message:', error);
-    }
-  }, [log]);
-
-  /**
-   * Connect to WebSocket server
-   */
+  // Connect method
   const connect = useCallback(() => {
-    if (wsRef.current?.readyState === WebSocket.OPEN ||
-        wsRef.current?.readyState === WebSocket.CONNECTING) {
-      log('Already connected or connecting');
-      return;
+    if (clientRef.current) {
+      clientRef.current.connect();
     }
+  }, []);
 
-    if (!url) {
-      console.error('[useWebSocket] No URL provided');
-      return;
-    }
-
-    setState(prev => ({ ...prev, isConnecting: true, error: null }));
-    log('Connecting to:', url);
-
-    try {
-      const ws = new WebSocket(url);
-      wsRef.current = ws;
-
-      ws.onopen = () => {
-        log('Connected');
-        setState(prev => ({
-          ...prev,
-          isConnected: true,
-          isConnecting: false,
-          reconnectAttempts: 0,
-          error: null,
-        }));
-
-        // Send authentication if provided
-        if (auth) {
-          send({ type: 'auth', data: auth });
-        }
-
-        // Subscribe to initial namespaces
-        namespaces.forEach(ns => subscribe(ns));
-
-        // Re-subscribe to previously subscribed namespaces
-        subscribedNamespacesRef.current.forEach(ns => {
-          if (!namespaces.includes(ns)) {
-            subscribe(ns);
-          }
-        });
-      };
-
-      ws.onmessage = handleMessage;
-
-      ws.onerror = (error) => {
-        log('Error:', error);
-        setState(prev => ({
-          ...prev,
-          error: new Error('WebSocket error occurred')
-        }));
-      };
-
-      ws.onclose = (event) => {
-        log('Disconnected:', event.code, event.reason);
-        setState(prev => ({
-          ...prev,
-          isConnected: false,
-          isConnecting: false,
-          isAuthenticated: false,
-        }));
-
-        // Attempt reconnection
-        if (reconnect && state.reconnectAttempts < maxReconnectAttempts) {
-          const delay = getReconnectDelay(state.reconnectAttempts);
-          log(`Reconnecting in ${delay}ms (attempt ${state.reconnectAttempts + 1}/${maxReconnectAttempts})`);
-
-          reconnectTimeoutRef.current = setTimeout(() => {
-            setState(prev => ({
-              ...prev,
-              reconnectAttempts: prev.reconnectAttempts + 1
-            }));
-            connect();
-          }, delay);
-        }
-      };
-    } catch (error) {
-      console.error('[useWebSocket] Connection error:', error);
-      setState(prev => ({
-        ...prev,
-        isConnecting: false,
-        error: error as Error,
-      }));
-    }
-  }, [url, auth, namespaces, reconnect, maxReconnectAttempts, state.reconnectAttempts, getReconnectDelay, send, subscribe, handleMessage, log]);
-
-  /**
-   * Disconnect from WebSocket server
-   */
+  // Disconnect method
   const disconnect = useCallback(() => {
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-      reconnectTimeoutRef.current = null;
+    if (clientRef.current) {
+      clientRef.current.disconnect();
     }
+  }, []);
 
-    if (wsRef.current) {
-      wsRef.current.close(1000, 'Client disconnect');
-      wsRef.current = null;
+  // Send message
+  const send = useCallback(async (message: Omit<WebSocketMessage, 'messageId' | 'timestamp'>) => {
+    if (clientRef.current) {
+      await clientRef.current.send(message);
+    } else {
+      throw new Error('WebSocket client not initialized');
     }
+  }, []);
 
-    setState({
-      isConnected: false,
-      isConnecting: false,
-      isAuthenticated: false,
-      error: null,
-      reconnectAttempts: 0,
-    });
-
-    log('Disconnected');
-  }, [log]);
-
-  /**
-   * Authenticate with the server
-   */
-  const authenticate = useCallback((authToken: WebSocketAuthToken) => {
-    send({ type: 'auth', data: authToken });
-  }, [send]);
-
-  /**
-   * Send ping to keep connection alive
-   */
-  const ping = useCallback(() => {
-    send({ type: 'ping' });
-  }, [send]);
-
-  // Auto-connect on mount
-  useEffect(() => {
-    if (autoConnect && url) {
-      connect();
+  // Subscribe to channel
+  const subscribe = useCallback(async (channel: string) => {
+    if (clientRef.current) {
+      await clientRef.current.subscribe(channel);
+    } else {
+      throw new Error('WebSocket client not initialized');
     }
+  }, []);
 
-    return () => {
-      disconnect();
-    };
-  }, []); // Only run on mount/unmount
+  // Unsubscribe from channel
+  const unsubscribe = useCallback(async (channel: string) => {
+    if (clientRef.current) {
+      await clientRef.current.unsubscribe(channel);
+    } else {
+      throw new Error('WebSocket client not initialized');
+    }
+  }, []);
 
-  // Setup ping interval
-  useEffect(() => {
-    if (!state.isConnected) return;
+  // Publish to channel
+  const publish = useCallback(async (channel: string, payload: any) => {
+    if (clientRef.current) {
+      await clientRef.current.publish(channel, payload);
+    } else {
+      throw new Error('WebSocket client not initialized');
+    }
+  }, []);
 
-    const pingInterval = setInterval(() => {
-      ping();
-    }, 30000); // Ping every 30 seconds
-
-    return () => {
-      clearInterval(pingInterval);
-    };
-  }, [state.isConnected, ping]);
+  // Clear message queue
+  const clearQueue = useCallback(() => {
+    if (clientRef.current) {
+      clientRef.current.clearQueue();
+    }
+  }, []);
 
   return {
-    // State
-    ...state,
+    // Connection state
+    status,
+    connected: status === 'connected',
+    connecting: status === 'connecting',
+    disconnected: status === 'disconnected',
+    latency,
+    queuedMessages,
 
-    // Methods
+    // Connection methods
     connect,
     disconnect,
+
+    // Messaging
     send,
     subscribe,
     unsubscribe,
-    on,
-    off,
-    authenticate,
-    ping,
+    publish,
 
-    // Helpers
-    isReady: state.isConnected && state.isAuthenticated,
+    // Subscriptions
+    subscriptions,
+
+    // Utilities
+    clearQueue,
   };
 }
 
 /**
- * Hook to listen to specific event type
+ * Hook for subscribing to specific channel messages
  */
-export function useWebSocketEvent<T = any>(
-  eventType: WebSocketEventType,
-  handler: EventHandler<T>,
-  deps: any[] = []
-) {
-  const ws = useWebSocket({ autoConnect: false });
+export function useWebSocketChannel(
+  channel: string,
+  onMessage: (message: WebSocketMessage) => void,
+  options?: UseWebSocketOptions
+): UseWebSocketReturn {
+  const ws = useWebSocket(options || { url: '' });
+  const [isSubscribed, setIsSubscribed] = useState(false);
 
   useEffect(() => {
-    const cleanup = ws.on(eventType, handler);
-    return cleanup;
-  }, [eventType, ...deps]);
+    if (ws.connected && !isSubscribed) {
+      ws.subscribe(channel).then(() => {
+        setIsSubscribed(true);
+      });
+    }
+
+    return () => {
+      if (isSubscribed) {
+        ws.unsubscribe(channel);
+        setIsSubscribed(false);
+      }
+    };
+  }, [ws.connected, channel, isSubscribed]);
+
+  // Listen for messages
+  useEffect(() => {
+    const client = (ws as any).clientRef?.current;
+
+    if (client) {
+      return client.on('message', (message: WebSocketMessage) => {
+        if (message.channel === channel) {
+          onMessage(message);
+        }
+      });
+    }
+  }, [channel, onMessage]);
 
   return ws;
 }
 
 /**
- * Hook to subscribe to a namespace
+ * Hook for listening to all WebSocket messages
  */
-export function useWebSocketNamespace(namespace: WebSocketNamespace, autoSubscribe = true) {
-  const ws = useWebSocket();
+export function useWebSocketMessages(
+  onMessage: (message: WebSocketMessage) => void,
+  options?: UseWebSocketOptions
+): UseWebSocketReturn {
+  const wsOptions = {
+    ...options,
+    onMessage,
+  };
 
-  useEffect(() => {
-    if (autoSubscribe && ws.isConnected) {
-      ws.subscribe(namespace);
-    }
+  return useWebSocket(wsOptions as UseWebSocketOptions);
+}
 
-    return () => {
-      if (autoSubscribe) {
-        ws.unsubscribe(namespace);
-      }
-    };
-  }, [namespace, autoSubscribe, ws.isConnected]);
+/**
+ * Hook for connection status only
+ */
+export function useWebSocketStatus(url: string): {
+  status: ConnectionStatus;
+  connected: boolean;
+  connecting: boolean;
+  disconnected: boolean;
+} {
+  const { status, connected, connecting, disconnected } = useWebSocket({
+    url,
+    autoConnect: true,
+  });
 
-  return ws;
+  return { status, connected, connecting, disconnected };
 }

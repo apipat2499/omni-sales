@@ -1,0 +1,158 @@
+{
+  "title": "Payment",
+  "payments": "Payments",
+  "payment_methods": "Payment Methods",
+  "payment_history": "Payment History",
+  "payment_settings": "Payment Settings",
+
+  "form": {
+    "title": "Complete Payment",
+    "description": "Enter your payment details to complete this transaction",
+    "billing_info": "Billing Information",
+    "billing_address": "Billing Address",
+    "card_info": "Card Information",
+    "full_name": "Full Name",
+    "email": "Email Address",
+    "phone": "Phone Number",
+    "street_address": "Street Address",
+    "apartment": "Apartment, suite, etc.",
+    "city": "City",
+    "state": "State",
+    "postal_code": "Postal Code",
+    "country": "Country",
+    "save_card": "Save card for future purchases",
+    "security_notice": "Your payment information is secure and encrypted"
+  },
+
+  "card": {
+    "label": "Card Details",
+    "number": "Card Number",
+    "expiry": "Expiration",
+    "cvc": "CVC",
+    "last4": "ending in",
+    "expires": "Expires"
+  },
+
+  "amount": {
+    "total": "Total Amount",
+    "subtotal": "Subtotal",
+    "tax": "Tax",
+    "shipping": "Shipping",
+    "discount": "Discount"
+  },
+
+  "status": {
+    "pending": "Pending",
+    "processing": "Processing",
+    "completed": "Completed",
+    "succeeded": "Succeeded",
+    "failed": "Failed",
+    "cancelled": "Cancelled",
+    "refunded": "Refunded"
+  },
+
+  "actions": {
+    "pay": "Pay",
+    "pay_now": "Pay Now",
+    "process_payment": "Process Payment",
+    "cancel_payment": "Cancel Payment",
+    "refund": "Refund",
+    "process_refund": "Process Refund",
+    "add_card": "Add Card",
+    "remove_card": "Remove Card",
+    "set_default": "Set as Default",
+    "download_receipt": "Download Receipt",
+    "export": "Export",
+    "refresh": "Refresh",
+    "filter": "Filter",
+    "clear_filters": "Clear Filters",
+    "apply_filters": "Apply Filters"
+  },
+
+  "messages": {
+    "success": "Payment Successful!",
+    "success_description": "Your payment has been processed successfully.",
+    "processing": "Processing...",
+    "processing_description": "Please wait while we process your payment.",
+    "failed": "Payment Failed",
+    "failed_description": "We couldn't process your payment. Please try again.",
+    "cancelled": "Payment Cancelled",
+    "cancelled_description": "The payment has been cancelled.",
+    "refund_success": "Refund Processed",
+    "refund_success_description": "The refund has been processed successfully.",
+    "card_added": "Card Added",
+    "card_added_description": "Your card has been saved successfully.",
+    "card_removed": "Card Removed",
+    "card_removed_description": "The card has been removed from your account.",
+    "default_updated": "Default Updated",
+    "default_updated_description": "Your default payment method has been updated."
+  },
+
+  "errors": {
+    "invalid_amount": "Invalid amount",
+    "card_declined": "Card declined",
+    "insufficient_funds": "Insufficient funds",
+    "expired_card": "Expired card",
+    "invalid_card": "Invalid card number",
+    "invalid_cvc": "Invalid CVC",
+    "processing_error": "Processing error",
+    "network_error": "Network error",
+    "authentication_required": "Authentication required",
+    "generic": "Payment failed. Please try again."
+  },
+
+  "refund": {
+    "title": "Process Refund",
+    "amount": "Refund Amount",
+    "reason": "Reason",
+    "notes": "Notes",
+    "reasons": {
+      "requested_by_customer": "Requested by Customer",
+      "duplicate": "Duplicate",
+      "fraudulent": "Fraudulent",
+      "other": "Other"
+    }
+  },
+
+  "history": {
+    "title": "Payment History",
+    "no_payments": "No payments found",
+    "total_payments": "Total Payments",
+    "total_amount": "Total Amount",
+    "success_rate": "Success Rate",
+    "avg_amount": "Average Amount",
+    "date": "Date",
+    "customer": "Customer",
+    "payment_method": "Payment Method",
+    "receipt": "Receipt",
+    "showing": "Showing",
+    "to": "to",
+    "of": "of",
+    "results": "results"
+  },
+
+  "methods": {
+    "title": "Payment Methods",
+    "no_methods": "No payment methods saved",
+    "no_methods_description": "Add a card to get started",
+    "add_new": "Add New Card",
+    "default": "Default",
+    "remove_confirm": "Remove Payment Method?",
+    "remove_confirm_description": "Are you sure you want to remove this payment method? This action cannot be undone.",
+    "security_title": "Secure Payment Processing",
+    "security_description": "Your payment information is encrypted and securely stored. We never store your full card number. All transactions are processed through Stripe's PCI DSS Level 1 compliant infrastructure."
+  },
+
+  "modal": {
+    "cancel_title": "Cancel Payment?",
+    "cancel_description": "Are you sure you want to cancel? Your payment information will not be saved.",
+    "continue_payment": "Continue Payment",
+    "yes_cancel": "Yes, Cancel"
+  },
+
+  "provider": {
+    "stripe": "Stripe",
+    "powered_by": "Powered by",
+    "pci_compliant": "PCI DSS Compliant"
+  }
+}

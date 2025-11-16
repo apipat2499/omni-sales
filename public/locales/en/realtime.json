@@ -1,0 +1,162 @@
+{
+  "presence": {
+    "title": "Active Users",
+    "online": "Online",
+    "away": "Away",
+    "offline": "Offline",
+    "activeNow": "Active now",
+    "lastSeen": "Last seen {{time}}",
+    "you": "You",
+    "noActiveUsers": "No active users",
+    "viewing": "Viewing {{page}}",
+    "editing": "Editing {{entity}}",
+    "idle": "Idle",
+    "status": {
+      "online": "Online",
+      "away": "Away",
+      "offline": "Offline"
+    },
+    "location": {
+      "dashboard": "Dashboard",
+      "orders": "Orders",
+      "customers": "Customers",
+      "inventory": "Inventory",
+      "products": "Products",
+      "analytics": "Analytics",
+      "settings": "Settings"
+    }
+  },
+  "activity": {
+    "title": "Activity Feed",
+    "actions": {
+      "created": "created",
+      "updated": "updated",
+      "deleted": "deleted",
+      "viewed": "viewed"
+    },
+    "entities": {
+      "order": "order",
+      "item": "item",
+      "product": "product",
+      "customer": "customer",
+      "payment": "payment",
+      "invoice": "invoice",
+      "shipment": "shipment"
+    },
+    "filters": {
+      "allActions": "All actions",
+      "allEntities": "All entities"
+    },
+    "noActivities": "No activities yet",
+    "showDetails": "Show details",
+    "hideDetails": "Hide details",
+    "changes": "Changes",
+    "before": "Before",
+    "after": "After",
+    "timeAgo": {
+      "justNow": "just now",
+      "secondsAgo": "{{count}}s ago",
+      "minutesAgo": "{{count}}m ago",
+      "hoursAgo": "{{count}}h ago",
+      "daysAgo": "{{count}}d ago"
+    }
+  },
+  "collaboration": {
+    "title": "Collaboration",
+    "tabs": {
+      "collaborators": "Collaborators",
+      "comments": "Comments",
+      "history": "History",
+      "conflicts": "Conflicts"
+    },
+    "lock": {
+      "available": "Available for editing",
+      "locked": "Locked by {{user}}",
+      "lockedByYou": "You are editing",
+      "acquire": "Start Editing",
+      "release": "Done Editing",
+      "acquiring": "Acquiring...",
+      "releasing": "Releasing...",
+      "readOnly": "Editing in progress - read-only mode"
+    },
+    "collaborators": {
+      "noCollaborators": "No active collaborators",
+      "currentlyViewing": "Currently viewing",
+      "currentlyEditing": "Currently editing"
+    },
+    "comments": {
+      "add": "Add a comment...",
+      "send": "Send",
+      "sending": "Sending...",
+      "noComments": "No comments yet",
+      "resolve": "Mark as resolved",
+      "resolved": "Resolved"
+    },
+    "history": {
+      "noHistory": "No change history",
+      "undo": "Undo",
+      "undoing": "Undoing...",
+      "version": "Version {{version}}",
+      "operation": {
+        "insert": "Insert",
+        "update": "Update",
+        "delete": "Delete",
+        "move": "Move"
+      }
+    },
+    "conflicts": {
+      "noConflicts": "No conflicts",
+      "conflictDetected": "Conflict detected",
+      "conflictIn": "Conflict in {{field}}",
+      "yourVersion": "Your Version",
+      "remoteVersion": "Remote Version",
+      "keepMine": "Keep Mine",
+      "useRemote": "Use Remote",
+      "resolving": "Resolving...",
+      "description": "Your changes conflict with remote changes"
+    }
+  },
+  "websocket": {
+    "status": {
+      "connecting": "Connecting...",
+      "connected": "Connected",
+      "disconnected": "Disconnected",
+      "reconnecting": "Reconnecting...",
+      "error": "Connection error"
+    },
+    "latency": "Latency: {{ms}}ms",
+    "queuedMessages": "{{count}} messages queued"
+  },
+  "sync": {
+    "syncing": "Syncing...",
+    "synced": "Synced",
+    "syncFailed": "Sync failed",
+    "lastSynced": "Last synced {{time}}",
+    "outOfSync": "Out of sync",
+    "conflictDetected": "Conflict detected",
+    "conflictsDetected": "{{count}} conflicts detected",
+    "resolveConflicts": "Resolve conflicts"
+  },
+  "notifications": {
+    "userJoined": "{{user}} joined",
+    "userLeft": "{{user}} left",
+    "userStartedEditing": "{{user}} started editing",
+    "userStoppedEditing": "{{user}} stopped editing",
+    "changeDetected": "Changes detected",
+    "conflictDetected": "Conflict detected",
+    "lockAcquired": "Lock acquired",
+    "lockReleased": "Lock released",
+    "commentAdded": "Comment added",
+    "syncComplete": "Sync complete",
+    "syncFailed": "Sync failed"
+  },
+  "errors": {
+    "connectionFailed": "Failed to connect to real-time server",
+    "syncFailed": "Failed to sync changes",
+    "lockFailed": "Failed to acquire lock",
+    "alreadyLocked": "This resource is already locked by another user",
+    "commentFailed": "Failed to add comment",
+    "conflictResolutionFailed": "Failed to resolve conflict",
+    "undoFailed": "Failed to undo change"
+  }
+}

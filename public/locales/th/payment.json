@@ -1,0 +1,158 @@
+{
+  "title": "การชำระเงิน",
+  "payments": "การชำระเงิน",
+  "payment_methods": "วิธีการชำระเงิน",
+  "payment_history": "ประวัติการชำระเงิน",
+  "payment_settings": "ตั้งค่าการชำระเงิน",
+
+  "form": {
+    "title": "ชำระเงิน",
+    "description": "กรอกข้อมูลการชำระเงินเพื่อทำธุรกรรมให้เสร็จสมบูรณ์",
+    "billing_info": "ข้อมูลการเรียกเก็บเงิน",
+    "billing_address": "ที่อยู่สำหรับออกใบเสร็จ",
+    "card_info": "ข้อมูลบัตร",
+    "full_name": "ชื่อ-นามสกุล",
+    "email": "อีเมล",
+    "phone": "เบอร์โทรศัพท์",
+    "street_address": "ที่อยู่",
+    "apartment": "อาคาร, ห้อง, ชั้น",
+    "city": "เมือง",
+    "state": "จังหวัด",
+    "postal_code": "รหัสไปรษณีย์",
+    "country": "ประเทศ",
+    "save_card": "บันทึกบัตรสำหรับการซื้อในอนาคต",
+    "security_notice": "ข้อมูลการชำระเงินของคุณปลอดภัยและถูกเข้ารหัส"
+  },
+
+  "card": {
+    "label": "รายละเอียดบัตร",
+    "number": "หมายเลขบัตร",
+    "expiry": "วันหมดอายุ",
+    "cvc": "CVC",
+    "last4": "ลงท้ายด้วย",
+    "expires": "หมดอายุ"
+  },
+
+  "amount": {
+    "total": "ยอดรวมทั้งหมด",
+    "subtotal": "ยอดรวม",
+    "tax": "ภาษี",
+    "shipping": "ค่าจัดส่ง",
+    "discount": "ส่วนลด"
+  },
+
+  "status": {
+    "pending": "รอดำเนินการ",
+    "processing": "กำลังดำเนินการ",
+    "completed": "เสร็จสมบูรณ์",
+    "succeeded": "สำเร็จ",
+    "failed": "ล้มเหลว",
+    "cancelled": "ยกเลิก",
+    "refunded": "คืนเงินแล้ว"
+  },
+
+  "actions": {
+    "pay": "ชำระเงิน",
+    "pay_now": "ชำระเงินทันที",
+    "process_payment": "ดำเนินการชำระเงิน",
+    "cancel_payment": "ยกเลิกการชำระเงิน",
+    "refund": "คืนเงิน",
+    "process_refund": "ดำเนินการคืนเงิน",
+    "add_card": "เพิ่มบัตร",
+    "remove_card": "ลบบัตร",
+    "set_default": "ตั้งเป็นค่าเริ่มต้น",
+    "download_receipt": "ดาวน์โหลดใบเสร็จ",
+    "export": "ส่งออก",
+    "refresh": "รีเฟรช",
+    "filter": "กรอง",
+    "clear_filters": "ล้างตัวกรอง",
+    "apply_filters": "ใช้ตัวกรอง"
+  },
+
+  "messages": {
+    "success": "ชำระเงินสำเร็จ!",
+    "success_description": "การชำระเงินของคุณดำเนินการเสร็จสมบูรณ์แล้ว",
+    "processing": "กำลังดำเนินการ...",
+    "processing_description": "กรุณารอสักครู่ขณะที่เรากำลังดำเนินการชำระเงิน",
+    "failed": "การชำระเงินล้มเหลว",
+    "failed_description": "เราไม่สามารถดำเนินการชำระเงินได้ กรุณาลองอีกครั้ง",
+    "cancelled": "ยกเลิกการชำระเงิน",
+    "cancelled_description": "การชำระเงินถูกยกเลิกแล้ว",
+    "refund_success": "คืนเงินสำเร็จ",
+    "refund_success_description": "การคืนเงินดำเนินการเสร็จสมบูรณ์แล้ว",
+    "card_added": "เพิ่มบัตรแล้ว",
+    "card_added_description": "บัตรของคุณถูกบันทึกเรียบร้อยแล้ว",
+    "card_removed": "ลบบัตรแล้ว",
+    "card_removed_description": "บัตรถูกลบออกจากบัญชีของคุณแล้ว",
+    "default_updated": "อัปเดตค่าเริ่มต้นแล้ว",
+    "default_updated_description": "วิธีการชำระเงินเริ่มต้นของคุณถูกอัปเดตแล้ว"
+  },
+
+  "errors": {
+    "invalid_amount": "จำนวนเงินไม่ถูกต้อง",
+    "card_declined": "บัตรถูกปฏิเสธ",
+    "insufficient_funds": "เงินไม่เพียงพอ",
+    "expired_card": "บัตรหมดอายุ",
+    "invalid_card": "หมายเลขบัตรไม่ถูกต้อง",
+    "invalid_cvc": "CVC ไม่ถูกต้อง",
+    "processing_error": "เกิดข้อผิดพลาดในการดำเนินการ",
+    "network_error": "เกิดข้อผิดพลาดทางเครือข่าย",
+    "authentication_required": "ต้องการการยืนยันตัวตน",
+    "generic": "การชำระเงินล้มเหลว กรุณาลองอีกครั้ง"
+  },
+
+  "refund": {
+    "title": "ดำเนินการคืนเงิน",
+    "amount": "จำนวนเงินที่คืน",
+    "reason": "เหตุผล",
+    "notes": "หมายเหตุ",
+    "reasons": {
+      "requested_by_customer": "ลูกค้าขอคืนเงิน",
+      "duplicate": "ซ้ำซ้อน",
+      "fraudulent": "การฉ้อโกง",
+      "other": "อื่นๆ"
+    }
+  },
+
+  "history": {
+    "title": "ประวัติการชำระเงิน",
+    "no_payments": "ไม่พบการชำระเงิน",
+    "total_payments": "การชำระเงินทั้งหมด",
+    "total_amount": "จำนวนเงินรวม",
+    "success_rate": "อัตราความสำเร็จ",
+    "avg_amount": "จำนวนเงินเฉลี่ย",
+    "date": "วันที่",
+    "customer": "ลูกค้า",
+    "payment_method": "วิธีการชำระเงิน",
+    "receipt": "ใบเสร็จ",
+    "showing": "แสดง",
+    "to": "ถึง",
+    "of": "จาก",
+    "results": "รายการ"
+  },
+
+  "methods": {
+    "title": "วิธีการชำระเงิน",
+    "no_methods": "ไม่มีวิธีการชำระเงินที่บันทึกไว้",
+    "no_methods_description": "เพิ่มบัตรเพื่อเริ่มต้น",
+    "add_new": "เพิ่มบัตรใหม่",
+    "default": "ค่าเริ่มต้น",
+    "remove_confirm": "ลบวิธีการชำระเงิน?",
+    "remove_confirm_description": "คุณแน่ใจหรือไม่ว่าต้องการลบวิธีการชำระเงินนี้? การดำเนินการนี้ไม่สามารถย้อนกลับได้",
+    "security_title": "การประมวลผลการชำระเงินที่ปลอดภัย",
+    "security_description": "ข้อมูลการชำระเงินของคุณถูกเข้ารหัสและเก็บรักษาอย่างปลอดภัย เราไม่เคยเก็บหมายเลขบัตรเต็มของคุณ ธุรกรรมทั้งหมดผ่านโครงสร้างพื้นฐานที่สอดคล้องกับ PCI DSS Level 1 ของ Stripe"
+  },
+
+  "modal": {
+    "cancel_title": "ยกเลิกการชำระเงิน?",
+    "cancel_description": "คุณแน่ใจหรือไม่ว่าต้องการยกเลิก? ข้อมูลการชำระเงินของคุณจะไม่ถูกบันทึก",
+    "continue_payment": "ดำเนินการชำระเงินต่อ",
+    "yes_cancel": "ใช่, ยกเลิก"
+  },
+
+  "provider": {
+    "stripe": "Stripe",
+    "powered_by": "ขับเคลื่อนโดย",
+    "pci_compliant": "สอดคล้อง PCI DSS"
+  }
+}
