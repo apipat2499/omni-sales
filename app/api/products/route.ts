@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Order by created date descending
-    query = query.order('createdAt', { ascending: false });
+    query = query.order('created_at', { ascending: false });
 
     const { data, error } = await query;
 
@@ -33,11 +33,11 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Transform dates to Date objects
+    // Transform dates to Date objects and convert snake_case to camelCase
     const products: Product[] = (data || []).map((product) => ({
       ...product,
-      createdAt: new Date(product.createdAt),
-      updatedAt: new Date(product.updatedAt),
+      createdAt: new Date(product.created_at),
+      updatedAt: new Date(product.updated_at),
     }));
 
     return NextResponse.json(products, { status: 200 });

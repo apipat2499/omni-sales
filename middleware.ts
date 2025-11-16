@@ -2,33 +2,8 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export async function middleware(req: NextRequest) {
-  const { pathname } = req.nextUrl;
-
-  // Public routes that don't require authentication
-  const publicRoutes = ['/', '/login'];
-  const isPublicRoute = publicRoutes.includes(pathname);
-
-  // Check if user has auth token in cookies
-  const authToken = req.cookies.get('sb-access-token') ||
-                    req.cookies.get('supabase-auth-token') ||
-                    req.cookies.get('sb-localhost-auth-token');
-
-  const hasSession = !!authToken;
-
-  // If user is not authenticated and trying to access a protected route
-  if (!hasSession && !isPublicRoute) {
-    const redirectUrl = req.nextUrl.clone();
-    redirectUrl.pathname = '/login';
-    return NextResponse.redirect(redirectUrl);
-  }
-
-  // If user is authenticated and trying to access login page, redirect to dashboard
-  if (hasSession && pathname === '/login') {
-    const redirectUrl = req.nextUrl.clone();
-    redirectUrl.pathname = '/dashboard';
-    return NextResponse.redirect(redirectUrl);
-  }
-
+  // MIDDLEWARE DISABLED - Authentication handled by AuthContext on client-side
+  // This prevents redirect loops and simplifies auth flow
   return NextResponse.next();
 }
 

@@ -66,13 +66,13 @@ export default function RootLayout({
           </AuthProvider>
         </ThemeProvider>
 
-        {/* PWA Service Worker Registration */}
+        {/* PWA Service Worker Registration - Disabled in development */}
         <Script
           id="register-sw"
           strategy="afterInteractive"
           dangerouslySetInnerHTML={{
             __html: `
-              if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
+              if ('serviceWorker' in navigator && window.location.hostname !== 'localhost') {
                 window.addEventListener('load', () => {
                   navigator.serviceWorker.register('/sw.js').then(
                     registration => console.log('SW registered:', registration.scope),
