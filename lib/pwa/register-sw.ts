@@ -127,7 +127,7 @@ export function isStandalone(): boolean {
 export async function getServiceWorkerRegistration(): Promise<ServiceWorkerRegistration | null> {
   if ('serviceWorker' in navigator) {
     try {
-      return await navigator.serviceWorker.getRegistration();
+      return (await navigator.serviceWorker.getRegistration()) || null;
     } catch (error) {
       console.error('[PWA] Failed to get service worker registration:', error);
       return null;
