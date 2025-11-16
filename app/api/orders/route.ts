@@ -88,9 +88,7 @@ export async function GET(request: NextRequest) {
     );
 
     // Filter out any null values from failed fetches
-    const orders: Order[] = ordersWithItems.filter(
-      (order): order is Order => order !== null
-    );
+    const orders = ordersWithItems.filter((order) => order !== null) as Order[];
 
     return NextResponse.json(orders, { status: 200 });
   } catch (error) {
