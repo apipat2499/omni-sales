@@ -3,10 +3,12 @@ import type { NextRequest } from 'next/server';
 import { applySecurityHeaders } from './lib/middleware/security-headers';
 import { corsMiddleware } from './lib/middleware/cors';
 import { generateRequestID } from './lib/security/api-security';
+import { tenantMiddleware } from './lib/middleware/tenant-middleware';
 
 /**
  * Production Security Hardening Middleware
  * Implements multiple security layers:
+ * - Tenant detection and context
  * - Authentication check
  * - Security headers (CSP, HSTS, etc.)
  * - CORS protection
@@ -21,8 +23,16 @@ export async function middleware(req: NextRequest) {
   const requestId = generateRequestID();
 
   // Public routes that don't require authentication
-  const publicRoutes = ['/', '/login', '/api/health', '/api/status'];
+  const publicRoutes = ['/', '/login', '/api/health', '/api/status', '/onboard'];
   const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route));
+
+  // Apply tenant detection first (before auth check)
+  // This sets the tenant context for the request
+  const tenantResponse = await tenantMiddleware(req);
+  if (tenantResponse.status !== 200 && tenantResponse.status !== 304) {
+    // Tenant middleware returned a redirect or error
+    return tenantResponse;
+  }
 
   // API routes that require CORS handling
   const isAPIRoute = pathname.startsWith('/api/');
