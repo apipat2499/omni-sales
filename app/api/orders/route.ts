@@ -2,6 +2,118 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase/client';
 import type { Order } from '@/types';
 
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { customer_id, items, channel, subtotal, tax, shipping, total, shipping_address, notes } = body;
+
+    // Validate required fields
+    if (!customer_id || !items || items.length === 0 || !channel) {
+      return NextResponse.json(
+        { error: 'Missing required fields: customer_id, items, and channel are required' },
+        { status: 400 }
+      );
+    }
+
+    // Create the order
+    const { data: orderData, error: orderError } = await supabase
+      .from('orders')
+      .insert({
+        customer_id,
+        status: 'pending',
+        channel,
+        subtotal,
+        tax,
+        shipping,
+        total,
+        shipping_address,
+        notes,
+      })
+      .select()
+      .single();
+
+    if (orderError) {
+      console.error('Error creating order:', orderError);
+      return NextResponse.json(
+        { error: 'Failed to create order', details: orderError.message },
+        { status: 500 }
+      );
+    }
+
+    // Fetch product names for order items
+    const productIds = items.map((item: any) => item.product_id);
+    const { data: productsData } = await supabase
+      .from('products')
+      .select('id, name')
+      .in('id', productIds);
+
+    const productMap = new Map(
+      (productsData || []).map((p) => [p.id, p.name])
+    );
+
+    // Create order items
+    const orderItems = items.map((item: any) => ({
+      order_id: orderData.id,
+      product_id: item.product_id,
+      product_name: productMap.get(item.product_id) || 'Unknown Product',
+      quantity: item.quantity,
+      price: item.price,
+    }));
+
+    const { error: itemsError } = await supabase
+      .from('order_items')
+      .insert(orderItems);
+
+    if (itemsError) {
+      console.error('Error creating order items:', itemsError);
+      // Rollback: delete the order if items creation failed
+      await supabase.from('orders').delete().eq('id', orderData.id);
+      return NextResponse.json(
+        { error: 'Failed to create order items', details: itemsError.message },
+        { status: 500 }
+      );
+    }
+
+    // Update product stock
+    for (const item of items) {
+      const { error: stockError } = await supabase.rpc('decrement_stock', {
+        product_id: item.product_id,
+        quantity: item.quantity,
+      });
+
+      // If RPC doesn't exist, try direct update
+      if (stockError?.code === '42883') {
+        const { data: product } = await supabase
+          .from('products')
+          .select('stock')
+          .eq('id', item.product_id)
+          .single();
+
+        if (product) {
+          await supabase
+            .from('products')
+            .update({ stock: product.stock - item.quantity })
+            .eq('id', item.product_id);
+        }
+      }
+    }
+
+    return NextResponse.json(
+      {
+        message: 'Order created successfully',
+        orderId: orderData.id,
+      },
+      { status: 201 }
+    );
+  } catch (error) {
+    console.error('Unexpected error in POST /api/orders:', error);
+    return NextResponse.json(
+      { error: 'An unexpected error occurred' },
+      { status: 500 }
+    );
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);

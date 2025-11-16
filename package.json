@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "seed": "tsx scripts/seed-data.ts",
     "generate:icons": "open scripts/generate-icons.html || xdg-open scripts/generate-icons.html || start scripts/generate-icons.html",
     "generate:screenshots": "node scripts/capture-screenshots.js",
     "setup:playwright": "npm install -D playwright && npx playwright install",
@@ -32,6 +33,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.0.3",
     "tailwindcss": "^4",
+    "tsx": "^4.20.6",
     "typescript": "^5"
   }
 }
