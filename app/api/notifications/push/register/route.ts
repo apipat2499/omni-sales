@@ -1,24 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
-import { sendSMS } from "@/lib/services/sms-notifications";
+import { registerDeviceToken } from "@/lib/services/push-notifications";
+import { supabase } from "@/lib/supabase/client";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { phoneNumber, message } = body;
+    const { token, platform, userId } = body;
 
-    if (!phoneNumber || !message) {
+    if (!token || !platform || !userId) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
       );
     }
 
-    const result = await sendSMS(phoneNumber, message);
+    const result = await registerDeviceToken(userId, token, platform, supabase);
     return NextResponse.json(result);
   } catch (error) {
-    console.error("Send SMS error:", error);
+    console.error("Register device error:", error);
     return NextResponse.json(
-      { error: "Failed to send SMS" },
+      { error: "Failed to register device" },
       { status: 500 }
     );
   }

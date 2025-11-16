@@ -1,24 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
-import { sendSMS } from "@/lib/services/sms-notifications";
+import { generateTwoFactorSecret } from "@/lib/services/two-factor-auth";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { phoneNumber, message } = body;
+    const { userEmail } = body;
 
-    if (!phoneNumber || !message) {
+    if (!userEmail) {
       return NextResponse.json(
-        { error: "Missing required fields" },
+        { error: "Email is required" },
         { status: 400 }
       );
     }
 
-    const result = await sendSMS(phoneNumber, message);
+    const result = await generateTwoFactorSecret(userEmail);
     return NextResponse.json(result);
   } catch (error) {
-    console.error("Send SMS error:", error);
+    console.error("Generate 2FA error:", error);
     return NextResponse.json(
-      { error: "Failed to send SMS" },
+      { error: "Failed to generate 2FA setup" },
       { status: 500 }
     );
   }
