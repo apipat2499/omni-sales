@@ -1,0 +1,14 @@
+{
+  "product_name": "Product Name",
+  "sku": "SKU",
+  "category": "Category",
+  "price": "Price",
+  "cost": "Cost",
+  "stock": "Stock",
+  "description": "Description",
+  "add_product": "Add Product",
+  "edit_product": "Edit Product",
+  "delete_product": "Delete Product",
+  "products_list": "Products List",
+  "no_products": "No products found"
+}

@@ -1,47 +1,45 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createEmailTemplate, getEmailTemplates } from '@/lib/email/service';
+import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(req: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-    const userId = req.nextUrl.searchParams.get('userId');
+    const templates = [
+      {
+        id: "order_confirmation",
+        name: "Order Confirmation",
+        description: "Sent when an order is placed",
+        required_fields: ["customerName", "orderNumber", "items", "total"],
+      },
+      {
+        id: "order_shipped",
+        name: "Order Shipped",
+        description: "Sent when an order is shipped",
+        required_fields: [
+          "customerName",
+          "orderNumber",
+          "trackingNumber",
+          "carrier",
+        ],
+      },
+      {
+        id: "low_stock_alert",
+        name: "Low Stock Alert",
+        description: "Sent when inventory is low",
+        required_fields: ["productName", "currentStock", "reorderPoint"],
+      },
+      {
+        id: "payment_reminder",
+        name: "Payment Reminder",
+        description: "Sent as payment reminder",
+        required_fields: ["customerName", "invoiceNumber", "dueDate", "amount"],
+      },
+    ];
 
-    if (!userId) {
-      return NextResponse.json({ error: 'Missing userId' }, { status: 400 });
-    }
-
-    const templates = await getEmailTemplates(userId);
-    return NextResponse.json({ data: templates, total: templates.length });
+    return NextResponse.json(templates);
   } catch (error) {
-    console.error('Error fetching templates:', error);
-    return NextResponse.json({ error: 'Failed to fetch templates' }, { status: 500 });
-  }
-}
-
-export async function POST(req: NextRequest) {
-  try {
-    const { userId, name, templateType, subjectLine, preheaderText, htmlContent, plainTextContent, variables } = await req.json();
-
-    if (!userId || !name || !templateType || !subjectLine || !htmlContent) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
-    }
-
-    const template = await createEmailTemplate(userId, {
-      name,
-      templateType,
-      subjectLine,
-      preheaderText,
-      htmlContent,
-      plainTextContent,
-      variables,
-    });
-
-    if (!template) {
-      return NextResponse.json({ error: 'Failed to create template' }, { status: 500 });
-    }
-
-    return NextResponse.json(template, { status: 201 });
-  } catch (error) {
-    console.error('Error creating template:', error);
-    return NextResponse.json({ error: 'Failed to create template' }, { status: 500 });
+    console.error("Error fetching templates:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch templates" },
+      { status: 500 }
+    );
   }
 }

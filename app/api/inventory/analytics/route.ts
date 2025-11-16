@@ -1,19 +1,23 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getInventoryAnalytics, getTotalInventoryValue } from '@/lib/inventory/service';
+import { NextRequest, NextResponse } from "next/server";
+import { getInventoryAnalytics, exportInventoryReport } from "@/lib/services/inventory";
 
-export async function GET(req: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-    const userId = req.nextUrl.searchParams.get('userId');
-    const days = req.nextUrl.searchParams.get('days') || '30';
+    const searchParams = request.nextUrl.searchParams;
+    const exportData = searchParams.get("export") === "true";
 
-    if (!userId) return NextResponse.json({ error: 'Missing userId' }, { status: 400 });
+    if (exportData) {
+      const data = await exportInventoryReport();
+      return NextResponse.json({ data });
+    }
 
-    const analytics = await getInventoryAnalytics(userId, parseInt(days));
-    const totalValue = await getTotalInventoryValue(userId);
-
-    return NextResponse.json({ data: analytics, totalValue, total: analytics.length });
+    const analytics = await getInventoryAnalytics();
+    return NextResponse.json(analytics);
   } catch (error) {
-    console.error('Error fetching analytics:', error);
-    return NextResponse.json({ error: 'Failed to fetch analytics' }, { status: 500 });
+    console.error("Error fetching analytics:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch analytics" },
+      { status: 500 }
+    );
   }
 }
