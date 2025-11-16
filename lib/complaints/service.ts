@@ -1,14 +1,29 @@
 import { createClient } from '@supabase/supabase-js';
 import { Complaint, ComplaintResponse, ComplaintEscalation, ComplaintResolution, ComplaintFeedback, ComplaintAnalytics, FeedbackSurvey, SurveyResponse, ComplaintStatistics, ComplaintCategory } from '@/types';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-);
+let supabaseClient: any = null;
+
+function getSupabase() {
+  if (!supabaseClient) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (!url || !key) {
+      console.warn('Supabase environment variables not set');
+      return null;
+    }
+
+    supabaseClient = createClient(url, key);
+  }
+  return supabaseClient;
+}
 
 // COMPLAINT CATEGORIES
 export async function getComplaintCategories(): Promise<ComplaintCategory[]> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
     const { data, error } = await supabase
       .from('complaint_categories')
       .select('*')
@@ -26,6 +41,9 @@ export async function getComplaintCategories(): Promise<ComplaintCategory[]> {
 // CREATE COMPLAINT
 export async function createComplaint(userId: string, complaintData: Partial<Complaint>): Promise<Complaint | null> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     // Generate ticket ID
     const ticketId = `TKT-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 
@@ -65,6 +83,9 @@ export async function createComplaint(userId: string, complaintData: Partial<Com
 // GET COMPLAINT
 export async function getComplaint(complaintId: string): Promise<Complaint | null> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     const { data, error } = await supabase
       .from('complaints')
       .select('*')
@@ -82,6 +103,9 @@ export async function getComplaint(complaintId: string): Promise<Complaint | nul
 // GET COMPLAINTS
 export async function getComplaints(userId: string, status?: string, priority?: string): Promise<Complaint[]> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
     let query = supabase
       .from('complaints')
       .select('*')
@@ -109,6 +133,9 @@ export async function getComplaints(userId: string, status?: string, priority?: 
 // ACKNOWLEDGE COMPLAINT
 export async function acknowledgeComplaint(complaintId: string, acknowledgedById?: string): Promise<boolean> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return false;
+
     const { error } = await supabase
       .from('complaints')
       .update({
@@ -130,6 +157,9 @@ export async function acknowledgeComplaint(complaintId: string, acknowledgedById
 // UPDATE COMPLAINT STATUS
 export async function updateComplaintStatus(complaintId: string, newStatus: string): Promise<boolean> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return false;
+
     const { error } = await supabase
       .from('complaints')
       .update({
@@ -149,6 +179,9 @@ export async function updateComplaintStatus(complaintId: string, newStatus: stri
 // ASSIGN COMPLAINT
 export async function assignComplaint(complaintId: string, assignedToId: string): Promise<boolean> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return false;
+
     const { error } = await supabase
       .from('complaints')
       .update({
@@ -169,6 +202,9 @@ export async function assignComplaint(complaintId: string, assignedToId: string)
 // COMPLAINT RESPONSES
 export async function addComplaintResponse(complaintId: string, responseData: Partial<ComplaintResponse>): Promise<ComplaintResponse | null> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     const { data, error } = await supabase
       .from('complaint_responses')
       .insert({
@@ -195,6 +231,9 @@ export async function addComplaintResponse(complaintId: string, responseData: Pa
 
 export async function getComplaintResponses(complaintId: string): Promise<ComplaintResponse[]> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
     const { data, error } = await supabase
       .from('complaint_responses')
       .select('*')
@@ -212,6 +251,9 @@ export async function getComplaintResponses(complaintId: string): Promise<Compla
 // ESCALATION
 export async function escalateComplaint(complaintId: string, escalationData: Partial<ComplaintEscalation>): Promise<ComplaintEscalation | null> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     const { data, error } = await supabase
       .from('complaint_escalations')
       .insert({
@@ -251,6 +293,9 @@ export async function escalateComplaint(complaintId: string, escalationData: Par
 
 export async function getComplaintEscalations(complaintId: string): Promise<ComplaintEscalation[]> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
     const { data, error } = await supabase
       .from('complaint_escalations')
       .select('*')
@@ -268,6 +313,9 @@ export async function getComplaintEscalations(complaintId: string): Promise<Comp
 // RESOLUTION
 export async function resolveComplaint(complaintId: string, resolutionData: Partial<ComplaintResolution>): Promise<ComplaintResolution | null> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     const { data, error } = await supabase
       .from('complaint_resolutions')
       .insert({
@@ -310,6 +358,9 @@ export async function resolveComplaint(complaintId: string, resolutionData: Part
 
 export async function getComplaintResolution(complaintId: string): Promise<ComplaintResolution | null> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     const { data, error } = await supabase
       .from('complaint_resolutions')
       .select('*')
@@ -327,6 +378,9 @@ export async function getComplaintResolution(complaintId: string): Promise<Compl
 // COMPLAINT FEEDBACK
 export async function submitComplaintFeedback(feedbackData: Partial<ComplaintFeedback>): Promise<ComplaintFeedback | null> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     const { data, error } = await supabase
       .from('complaint_feedback')
       .insert({
@@ -368,6 +422,9 @@ export async function submitComplaintFeedback(feedbackData: Partial<ComplaintFee
 
 export async function getComplaintFeedback(complaintId: string): Promise<ComplaintFeedback | null> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     const { data, error } = await supabase
       .from('complaint_feedback')
       .select('*')
@@ -385,6 +442,9 @@ export async function getComplaintFeedback(complaintId: string): Promise<Complai
 // COMPLAINT ANALYTICS
 export async function recordComplaintAnalytics(userId: string, analyticsData: Partial<ComplaintAnalytics>): Promise<ComplaintAnalytics | null> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     const { data, error } = await supabase
       .from('complaint_analytics')
       .insert({
@@ -418,6 +478,9 @@ export async function recordComplaintAnalytics(userId: string, analyticsData: Pa
 
 export async function getComplaintAnalytics(userId: string, days: number = 30): Promise<ComplaintAnalytics[]> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
@@ -439,6 +502,9 @@ export async function getComplaintAnalytics(userId: string, days: number = 30): 
 // COMPLAINT STATISTICS
 export async function getComplaintStatistics(userId: string): Promise<ComplaintStatistics | null> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     // Get all complaints
     const { data: allComplaints } = await supabase
       .from('complaints')
@@ -505,6 +571,9 @@ export async function getComplaintStatistics(userId: string): Promise<ComplaintS
 // FEEDBACK SURVEYS
 export async function createSurvey(userId: string, surveyData: Partial<FeedbackSurvey>): Promise<FeedbackSurvey | null> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     const { data, error } = await supabase
       .from('feedback_surveys')
       .insert({
@@ -534,6 +603,9 @@ export async function createSurvey(userId: string, surveyData: Partial<FeedbackS
 
 export async function getSurveys(userId: string): Promise<FeedbackSurvey[]> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
     const { data, error } = await supabase
       .from('feedback_surveys')
       .select('*')
@@ -550,6 +622,9 @@ export async function getSurveys(userId: string): Promise<FeedbackSurvey[]> {
 
 export async function submitSurveyResponse(responseData: Partial<SurveyResponse>): Promise<SurveyResponse | null> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     const { data, error } = await supabase
       .from('survey_responses')
       .insert({
@@ -578,6 +653,9 @@ export async function submitSurveyResponse(responseData: Partial<SurveyResponse>
 
 export async function getSurveyResponses(surveyId: string): Promise<SurveyResponse[]> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
     const { data, error } = await supabase
       .from('survey_responses')
       .select('*')

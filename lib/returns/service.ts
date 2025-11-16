@@ -1,14 +1,29 @@
 import { createClient } from '@supabase/supabase-js';
 import { Return, ReturnItem, ReturnInspection, RefundTransaction, ReturnShipping, ReturnAnalytics, ReturnStatistics, ReturnReason } from '@/types';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-);
+let supabaseClient: any = null;
+
+function getSupabase() {
+  if (!supabaseClient) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (!url || !key) {
+      console.warn("Supabase environment variables not set");
+      return null;
+    }
+
+    supabaseClient = createClient(url, key);
+  }
+  return supabaseClient;
+}
 
 // RETURN REASONS
 export async function getReturnReasons(): Promise<ReturnReason[]> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
     const { data, error } = await supabase
       .from('return_reasons')
       .select('*')
@@ -26,6 +41,9 @@ export async function getReturnReasons(): Promise<ReturnReason[]> {
 // RETURNS MANAGEMENT
 export async function initiateReturn(userId: string, returnData: Partial<Return>): Promise<Return | null> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     // Generate RMA number
     const rmaNumber = `RMA-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
@@ -56,6 +74,9 @@ export async function initiateReturn(userId: string, returnData: Partial<Return>
 
 export async function getReturn(returnId: string): Promise<Return | null> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     const { data, error } = await supabase
       .from('returns')
       .select('*')
@@ -72,6 +93,9 @@ export async function getReturn(returnId: string): Promise<Return | null> {
 
 export async function getReturns(userId: string, status?: string): Promise<Return[]> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
     let query = supabase
       .from('returns')
       .select('*')
@@ -94,6 +118,9 @@ export async function getReturns(userId: string, status?: string): Promise<Retur
 
 export async function authorizeReturn(userId: string, returnId: string, authorizationCode?: string): Promise<boolean> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return false;
+
     const { error } = await supabase
       .from('returns')
       .update({
@@ -115,6 +142,9 @@ export async function authorizeReturn(userId: string, returnId: string, authoriz
 
 export async function updateReturnStatus(returnId: string, newStatus: string): Promise<boolean> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return false;
+
     const { error } = await supabase
       .from('returns')
       .update({
@@ -134,6 +164,9 @@ export async function updateReturnStatus(returnId: string, newStatus: string): P
 // RETURN ITEMS
 export async function addReturnItem(returnId: string, itemData: Partial<ReturnItem>): Promise<ReturnItem | null> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     const { data, error } = await supabase
       .from('return_items')
       .insert({
@@ -158,6 +191,9 @@ export async function addReturnItem(returnId: string, itemData: Partial<ReturnIt
 
 export async function getReturnItems(returnId: string): Promise<ReturnItem[]> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
     const { data, error } = await supabase
       .from('return_items')
       .select('*')
@@ -173,6 +209,9 @@ export async function getReturnItems(returnId: string): Promise<ReturnItem[]> {
 
 export async function updateReturnItemCondition(itemId: string, condition: string): Promise<boolean> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return false;
+
     const { error } = await supabase
       .from('return_items')
       .update({
@@ -191,6 +230,9 @@ export async function updateReturnItemCondition(itemId: string, condition: strin
 // RETURN INSPECTIONS
 export async function createReturnInspection(returnItemId: string, inspectionData: Partial<ReturnInspection>): Promise<ReturnInspection | null> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     const { data, error } = await supabase
       .from('return_inspections')
       .insert({
@@ -225,6 +267,9 @@ export async function createReturnInspection(returnItemId: string, inspectionDat
 
 export async function getReturnInspections(returnItemId: string): Promise<ReturnInspection[]> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
     const { data, error } = await supabase
       .from('return_inspections')
       .select('*')
@@ -242,6 +287,9 @@ export async function getReturnInspections(returnItemId: string): Promise<Return
 // REFUND TRANSACTIONS
 export async function processRefund(userId: string, returnId: string, refundData: Partial<RefundTransaction>): Promise<RefundTransaction | null> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     const { data, error } = await supabase
       .from('refund_transactions')
       .insert({
@@ -281,6 +329,9 @@ export async function processRefund(userId: string, returnId: string, refundData
 
 export async function getRefundTransaction(returnId: string): Promise<RefundTransaction | null> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     const { data, error } = await supabase
       .from('refund_transactions')
       .select('*')
@@ -297,6 +348,9 @@ export async function getRefundTransaction(returnId: string): Promise<RefundTran
 
 export async function getRefundTransactions(userId: string): Promise<RefundTransaction[]> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
     const { data, error } = await supabase
       .from('refund_transactions')
       .select('*')
@@ -314,6 +368,9 @@ export async function getRefundTransactions(userId: string): Promise<RefundTrans
 // RETURN SHIPPING
 export async function setupReturnShipping(returnId: string, shippingData: Partial<ReturnShipping>): Promise<ReturnShipping | null> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     const { data, error } = await supabase
       .from('return_shipping')
       .insert({
@@ -350,6 +407,9 @@ export async function setupReturnShipping(returnId: string, shippingData: Partia
 
 export async function updateReturnShipping(returnShippingId: string, updates: Partial<ReturnShipping>): Promise<boolean> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return false;
+
     const { error } = await supabase
       .from('return_shipping')
       .update({
@@ -368,6 +428,9 @@ export async function updateReturnShipping(returnShippingId: string, updates: Pa
 
 export async function getReturnShipping(returnId: string): Promise<ReturnShipping | null> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     const { data, error } = await supabase
       .from('return_shipping')
       .select('*')
@@ -385,6 +448,9 @@ export async function getReturnShipping(returnId: string): Promise<ReturnShippin
 // RETURN ANALYTICS
 export async function recordReturnAnalytics(userId: string, analyticsData: Partial<ReturnAnalytics>): Promise<ReturnAnalytics | null> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     const { data, error } = await supabase
       .from('return_analytics')
       .insert({
@@ -418,6 +484,9 @@ export async function recordReturnAnalytics(userId: string, analyticsData: Parti
 
 export async function getReturnAnalytics(userId: string, days: number = 30): Promise<ReturnAnalytics[]> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
@@ -439,6 +508,9 @@ export async function getReturnAnalytics(userId: string, days: number = 30): Pro
 // RETURN STATISTICS
 export async function getReturnStatistics(userId: string): Promise<ReturnStatistics | null> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     // Get pending returns count
     const { data: pendingData } = await supabase
       .from('returns')
@@ -512,6 +584,9 @@ export async function getReturnStatistics(userId: string): Promise<ReturnStatist
 // APPROVE/REJECT RETURNS
 export async function approveReturn(returnId: string, refundAmount?: number, restockingFeePercentage?: number): Promise<boolean> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return false;
+
     const restockingFee = refundAmount && restockingFeePercentage
       ? (refundAmount * restockingFeePercentage) / 100
       : 0;
@@ -537,6 +612,9 @@ export async function approveReturn(returnId: string, refundAmount?: number, res
 
 export async function rejectReturn(returnId: string, reason: string): Promise<boolean> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return false;
+
     const { error } = await supabase
       .from('returns')
       .update({

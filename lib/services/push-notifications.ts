@@ -1,21 +1,55 @@
-import admin from "firebase-admin";
+// Initialize Firebase Admin lazily to handle missing environment variables during build
+let firebaseApp: any = null;
+let initAttempted = false;
 
-// Initialize Firebase Admin (configure in your environment)
-let firebaseApp: admin.app.App;
+async function initializeFirebase(): Promise<any> {
+  // Skip if already attempted
+  if (initAttempted) return firebaseApp;
+  initAttempted = true;
 
-try {
-  if (!admin.apps.length) {
-    firebaseApp = admin.initializeApp({
-      credential: admin.credential.cert(
-        JSON.parse(process.env.FIREBASE_ADMIN_SDK || "{}")
-      ),
-      projectId: process.env.FIREBASE_PROJECT_ID,
-    });
-  } else {
-    firebaseApp = admin.app();
+  // Skip during build
+  if (process.env.NODE_ENV === 'development' && !process.env.FIREBASE_ADMIN_SDK) {
+    console.warn("Firebase not configured, skipping initialization");
+    return null;
   }
-} catch (error) {
-  console.warn("Firebase not initialized:", error);
+
+  try {
+    const adminSdk = process.env.FIREBASE_ADMIN_SDK;
+    const projectId = process.env.FIREBASE_PROJECT_ID;
+
+    // Skip initialization if environment variables aren't set
+    if (!adminSdk || !projectId) {
+      console.warn("Firebase environment variables not set");
+      return null;
+    }
+
+    // Only import firebase-admin when we have valid credentials
+    let admin: any;
+    try {
+      admin = await import("firebase-admin");
+    } catch (importError) {
+      console.warn("Failed to import firebase-admin:", importError);
+      return null;
+    }
+
+    if (!admin.apps || admin.apps.length === 0) {
+      try {
+        firebaseApp = admin.initializeApp({
+          credential: admin.credential.cert(JSON.parse(adminSdk)),
+          projectId,
+        });
+      } catch (certError) {
+        console.warn("Failed to initialize Firebase with credentials:", certError);
+        return null;
+      }
+    } else {
+      firebaseApp = admin.app();
+    }
+    return firebaseApp;
+  } catch (error) {
+    console.warn("Firebase initialization error:", error);
+    return null;
+  }
 }
 
 export interface PushNotificationPayload {
@@ -43,7 +77,8 @@ export async function sendPushNotification(
   payload: PushNotificationPayload
 ) {
   try {
-    if (!firebaseApp) {
+    const app = await initializeFirebase();
+    if (!app) {
       console.error("Firebase not initialized");
       return { success: false, error: "Firebase not initialized" };
     }
@@ -58,7 +93,7 @@ export async function sendPushNotification(
       token: deviceToken,
     };
 
-    const response = await admin.messaging().send(message as any);
+    const response = await app.messaging().send(message as any);
 
     return {
       success: true,
@@ -78,7 +113,8 @@ export async function sendPushNotificationToMultiple(
   payload: PushNotificationPayload
 ) {
   try {
-    if (!firebaseApp) {
+    const app = await initializeFirebase();
+    if (!app) {
       return { success: false, error: "Firebase not initialized" };
     }
 
@@ -92,7 +128,7 @@ export async function sendPushNotificationToMultiple(
       token,
     }));
 
-    const response = await admin.messaging().sendAll(messages as any);
+    const response = await app.messaging().sendAll(messages as any);
 
     return {
       success: true,

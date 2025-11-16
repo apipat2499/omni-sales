@@ -1,14 +1,44 @@
 import twilio from "twilio";
 
-const accountSid = process.env.TWILIO_ACCOUNT_SID;
-const authToken = process.env.TWILIO_AUTH_TOKEN;
-const fromPhoneNumber = process.env.TWILIO_PHONE_NUMBER;
+let twilioClient: any = null;
+let initAttempted = false;
 
-const twilioClient = twilio(accountSid, authToken);
+function getTwilioClient() {
+  // Only attempt initialization once
+  if (initAttempted) return twilioClient;
+  initAttempted = true;
+
+  try {
+    const accountSid = process.env.TWILIO_ACCOUNT_SID;
+    const authToken = process.env.TWILIO_AUTH_TOKEN;
+
+    // Skip initialization if environment variables aren't set
+    if (!accountSid || !authToken) {
+      console.warn("Twilio environment variables not set");
+      return null;
+    }
+
+    twilioClient = twilio(accountSid, authToken);
+    return twilioClient;
+  } catch (error) {
+    console.warn("Twilio initialization error:", error);
+    return null;
+  }
+}
 
 export async function sendSMS(phoneNumber: string, message: string) {
   try {
-    const result = await twilioClient.messages.create({
+    const client = getTwilioClient();
+    if (!client) {
+      throw new Error("Twilio client not initialized");
+    }
+
+    const fromPhoneNumber = process.env.TWILIO_PHONE_NUMBER;
+    if (!fromPhoneNumber) {
+      throw new Error("TWILIO_PHONE_NUMBER not set");
+    }
+
+    const result = await client.messages.create({
       body: message,
       from: fromPhoneNumber,
       to: phoneNumber,

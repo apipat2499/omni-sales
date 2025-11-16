@@ -12,10 +12,22 @@ import {
   SegmentPerformance,
 } from '@/types';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-);
+let supabaseClient: any = null;
+
+function getSupabase() {
+  if (!supabaseClient) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (!url || !key) {
+      console.warn("Supabase environment variables not set");
+      return null;
+    }
+
+    supabaseClient = createClient(url, key);
+  }
+  return supabaseClient;
+}
 
 // ============================================
 // SEGMENT MANAGEMENT
@@ -26,6 +38,9 @@ export async function createSegment(
   segment: Partial<CustomerSegmentV2>
 ): Promise<CustomerSegmentV2 | null> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     const { data, error } = await supabase
       .from('customer_segments_v2')
       .insert({
@@ -52,6 +67,9 @@ export async function createSegment(
 
 export async function getSegments(userId: string): Promise<CustomerSegmentV2[]> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
     const { data, error } = await supabase
       .from('customer_segments_v2')
       .select('*')
@@ -72,6 +90,9 @@ export async function updateSegment(
   updates: Partial<CustomerSegmentV2>
 ): Promise<boolean> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return false;
+
     const { error } = await supabase
       .from('customer_segments_v2')
       .update({
@@ -99,6 +120,9 @@ export async function recordBehaviorEvent(
   event: Partial<CustomerBehaviorEvent>
 ): Promise<boolean> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return false;
+
     const { error } = await supabase
       .from('customer_behavior_events')
       .insert({
@@ -133,6 +157,9 @@ export async function recordBehaviorEvent(
 
 export async function getBehaviorSummary(customerId: string): Promise<CustomerBehaviorSummary | null> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     const { data, error } = await supabase
       .from('customer_behavior_summary')
       .select('*')
@@ -154,6 +181,9 @@ export async function updateBehaviorSummary(
   updates: Partial<CustomerBehaviorSummary>
 ): Promise<boolean> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return false;
+
     const { error } = await supabase
       .from('customer_behavior_summary')
       .update({
@@ -180,6 +210,9 @@ export async function createCohort(
   cohort: Partial<Cohort>
 ): Promise<Cohort | null> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     const { data, error } = await supabase
       .from('cohorts')
       .insert({
@@ -207,6 +240,9 @@ export async function createCohort(
 
 export async function getCohorts(userId: string): Promise<Cohort[]> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
     const { data, error } = await supabase
       .from('cohorts')
       .select('*')
@@ -232,6 +268,9 @@ export async function updateCustomerJourneyStage(
   stage: string
 ): Promise<boolean> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return false;
+
     const now = new Date();
     const { error } = await supabase
       .from('customer_journey_stages')
@@ -255,6 +294,9 @@ export async function updateCustomerJourneyStage(
 
 export async function getCustomerJourneyStage(customerId: string): Promise<CustomerJourneyStage | null> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     const { data, error } = await supabase
       .from('customer_journey_stages')
       .select('*')
@@ -279,6 +321,9 @@ export async function recordLTVPrediction(
   prediction: Partial<CustomerLTVPrediction>
 ): Promise<CustomerLTVPrediction | null> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     const { data, error } = await supabase
       .from('customer_ltv_predictions')
       .upsert({
@@ -308,6 +353,9 @@ export async function recordLTVPrediction(
 
 export async function getLTVPredictions(userId: string): Promise<CustomerLTVPrediction[]> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
     const { data, error } = await supabase
       .from('customer_ltv_predictions')
       .select('*')
@@ -332,6 +380,9 @@ export async function recordBehavioralAnalytics(
   analytics: Partial<BehavioralAnalytics>
 ): Promise<BehavioralAnalytics | null> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     const { data, error } = await supabase
       .from('behavioral_analytics')
       .insert({
@@ -371,6 +422,9 @@ export async function getBehavioralAnalytics(
   days: number = 30
 ): Promise<BehavioralAnalytics[]> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
@@ -394,6 +448,9 @@ export async function recordSegmentPerformance(
   performance: Partial<SegmentPerformance>
 ): Promise<SegmentPerformance | null> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     const { data, error } = await supabase
       .from('segment_performance')
       .insert({
@@ -430,6 +487,9 @@ export async function getSegmentPerformance(
   days: number = 30
 ): Promise<SegmentPerformance[]> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
@@ -458,6 +518,9 @@ export async function addSegmentMember(
   customerId: string
 ): Promise<boolean> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return false;
+
     const { error } = await supabase
       .from('segment_members')
       .insert({
@@ -477,6 +540,9 @@ export async function addSegmentMember(
 
 export async function getSegmentMembers(segmentId: string): Promise<SegmentMember[]> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
     const { data, error } = await supabase
       .from('segment_members')
       .select('*')
@@ -496,6 +562,9 @@ export async function removeSegmentMember(
   customerId: string
 ): Promise<boolean> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return false;
+
     const { error } = await supabase
       .from('segment_members')
       .update({

@@ -13,10 +13,22 @@ import {
   Product,
 } from '@/types';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-);
+let supabaseClient: any = null;
+
+function getSupabase() {
+  if (!supabaseClient) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (!url || !key) {
+      console.warn('Supabase environment variables not set');
+      return null;
+    }
+
+    supabaseClient = createClient(url, key);
+  }
+  return supabaseClient;
+}
 
 // ============================================
 // ALGORITHM MANAGEMENT
