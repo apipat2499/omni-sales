@@ -1,29 +1,85 @@
 {
   "expo": {
-    "name": "omni-sales-mobile",
+    "name": "Omni Sales",
     "slug": "omni-sales-mobile",
-    "version": "0.1.0",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
     "assetBundlePatterns": ["**/*"],
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
     "ios": {
-      "supportsTabletMode": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.omnisales.mobile",
+      "infoPlist": {
+        "NSCameraUsageDescription": "This app uses the camera to scan QR codes and capture product photos.",
+        "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to upload product images.",
+        "NSFaceIDUsageDescription": "This app uses Face ID for secure authentication.",
+        "NSMicrophoneUsageDescription": "This app needs microphone access for video recording."
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.omnisales.mobile",
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "USE_BIOMETRIC",
+        "USE_FINGERPRINT"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
       [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera to scan QR codes and capture photos."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#ffffff"
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Allow $(PRODUCT_NAME) to use Face ID for secure authentication."
+        }
+      ],
+      [
         "expo-image-picker",
         {
           "photosPermission": "Allow access to photos",
           "cameraPermission": "Allow access to camera"
         }
-      ]
-    ]
+      ],
+      "expo-secure-store"
+    ],
+    "scheme": "omnisales",
+    "extra": {
+      "eas": {
+        "projectId": "your-project-id-here"
+      }
+    },
+    "updates": {
+      "fallbackToCacheTimeout": 0,
+      "url": "https://u.expo.dev/your-project-id"
+    },
+    "runtimeVersion": {
+      "policy": "sdkVersion"
+    }
   }
 }

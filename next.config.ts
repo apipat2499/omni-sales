@@ -47,6 +47,24 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      // WebSocket endpoint - special CORS handling
+      {
+        source: '/api/ws',
+        headers: [
+          {
+            key: 'Access-Control-Allow-Origin',
+            value: process.env.ALLOWED_ORIGINS || '*',
+          },
+          {
+            key: 'Access-Control-Allow-Methods',
+            value: 'GET, OPTIONS',
+          },
+          {
+            key: 'Access-Control-Allow-Headers',
+            value: 'Content-Type, Authorization, Upgrade, Connection, Sec-WebSocket-Key, Sec-WebSocket-Version',
+          },
+        ],
+      },
       // Security headers for all routes
       {
         source: '/:path*',

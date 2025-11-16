@@ -1,0 +1,34 @@
+# Expo
+.expo/
+dist/
+web-build/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Dependencies
+node_modules/
+
+# OS
+.DS_Store
+
+# Build
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+
+# Debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# Testing
+coverage/
+
+# TypeScript
+*.tsbuildinfo

@@ -1,16 +1,13 @@
 import { create } from "zustand";
-import { supabase } from "../services/supabaseClient";
-
-interface User {
-  id: string;
-  email: string;
-  name?: string;
-}
+import { authService } from "../services/authService";
+import { apiClient } from "../lib/api/client";
+import { User } from "../types";
 
 interface AuthStore {
   user: User | null;
   isLoading: boolean;
   error: string | null;
+  setUser: (user: User | null) => void;
   initializeAuth: () => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -22,19 +19,16 @@ export const useAuthStore = create<AuthStore>((set) => ({
   isLoading: false,
   error: null,
 
+  setUser: (user: User | null) => {
+    set({ user });
+  },
+
   initializeAuth: async () => {
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (session?.user) {
-        set({
-          user: {
-            id: session.user.id,
-            email: session.user.email!,
-            name: session.user.user_metadata?.name,
-          },
-        });
+      await apiClient.loadAuthToken();
+      const user = await authService.loadStoredUser();
+      if (user) {
+        set({ user });
       }
     } catch (error) {
       console.error("Auth initialization error:", error);
@@ -44,23 +38,16 @@ export const useAuthStore = create<AuthStore>((set) => ({
   login: async (email: string, password: string) => {
     set({ isLoading: true, error: null });
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const response = await authService.login(email, password);
 
-      if (error) throw error;
-
-      if (data.user) {
+      if (!response.requiresTwoFactor) {
         set({
-          user: {
-            id: data.user.id,
-            email: data.user.email!,
-            name: data.user.user_metadata?.name,
-          },
+          user: response.user,
           isLoading: false,
         });
       }
+
+      set({ isLoading: false });
     } catch (error) {
       set({ error: (error as Error).message, isLoading: false });
       throw error;
@@ -70,7 +57,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
   logout: async () => {
     set({ isLoading: true });
     try {
-      await supabase.auth.signOut();
+      await authService.logout();
       set({ user: null, isLoading: false });
     } catch (error) {
       set({ error: (error as Error).message, isLoading: false });
@@ -81,28 +68,16 @@ export const useAuthStore = create<AuthStore>((set) => ({
   signup: async (email: string, password: string, name: string) => {
     set({ isLoading: true, error: null });
     try {
-      const { data, error } = await supabase.auth.signUp({
+      const response = await authService.signup({
         email,
         password,
-        options: {
-          data: {
-            name,
-          },
-        },
+        name,
       });
 
-      if (error) throw error;
-
-      if (data.user) {
-        set({
-          user: {
-            id: data.user.id,
-            email: data.user.email!,
-            name,
-          },
-          isLoading: false,
-        });
-      }
+      set({
+        user: response.user,
+        isLoading: false,
+      });
     } catch (error) {
       set({ error: (error as Error).message, isLoading: false });
       throw error;
