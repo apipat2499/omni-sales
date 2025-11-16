@@ -13,16 +13,31 @@ import {
   CRMCustomerHealthScore,
 } from '@/types';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-);
+let supabaseClient: any = null;
+
+function getSupabase() {
+  if (!supabaseClient) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (!url || !key) {
+      console.warn('Supabase environment variables not set');
+      return null;
+    }
+
+    supabaseClient = createClient(url, key);
+  }
+  return supabaseClient;
+}
 
 // ==========================================
 // Customer Profile Management
 // ==========================================
 
 export async function getCustomerProfile(userId: string, customerId: string): Promise<CRMCustomerProfile | null> {
+  const supabase = getSupabase();
+  if (!supabase) return null;
+
   const { data, error } = await supabase
     .from('crm_customer_profiles')
     .select('*')
@@ -42,6 +57,9 @@ export async function createOrUpdateCustomerProfile(
   customerId: string,
   profileData: Partial<CRMCustomerProfile>
 ): Promise<CRMCustomerProfile | null> {
+  const supabase = getSupabase();
+  if (!supabase) return null;
+
   const existing = await getCustomerProfile(userId, customerId);
 
   if (existing) {
@@ -77,6 +95,9 @@ export async function createOrUpdateCustomerProfile(
 // ==========================================
 
 export async function getContacts(userId: string, customerId: string): Promise<CRMContact[]> {
+  const supabase = getSupabase();
+  if (!supabase) return [];
+
   const { data, error } = await supabase
     .from('crm_contacts')
     .select('*')
@@ -92,6 +113,9 @@ export async function getContacts(userId: string, customerId: string): Promise<C
 }
 
 export async function createContact(userId: string, contactData: Partial<CRMContact>): Promise<CRMContact | null> {
+  const supabase = getSupabase();
+  if (!supabase) return null;
+
   const { data, error } = await supabase
     .from('crm_contacts')
     .insert([{ user_id: userId, ...contactData }])
@@ -106,6 +130,9 @@ export async function createContact(userId: string, contactData: Partial<CRMCont
 }
 
 export async function updateContact(userId: string, contactId: string, contactData: Partial<CRMContact>): Promise<CRMContact | null> {
+  const supabase = getSupabase();
+  if (!supabase) return null;
+
   const { data, error } = await supabase
     .from('crm_contacts')
     .update(contactData)
@@ -126,6 +153,9 @@ export async function updateContact(userId: string, contactId: string, contactDa
 // ==========================================
 
 export async function recordInteraction(userId: string, interactionData: Partial<CRMInteraction>): Promise<CRMInteraction | null> {
+  const supabase = getSupabase();
+  if (!supabase) return null;
+
   const { data, error } = await supabase
     .from('crm_interactions')
     .insert([{ user_id: userId, ...interactionData }])
@@ -154,6 +184,9 @@ export async function getInteractionHistory(
   customerId: string,
   limit: number = 20
 ): Promise<CRMInteraction[]> {
+  const supabase = getSupabase();
+  if (!supabase) return [];
+
   const { data, error } = await supabase
     .from('crm_interactions')
     .select('*')
@@ -174,6 +207,9 @@ export async function getInteractionHistory(
 // ==========================================
 
 export async function createOpportunity(userId: string, opportunityData: Partial<CRMOpportunity>): Promise<CRMOpportunity | null> {
+  const supabase = getSupabase();
+  if (!supabase) return null;
+
   const { data, error } = await supabase
     .from('crm_opportunities')
     .insert([{ user_id: userId, ...opportunityData }])
@@ -188,6 +224,9 @@ export async function createOpportunity(userId: string, opportunityData: Partial
 }
 
 export async function updateOpportunity(userId: string, opportunityId: string, opportunityData: Partial<CRMOpportunity>): Promise<CRMOpportunity | null> {
+  const supabase = getSupabase();
+  if (!supabase) return null;
+
   const { data, error } = await supabase
     .from('crm_opportunities')
     .update(opportunityData)
@@ -204,6 +243,9 @@ export async function updateOpportunity(userId: string, opportunityId: string, o
 }
 
 export async function getOpportunitiesByCustomer(userId: string, customerId: string): Promise<CRMOpportunity[]> {
+  const supabase = getSupabase();
+  if (!supabase) return [];
+
   const { data, error } = await supabase
     .from('crm_opportunities')
     .select('*')
@@ -219,6 +261,9 @@ export async function getOpportunitiesByCustomer(userId: string, customerId: str
 }
 
 export async function getSalesPipeline(userId: string): Promise<Record<string, number>> {
+  const supabase = getSupabase();
+  if (!supabase) return {};
+
   const { data, error } = await supabase
     .from('crm_opportunities')
     .select('stage, value')
@@ -243,6 +288,9 @@ export async function getSalesPipeline(userId: string): Promise<Record<string, n
 // ==========================================
 
 export async function createLead(userId: string, leadData: Partial<CRMLead>): Promise<CRMLead | null> {
+  const supabase = getSupabase();
+  if (!supabase) return null;
+
   const { data, error } = await supabase
     .from('crm_leads')
     .insert([{ user_id: userId, ...leadData }])
@@ -257,6 +305,9 @@ export async function createLead(userId: string, leadData: Partial<CRMLead>): Pr
 }
 
 export async function updateLead(userId: string, leadId: string, leadData: Partial<CRMLead>): Promise<CRMLead | null> {
+  const supabase = getSupabase();
+  if (!supabase) return null;
+
   const { data, error } = await supabase
     .from('crm_leads')
     .update(leadData)
@@ -273,6 +324,9 @@ export async function updateLead(userId: string, leadId: string, leadData: Parti
 }
 
 export async function getLeads(userId: string, status?: string): Promise<CRMLead[]> {
+  const supabase = getSupabase();
+  if (!supabase) return [];
+
   let query = supabase.from('crm_leads').select('*').eq('user_id', userId);
 
   if (status) {
@@ -289,6 +343,9 @@ export async function getLeads(userId: string, status?: string): Promise<CRMLead
 }
 
 export async function scoreLead(userId: string, leadId: string, scoreData: Partial<CRMLeadScore>): Promise<CRMLeadScore | null> {
+  const supabase = getSupabase();
+  if (!supabase) return null;
+
   const { data, error } = await supabase
     .from('crm_lead_scores')
     .insert([{ user_id: userId, lead_id: leadId, ...scoreData }])
@@ -307,6 +364,9 @@ export async function scoreLead(userId: string, leadId: string, scoreData: Parti
 // ==========================================
 
 export async function createNote(userId: string, noteData: Partial<CRMNote>): Promise<CRMNote | null> {
+  const supabase = getSupabase();
+  if (!supabase) return null;
+
   const { data, error } = await supabase
     .from('crm_notes')
     .insert([{ user_id: userId, ...noteData }])
@@ -321,6 +381,9 @@ export async function createNote(userId: string, noteData: Partial<CRMNote>): Pr
 }
 
 export async function getNotes(userId: string, customerId: string): Promise<CRMNote[]> {
+  const supabase = getSupabase();
+  if (!supabase) return [];
+
   const { data, error } = await supabase
     .from('crm_notes')
     .select('*')
@@ -344,6 +407,9 @@ export async function recordActivityTimeline(
   customerId: string,
   activityData: Partial<CRMActivityTimeline>
 ): Promise<CRMActivityTimeline | null> {
+  const supabase = getSupabase();
+  if (!supabase) return null;
+
   const { data, error } = await supabase
     .from('crm_activity_timeline')
     .insert([{ user_id: userId, customer_id: customerId, ...activityData }])
@@ -358,6 +424,9 @@ export async function recordActivityTimeline(
 }
 
 export async function getActivityTimeline(userId: string, customerId: string, limit: number = 50): Promise<CRMActivityTimeline[]> {
+  const supabase = getSupabase();
+  if (!supabase) return [];
+
   const { data, error } = await supabase
     .from('crm_activity_timeline')
     .select('*')
@@ -378,6 +447,9 @@ export async function getActivityTimeline(userId: string, customerId: string, li
 // ==========================================
 
 export async function createSegment(userId: string, segmentData: Partial<CRMCustomerSegment>): Promise<CRMCustomerSegment | null> {
+  const supabase = getSupabase();
+  if (!supabase) return null;
+
   const { data, error } = await supabase
     .from('crm_customer_segments')
     .insert([{ user_id: userId, ...segmentData }])
@@ -392,6 +464,9 @@ export async function createSegment(userId: string, segmentData: Partial<CRMCust
 }
 
 export async function getSegments(userId: string): Promise<CRMCustomerSegment[]> {
+  const supabase = getSupabase();
+  if (!supabase) return [];
+
   const { data, error } = await supabase
     .from('crm_customer_segments')
     .select('*')
@@ -414,6 +489,9 @@ export async function recordHealthScore(
   customerId: string,
   healthData: Partial<CRMCustomerHealthScore>
 ): Promise<CRMCustomerHealthScore | null> {
+  const supabase = getSupabase();
+  if (!supabase) return null;
+
   const { data, error } = await supabase
     .from('crm_customer_health_scores')
     .insert([{ user_id: userId, customer_id: customerId, ...healthData }])
@@ -428,6 +506,9 @@ export async function recordHealthScore(
 }
 
 export async function getLatestHealthScore(userId: string, customerId: string): Promise<CRMCustomerHealthScore | null> {
+  const supabase = getSupabase();
+  if (!supabase) return null;
+
   const { data, error } = await supabase
     .from('crm_customer_health_scores')
     .select('*')
@@ -450,6 +531,23 @@ export async function getLatestHealthScore(userId: string, customerId: string): 
 
 export async function getCRMDashboardData(userId: string): Promise<CRMDashboardData> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return {
+      totalCustomers: 0,
+      totalLeads: 0,
+      totalOpportunities: 0,
+      pipelineValue: 0,
+      conversionRate: 0,
+      averageDealSize: 0,
+      salesCycle: 0,
+      customerRetention: 0,
+      recentInteractions: [],
+      topOpportunities: [],
+      stagePipeline: {},
+      leadsBySource: {},
+      healthScoreDistribution: {},
+    };
+
     // Get total counts
     const { count: totalCustomers } = await supabase
       .from('customers')

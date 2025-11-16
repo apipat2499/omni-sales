@@ -1,14 +1,30 @@
 import { createClient } from '@supabase/supabase-js';
 import { Warehouse, StockLevel, StockAdjustment, StockTransfer, LowStockAlert, InventoryMovement, Supplier, PurchaseOrder, InventoryAnalytics } from '@/types';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-);
+// Create Supabase client lazily to handle missing environment variables during build
+let supabaseClient: any = null;
+
+function getSupabase() {
+  if (!supabaseClient) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (!url || !key) {
+      console.warn('Supabase environment variables not set');
+      return null;
+    }
+
+    supabaseClient = createClient(url, key);
+  }
+  return supabaseClient;
+}
 
 // WAREHOUSE MANAGEMENT
 export async function createWarehouse(userId: string, warehouse: Partial<Warehouse>): Promise<Warehouse | null> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     const { data, error } = await supabase
       .from('warehouses')
       .insert({
@@ -43,6 +59,9 @@ export async function createWarehouse(userId: string, warehouse: Partial<Warehou
 
 export async function getWarehouses(userId: string): Promise<Warehouse[]> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
     const { data, error } = await supabase
       .from('warehouses')
       .select('*')
@@ -61,6 +80,9 @@ export async function getWarehouses(userId: string): Promise<Warehouse[]> {
 // STOCK LEVEL MANAGEMENT
 export async function getStockLevel(productId: string, warehouseId: string): Promise<StockLevel | null> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     const { data, error } = await supabase
       .from('stock_levels')
       .select('*')
@@ -79,6 +101,9 @@ export async function getStockLevel(productId: string, warehouseId: string): Pro
 
 export async function getProductStock(productId: string): Promise<StockLevel[]> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
     const { data, error } = await supabase
       .from('stock_levels')
       .select('*')
@@ -94,6 +119,9 @@ export async function getProductStock(productId: string): Promise<StockLevel[]> 
 
 export async function updateStockLevel(userId: string, productId: string, warehouseId: string, quantityChange: number, reason: string, referenceType?: string, referenceId?: string): Promise<boolean> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return false;
+
     const currentStock = await getStockLevel(productId, warehouseId);
 
     if (!currentStock) {
@@ -129,6 +157,9 @@ export async function updateStockLevel(userId: string, productId: string, wareho
 // STOCK ADJUSTMENTS
 export async function recordStockAdjustment(userId: string, productId: string, warehouseId: string, quantityChange: number, reason: string, referenceType?: string, referenceId?: string): Promise<StockAdjustment | null> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     const { data, error } = await supabase.from('stock_adjustments').insert({
       user_id: userId,
       product_id: productId,
@@ -153,6 +184,9 @@ export async function recordStockAdjustment(userId: string, productId: string, w
 
 export async function getStockAdjustments(productId: string, days: number = 30): Promise<StockAdjustment[]> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
@@ -169,6 +203,9 @@ export async function getStockAdjustments(productId: string, days: number = 30):
 // STOCK TRANSFERS
 export async function createStockTransfer(userId: string, transfer: Partial<StockTransfer>): Promise<StockTransfer | null> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     const { data, error } = await supabase.from('stock_transfers').insert({
       user_id: userId,
       product_id: transfer.productId,
@@ -194,6 +231,9 @@ export async function createStockTransfer(userId: string, transfer: Partial<Stoc
 
 export async function completeStockTransfer(transferId: string, userId: string, productId: string, toWarehouseId: string, quantity: number): Promise<boolean> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return false;
+
     const { error: updateError } = await supabase.from('stock_transfers').update({
       status: 'received',
       received_date: new Date(),
@@ -212,6 +252,9 @@ export async function completeStockTransfer(transferId: string, userId: string, 
 
 export async function getStockTransfers(userId: string): Promise<StockTransfer[]> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
     const { data, error } = await supabase.from('stock_transfers').select('*').eq('user_id', userId).eq('status', 'pending').order('transfer_date', { ascending: false });
 
     if (error) throw error;
@@ -225,6 +268,9 @@ export async function getStockTransfers(userId: string): Promise<StockTransfer[]
 // LOW STOCK ALERTS
 export async function checkLowStockAlerts(userId: string): Promise<LowStockAlert[]> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
     const { data, error } = await supabase.from('stock_levels').select('*').eq('user_id', userId);
 
     if (error) throw error;
@@ -262,6 +308,9 @@ export async function checkLowStockAlerts(userId: string): Promise<LowStockAlert
 // SUPPLIERS & PURCHASE ORDERS
 export async function createSupplier(userId: string, supplier: Partial<Supplier>): Promise<Supplier | null> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     const { data, error } = await supabase.from('suppliers').insert({
       user_id: userId,
       supplier_name: supplier.supplierName,
@@ -289,6 +338,9 @@ export async function createSupplier(userId: string, supplier: Partial<Supplier>
 
 export async function getSuppliers(userId: string): Promise<Supplier[]> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
     const { data, error } = await supabase.from('suppliers').select('*').eq('user_id', userId).eq('is_active', true);
 
     if (error) throw error;
@@ -301,6 +353,9 @@ export async function getSuppliers(userId: string): Promise<Supplier[]> {
 
 export async function createPurchaseOrder(userId: string, po: Partial<PurchaseOrder>): Promise<PurchaseOrder | null> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     const { data, error } = await supabase.from('purchase_orders').insert({
       user_id: userId,
       supplier_id: po.supplierId,
@@ -326,6 +381,9 @@ export async function createPurchaseOrder(userId: string, po: Partial<PurchaseOr
 // INVENTORY ANALYTICS
 export async function recordInventoryAnalytics(userId: string, analytics: Partial<InventoryAnalytics>): Promise<InventoryAnalytics | null> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     const { data, error } = await supabase.from('inventory_analytics').insert({
       user_id: userId,
       date: analytics.date || new Date(),
@@ -352,6 +410,9 @@ export async function recordInventoryAnalytics(userId: string, analytics: Partia
 
 export async function getInventoryAnalytics(userId: string, days: number = 30): Promise<InventoryAnalytics[]> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
@@ -367,6 +428,9 @@ export async function getInventoryAnalytics(userId: string, days: number = 30): 
 
 export async function getTotalInventoryValue(userId: string): Promise<number> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return 0;
+
     const { data, error } = await supabase.from('stock_levels').select('quantity_on_hand').eq('user_id', userId);
 
     if (error) throw error;
@@ -384,6 +448,9 @@ export async function createBarcode(
   barcodeType?: string
 ): Promise<any> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     const { data, error } = await supabase
       .from('product_barcodes')
       .insert({
@@ -406,6 +473,9 @@ export async function createBarcode(
 
 export async function getProductByBarcode(userIdOrBarcode: string, barcode?: string): Promise<any | null> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     // Handle both single argument (barcode) and two argument (userId, barcode) calls
     const finalBarcode = barcode || userIdOrBarcode;
 
@@ -424,6 +494,9 @@ export async function getProductByBarcode(userIdOrBarcode: string, barcode?: str
 
 export async function getReorderSuggestions(userId: string): Promise<any[]> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
     const { data: stockLevels, error } = await supabase
       .from('stock_levels')
       .select('product_id, quantity_on_hand, reorder_point')

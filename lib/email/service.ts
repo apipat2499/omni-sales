@@ -1,18 +1,39 @@
 import { createClient } from "@supabase/supabase-js";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
-);
+// Create Supabase client lazily to handle missing environment variables during build
+let supabaseClient: any = null;
+
+function getSupabase() {
+  if (!supabaseClient) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (!url || !key) {
+      console.warn('Supabase environment variables not set');
+      return null;
+    }
+
+    supabaseClient = createClient(url, key);
+  }
+  return supabaseClient;
+}
 
 // Campaign Management
 export async function getCampaigns(userId: string) {
-  const { data, error } = await supabase
-    .from("email_campaigns")
-    .select("*")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false });
-  return error ? [] : data || [];
+  try {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
+    const { data, error } = await supabase
+      .from("email_campaigns")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+    return error ? [] : data || [];
+  } catch (err) {
+    console.error('Error fetching campaigns:', err);
+    return [];
+  }
 }
 
 // Alias for compatibility
@@ -25,12 +46,20 @@ export async function getEmailCampaigns(userId: string, status?: string | null) 
 }
 
 export async function createCampaign(userId: string, campaignData: any) {
-  const { data, error } = await supabase
-    .from("email_campaigns")
-    .insert([{ user_id: userId, ...campaignData }])
-    .select()
-    .single();
-  return error ? null : data;
+  try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
+    const { data, error } = await supabase
+      .from("email_campaigns")
+      .insert([{ user_id: userId, ...campaignData }])
+      .select()
+      .single();
+    return error ? null : data;
+  } catch (err) {
+    console.error('Error creating campaign:', err);
+    return null;
+  }
 }
 
 // Alias for compatibility
@@ -39,53 +68,93 @@ export async function createEmailCampaign(userId: string, campaignData: any) {
 }
 
 export async function updateCampaign(userId: string, campaignId: string, updates: any) {
-  const { data, error } = await supabase
-    .from("email_campaigns")
-    .update(updates)
-    .eq("id", campaignId)
-    .eq("user_id", userId)
-    .select()
-    .single();
-  return error ? null : data;
+  try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
+    const { data, error } = await supabase
+      .from("email_campaigns")
+      .update(updates)
+      .eq("id", campaignId)
+      .eq("user_id", userId)
+      .select()
+      .single();
+    return error ? null : data;
+  } catch (err) {
+    console.error('Error updating campaign:', err);
+    return null;
+  }
 }
 
 // Template Management
 export async function getTemplates(userId: string) {
-  const { data, error } = await supabase
-    .from("email_templates")
-    .select("*")
-    .eq("user_id", userId)
-    .eq("is_active", true);
-  return error ? [] : data || [];
+  try {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
+    const { data, error } = await supabase
+      .from("email_templates")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("is_active", true);
+    return error ? [] : data || [];
+  } catch (err) {
+    console.error('Error fetching templates:', err);
+    return [];
+  }
 }
 
 // Segment Management
 export async function getSegments(userId: string) {
-  const { data, error } = await supabase
-    .from("email_segments")
-    .select("*")
-    .eq("user_id", userId)
-    .eq("is_active", true);
-  return error ? [] : data || [];
+  try {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
+    const { data, error } = await supabase
+      .from("email_segments")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("is_active", true);
+    return error ? [] : data || [];
+  } catch (err) {
+    console.error('Error fetching segments:', err);
+    return [];
+  }
 }
 
 // Automation Management
 export async function getAutomations(userId: string) {
-  const { data, error } = await supabase
-    .from("email_automations")
-    .select("*")
-    .eq("user_id", userId);
-  return error ? [] : data || [];
+  try {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
+    const { data, error } = await supabase
+      .from("email_automations")
+      .select("*")
+      .eq("user_id", userId);
+    return error ? [] : data || [];
+  } catch (err) {
+    console.error('Error fetching automations:', err);
+    return [];
+  }
 }
 
 // Analytics
 export async function getAnalytics(userId: string) {
-  const { data, error } = await supabase
-    .from("email_analytics")
-    .select("*")
-    .eq("user_id", userId)
-    .order("analytics_date", { ascending: false });
-  return error ? [] : data || [];
+  try {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
+    const { data, error } = await supabase
+      .from("email_analytics")
+      .select("*")
+      .eq("user_id", userId)
+      .order("analytics_date", { ascending: false });
+    return error ? [] : data || [];
+  } catch (err) {
+    console.error('Error fetching analytics:', err);
+    return [];
+  }
 }
 
 // Dashboard Data

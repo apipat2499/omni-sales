@@ -1,10 +1,22 @@
 import { createClient } from '@supabase/supabase-js';
 import { SMSTemplate, SMSLog, SMSCampaign, SMSAnalytics } from '@/types';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-);
+let supabaseClient: any = null;
+
+function getSupabase() {
+  if (!supabaseClient) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (!url || !key) {
+      console.warn("Supabase environment variables not set");
+      return null;
+    }
+
+    supabaseClient = createClient(url, key);
+  }
+  return supabaseClient;
+}
 
 // ============================================
 // SMS TEMPLATE MANAGEMENT
@@ -20,6 +32,9 @@ export async function createSMSTemplate(
   }
 ): Promise<SMSTemplate | null> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     const characterCount = template.content.length;
     const smsCount = Math.ceil(characterCount / 160);
 
@@ -54,6 +69,9 @@ export async function createSMSTemplate(
 
 export async function getSMSTemplates(userId: string): Promise<SMSTemplate[]> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
     const { data, error } = await supabase
       .from('sms_templates')
       .select('*')
@@ -90,6 +108,9 @@ export async function queueSMS(
   }
 ): Promise<boolean> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return false;
+
     const { error } = await supabase
       .from('sms_queue')
       .insert([
@@ -135,6 +156,9 @@ export async function logSMS(
   }
 ): Promise<SMSLog | null> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     const { data, error } = await supabase
       .from('sms_logs')
       .insert([
@@ -175,6 +199,9 @@ export async function logSMS(
 
 export async function getSMSPreferences(customerId: string) {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     const { data, error } = await supabase
       .from('sms_preferences')
       .select('*')
@@ -205,6 +232,9 @@ export async function updateSMSPreferences(
   }
 ): Promise<boolean> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return false;
+
     const { error } = await supabase
       .from('sms_preferences')
       .update({
@@ -247,6 +277,9 @@ export async function createSMSCampaign(
   }
 ): Promise<SMSCampaign | null> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     const { data, error } = await supabase
       .from('sms_campaigns')
       .insert([
@@ -283,6 +316,9 @@ export async function getSMSCampaigns(
   status?: string
 ): Promise<SMSCampaign[]> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
     let query = supabase
       .from('sms_campaigns')
       .select('*')
@@ -330,6 +366,9 @@ export async function recordSMSAnalytics(
   }
 ): Promise<SMSAnalytics | null> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     const { data, error } = await supabase
       .from('sms_analytics')
       .insert([
@@ -370,6 +409,9 @@ export async function getSMSAnalytics(
   days: number = 30
 ): Promise<SMSAnalytics[]> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
@@ -402,6 +444,9 @@ export async function getSMSLogs(
   limit: number = 50
 ): Promise<SMSLog[]> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
     let query = supabase
       .from('sms_logs')
       .select('*')
@@ -433,6 +478,9 @@ export async function updateSMSLogStatus(
   deliveredAt?: Date
 ): Promise<boolean> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return false;
+
     const { error } = await supabase
       .from('sms_logs')
       .update({
@@ -464,6 +512,9 @@ export async function recordBounce(
   bounceReason?: string
 ): Promise<boolean> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return false;
+
     const { error } = await supabase
       .from('sms_bounces')
       .upsert(
@@ -505,6 +556,9 @@ export async function recordConsentForSMS(
   regulatoryFramework?: string
 ): Promise<boolean> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return false;
+
     const { error } = await supabase
       .from('sms_compliance')
       .insert([

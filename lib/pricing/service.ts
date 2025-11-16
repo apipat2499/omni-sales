@@ -10,10 +10,22 @@ import {
   PriceTest,
 } from '@/types';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-);
+let supabaseClient: any = null;
+
+function getSupabase() {
+  if (!supabaseClient) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (!url || !key) {
+      console.warn('Supabase environment variables not set');
+      return null;
+    }
+
+    supabaseClient = createClient(url, key);
+  }
+  return supabaseClient;
+}
 
 // ============================================
 // PRICING STRATEGY MANAGEMENT
@@ -24,6 +36,9 @@ export async function createPricingStrategy(
   strategy: Partial<PricingStrategy>
 ): Promise<PricingStrategy | null> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     const { data, error } = await supabase
       .from('pricing_strategies')
       .insert({
@@ -49,6 +64,9 @@ export async function createPricingStrategy(
 
 export async function getPricingStrategies(userId: string): Promise<PricingStrategy[]> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
     const { data, error } = await supabase
       .from('pricing_strategies')
       .select('*')
@@ -68,6 +86,9 @@ export async function updatePricingStrategy(
   updates: Partial<PricingStrategy>
 ): Promise<boolean> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return false;
+
     const { error } = await supabase
       .from('pricing_strategies')
       .update({
@@ -96,6 +117,9 @@ export async function createPricingRule(
   rule: Partial<PricingRule>
 ): Promise<PricingRule | null> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     const { data, error } = await supabase
       .from('pricing_rules')
       .insert({
@@ -128,6 +152,9 @@ export async function createPricingRule(
 
 export async function getPricingRules(strategyId: string): Promise<PricingRule[]> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
     const { data, error } = await supabase
       .from('pricing_rules')
       .select('*')
@@ -148,6 +175,9 @@ export async function updatePricingRule(
   updates: Partial<PricingRule>
 ): Promise<boolean> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return false;
+
     const { error } = await supabase
       .from('pricing_rules')
       .update({
@@ -179,6 +209,9 @@ export async function calculateDynamicPrice(
   basePrice: number
 ): Promise<number> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return basePrice;
+
     // Get all active strategies
     const strategies = await getPricingStrategies(userId);
     let finalPrice = basePrice;
@@ -237,6 +270,9 @@ export async function updateProductPrice(
   ruleId?: string
 ): Promise<boolean> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return false;
+
     // Get current price
     const { data: product } = await supabase
       .from('products')
@@ -294,6 +330,9 @@ export async function recordCompetitorPrice(
   competitorSku?: string
 ): Promise<CompetitorPrice | null> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     const priceDifference = ourPrice - competitorPrice;
 
     const { data, error } = await supabase
@@ -324,6 +363,9 @@ export async function recordCompetitorPrice(
 
 export async function getCompetitorPrices(productId: string): Promise<CompetitorPrice[]> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
     const { data, error } = await supabase
       .from('competitor_prices')
       .select('*')
@@ -348,6 +390,9 @@ export async function recordDemandIndicator(
   indicator: Partial<DemandIndicator>
 ): Promise<DemandIndicator | null> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     // Determine demand level
     const demandLevel = calculateDemandLevel(indicator);
 
@@ -402,6 +447,9 @@ export async function getDemandIndicators(
   days: number = 30
 ): Promise<DemandIndicator[]> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
@@ -430,6 +478,8 @@ export async function calculatePriceElasticity(
   historicalData: { price: number; quantity: number }[]
 ): Promise<PriceElasticity | null> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
     // Simple elasticity calculation
     let elasticity = -1.0; // Default inelastic
 
@@ -476,6 +526,9 @@ export async function calculatePriceElasticity(
 
 export async function getPriceElasticity(productId: string): Promise<PriceElasticity | null> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     const { data, error } = await supabase
       .from('price_elasticity')
       .select('*')
@@ -501,6 +554,9 @@ export async function createPriceTest(
   test: Partial<PriceTest>
 ): Promise<PriceTest | null> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     const { data, error } = await supabase
       .from('price_tests')
       .insert({
@@ -529,6 +585,9 @@ export async function createPriceTest(
 
 export async function getPriceTests(userId: string, status?: string): Promise<PriceTest[]> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
     let query = supabase
       .from('price_tests')
       .select('*')
@@ -553,6 +612,9 @@ export async function updatePriceTest(
   updates: Partial<PriceTest>
 ): Promise<boolean> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return false;
+
     const { error } = await supabase
       .from('price_tests')
       .update({
@@ -582,6 +644,9 @@ export async function recordPricingAnalytics(
   analytics: Partial<DynamicPricingAnalytics>
 ): Promise<DynamicPricingAnalytics | null> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     const { data, error } = await supabase
       .from('dynamic_pricing_analytics')
       .insert({
@@ -614,6 +679,9 @@ export async function getPricingAnalytics(
   days: number = 30
 ): Promise<DynamicPricingAnalytics[]> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
@@ -637,6 +705,9 @@ export async function getPricingHistory(
   days: number = 30
 ): Promise<ProductPricingHistory[]> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 

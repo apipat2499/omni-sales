@@ -1,12 +1,28 @@
 import { createClient } from "@supabase/supabase-js";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
-);
+// Create Supabase client lazily to handle missing environment variables during build
+let supabaseClient: any = null;
+
+function getSupabase() {
+  if (!supabaseClient) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (!url || !key) {
+      console.warn('Supabase environment variables not set');
+      return null;
+    }
+
+    supabaseClient = createClient(url, key);
+  }
+  return supabaseClient;
+}
 
 export async function getOperationalAnalytics(userId: string, date: string): Promise<any> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
     const { data, error } = await supabase
       .from('operational_analytics')
       .select('*')
@@ -26,6 +42,9 @@ export async function recordOperationalAnalytics(
   data: Record<string, any>
 ): Promise<any> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     const { data: result, error } = await supabase
       .from('operational_analytics')
       .insert({
@@ -46,6 +65,9 @@ export async function recordOperationalAnalytics(
 
 export async function getSalesAnalyticsHistory(userId: string, days?: number): Promise<any[]> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
     const { data, error } = await supabase
       .from('sales_analytics')
       .select('*')
@@ -65,6 +87,9 @@ export async function recordSalesAnalytics(
   data: Record<string, any>
 ): Promise<any> {
   try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     const { data: result, error } = await supabase
       .from('sales_analytics')
       .insert({

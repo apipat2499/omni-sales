@@ -8,6 +8,12 @@ const nextConfig: NextConfig = {
   experimental: {
     turbopackUseSystemTlsCerts: true,
   },
+  serverComponentsExternalPackages: [
+    'firebase-admin',
+    'twilio',
+    'google-auth-library',
+    '@google-cloud/storage',
+  ],
 
   // PWA Configuration
   // Ensure service worker is served as static file
