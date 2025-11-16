@@ -4,9 +4,10 @@ import { useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import ProductModal from '@/components/products/ProductModal';
 import DeleteProductModal from '@/components/products/DeleteProductModal';
+import StockAdjustmentModal from '@/components/products/StockAdjustmentModal';
 import { useProducts } from '@/lib/hooks/useProducts';
 import { formatCurrency, isLowStock, cn } from '@/lib/utils';
-import { Search, Plus, Edit, Trash2, AlertCircle, Package, Loader2 } from 'lucide-react';
+import { Search, Plus, Edit, Trash2, AlertCircle, Package, Loader2, ArrowUpCircle, ArrowDownCircle, BarChart3 } from 'lucide-react';
 import type { Product, ProductCategory } from '@/types';
 
 export default function ProductsPage() {
@@ -14,6 +15,7 @@ export default function ProductsPage() {
   const [selectedCategory, setSelectedCategory] = useState<ProductCategory | 'all'>('all');
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isStockModalOpen, setIsStockModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   const { products, loading, error, refresh } = useProducts({
@@ -38,11 +40,20 @@ export default function ProductsPage() {
     setIsDeleteModalOpen(true);
   };
 
+  const handleAdjustStock = (product: Product) => {
+    setSelectedProduct(product);
+    setIsStockModalOpen(true);
+  };
+
   const handleProductSuccess = () => {
     refresh();
   };
 
   const handleDeleteSuccess = () => {
+    refresh();
+  };
+
+  const handleStockSuccess = () => {
     refresh();
   };
 
@@ -251,17 +262,24 @@ export default function ProductsPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => handleAdjustStock(product)}
+                            className="p-1.5 text-purple-600 dark:text-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/30 rounded transition-colors"
+                            title="ปรับสต็อก"
+                          >
+                            <BarChart3 className="h-4 w-4" />
+                          </button>
                           <button
                             onClick={() => handleEditProduct(product)}
-                            className="p-1 text-blue-600 dark:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded"
+                            className="p-1.5 text-blue-600 dark:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded transition-colors"
                             title="แก้ไขสินค้า"
                           >
                             <Edit className="h-4 w-4" />
                           </button>
                           <button
                             onClick={() => handleDeleteProduct(product)}
-                            className="p-1 text-red-600 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded"
+                            className="p-1.5 text-red-600 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-colors"
                             title="ลบสินค้า"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -308,6 +326,12 @@ export default function ProductsPage() {
       </div>
 
       {/* Modals */}
+      <StockAdjustmentModal
+        isOpen={isStockModalOpen}
+        onClose={() => setIsStockModalOpen(false)}
+        product={selectedProduct}
+        onSuccess={handleStockSuccess}
+      />
       <ProductModal
         isOpen={isProductModalOpen}
         onClose={() => setIsProductModalOpen(false)}

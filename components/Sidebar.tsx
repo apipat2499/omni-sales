@@ -15,7 +15,6 @@ import {
   LogOut,
   Loader2,
   TrendingUp,
-  Warehouse,
   Receipt,
   Megaphone,
 } from 'lucide-react';
@@ -28,7 +27,6 @@ const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Analytics', href: '/analytics', icon: TrendingUp },
   { name: 'Products', href: '/products', icon: Package },
-  { name: 'Inventory', href: '/inventory', icon: Warehouse },
   { name: 'Orders', href: '/orders', icon: ShoppingCart },
   { name: 'Customers', href: '/customers', icon: Users },
   { name: 'Marketing', href: '/marketing', icon: Megaphone },
