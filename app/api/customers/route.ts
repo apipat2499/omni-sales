@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase/client';
 import type { Customer } from '@/types';
+import { withRateLimit, rateLimitPresets } from '@/lib/middleware/rateLimit';
 
-export async function GET(request: NextRequest) {
+async function handleGET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search');
@@ -51,7 +52,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   try {
     const body = await request.json();
 
@@ -159,3 +160,7 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+// Apply rate limiting to route handlers
+export const GET = withRateLimit(rateLimitPresets.read, handleGET);
+export const POST = withRateLimit(rateLimitPresets.write, handlePOST);
