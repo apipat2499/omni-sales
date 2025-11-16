@@ -47,6 +47,8 @@ export interface OrderItem {
   quantity: number;
   price: number;
   totalPrice?: number;
+  discount?: number;                    // discount amount per item
+  notes?: string;                        // special instructions/notes
 }
 
 export interface Order {

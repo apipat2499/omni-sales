@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useOrderItems } from '@/lib/hooks/useOrderItems';
+import { useToast } from '@/lib/hooks/useToast';
 import OrderItemsTable from './OrderItemsTable';
 import AddItemModal from './AddItemModal';
 import CartSummary from './CartSummary';
@@ -22,6 +23,7 @@ export default function OrderItemsManager({
 }: OrderItemsManagerProps) {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [itemLoading, setItemLoading] = useState(false);
+  const { success, error: showError } = useToast();
 
   const {
     items,
@@ -45,8 +47,13 @@ export default function OrderItemsManager({
   ) => {
     setItemLoading(true);
     try {
-      const success = await addItem(productId, productName, quantity, price);
-      return success;
+      const isSuccess = await addItem(productId, productName, quantity, price);
+      if (isSuccess) {
+        success(`เพิ่มรายการ ${productName} เสร็จสิ้น`);
+      } else {
+        showError('ไม่สามารถเพิ่มรายการได้');
+      }
+      return isSuccess;
     } finally {
       setItemLoading(false);
     }
@@ -55,7 +62,12 @@ export default function OrderItemsManager({
   const handleQuantityChange = async (itemId: string, newQuantity: number) => {
     setItemLoading(true);
     try {
-      await updateItemQuantity(itemId, newQuantity);
+      const isSuccess = await updateItemQuantity(itemId, newQuantity);
+      if (isSuccess) {
+        success('อัพเดตจำนวนเสร็จสิ้น');
+      } else {
+        showError('ไม่สามารถอัพเดตจำนวนได้');
+      }
     } finally {
       setItemLoading(false);
     }
@@ -65,7 +77,12 @@ export default function OrderItemsManager({
     if (confirm('คุณแน่ใจหรือว่าต้องการลบรายการนี้?')) {
       setItemLoading(true);
       try {
-        await deleteItem(itemId);
+        const isSuccess = await deleteItem(itemId);
+        if (isSuccess) {
+          success('ลบรายการเสร็จสิ้น');
+        } else {
+          showError('ไม่สามารถลบรายการได้');
+        }
       } finally {
         setItemLoading(false);
       }
