@@ -100,4 +100,5 @@ export interface CategorySales {
   category: string;
   value: number;
   percentage: number;
+  [key: string]: string | number; // Index signature for recharts compatibility
 }
