@@ -376,3 +376,72 @@ export async function getTotalInventoryValue(userId: string): Promise<number> {
     return 0;
   }
 }
+
+export async function createBarcode(
+  userId: string,
+  barcode: string,
+  productId: string,
+  barcodeType?: string
+): Promise<any> {
+  try {
+    const { data, error } = await supabase
+      .from('product_barcodes')
+      .insert({
+        user_id: userId,
+        product_id: productId,
+        barcode,
+        barcode_type: barcodeType || 'ean13',
+        created_at: new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  } catch (err) {
+    console.error('Error creating barcode:', err);
+    return null;
+  }
+}
+
+export async function getProductByBarcode(userIdOrBarcode: string, barcode?: string): Promise<any | null> {
+  try {
+    // Handle both single argument (barcode) and two argument (userId, barcode) calls
+    const finalBarcode = barcode || userIdOrBarcode;
+
+    const { data, error } = await supabase
+      .from('product_barcodes')
+      .select('product_id, products(*)')
+      .eq('barcode', finalBarcode);
+
+    if (error) throw error;
+    return data && data.length > 0 ? data[0]?.products : null;
+  } catch (err) {
+    console.error('Error fetching product by barcode:', err);
+    return null;
+  }
+}
+
+export async function getReorderSuggestions(userId: string): Promise<any[]> {
+  try {
+    const { data: stockLevels, error } = await supabase
+      .from('stock_levels')
+      .select('product_id, quantity_on_hand, reorder_point')
+      .eq('user_id', userId);
+
+    if (error) throw error;
+
+    const suggestions = (stockLevels || [])
+      .filter((stock: any) => stock.quantity_on_hand <= (stock.reorder_point || 0))
+      .map((stock: any) => ({
+        product_id: stock.product_id,
+        current_quantity: stock.quantity_on_hand,
+        reorder_point: stock.reorder_point,
+      }));
+
+    return suggestions;
+  } catch (err) {
+    console.error('Error getting reorder suggestions:', err);
+    return [];
+  }
+}

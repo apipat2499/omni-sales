@@ -3,10 +3,10 @@ import { shareWishlist } from '@/lib/wishlist/service';
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { wishlistId: string } }
+  { params }: { params: Promise<{ wishlistId: string }> }
 ) {
   try {
-    const wishlistId = params.wishlistId;
+    const { wishlistId: wishlistId } = await params;
     const {
       userId,
       shareEmail,

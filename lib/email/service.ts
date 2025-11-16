@@ -15,6 +15,15 @@ export async function getCampaigns(userId: string) {
   return error ? [] : data || [];
 }
 
+// Alias for compatibility
+export async function getEmailCampaigns(userId: string, status?: string | null) {
+  const campaigns = await getCampaigns(userId);
+  if (status) {
+    return campaigns.filter((c: any) => c.status === status);
+  }
+  return campaigns;
+}
+
 export async function createCampaign(userId: string, campaignData: any) {
   const { data, error } = await supabase
     .from("email_campaigns")
@@ -22,6 +31,11 @@ export async function createCampaign(userId: string, campaignData: any) {
     .select()
     .single();
   return error ? null : data;
+}
+
+// Alias for compatibility
+export async function createEmailCampaign(userId: string, campaignData: any) {
+  return createCampaign(userId, campaignData);
 }
 
 export async function updateCampaign(userId: string, campaignId: string, updates: any) {

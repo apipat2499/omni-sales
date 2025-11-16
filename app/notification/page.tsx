@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { MessageSquare, Send, Smartphone, Bell, TrendingUp, BarChart3, RefreshCw, Plus, Users, Eye, Click, DollarSign } from "lucide-react";
+import { MessageSquare, Send, Smartphone, Bell, TrendingUp, BarChart3, RefreshCw, Plus, Users, Eye, Pointer, DollarSign } from "lucide-react";
 
 interface NotificationMetrics {
   label: string;
@@ -72,7 +72,7 @@ export default function NotificationDashboardPage() {
       {
         label: "Push Click Rate",
         value: `${(dashboardData.pushAverageClickRate || 0).toFixed(1)}%`,
-        icon: Click,
+        icon: Pointer,
         color: "bg-pink-500",
       },
       {

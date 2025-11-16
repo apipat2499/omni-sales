@@ -6,10 +6,10 @@ import {
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { customerId: string } }
+  { params }: { params: Promise<{ customerId: string }> }
 ) {
   try {
-    const customerId = params.customerId;
+    const { customerId: customerId } = await params;
     const programId = req.nextUrl.searchParams.get('programId');
 
     if (!customerId || !programId) {
@@ -40,10 +40,10 @@ export async function GET(
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { customerId: string } }
+  { params }: { params: Promise<{ customerId: string }> }
 ) {
   try {
-    const customerId = params.customerId;
+    const { customerId: customerId } = await params;
     const { userId, loyaltyProgramId, bonusPointsOnJoin } = await req.json();
 
     if (!userId || !customerId || !loyaltyProgramId) {

@@ -7,10 +7,10 @@ import {
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { wishlistId: string } }
+  { params }: { params: Promise<{ wishlistId: string }> }
 ) {
   try {
-    const wishlistId = params.wishlistId;
+    const { wishlistId: wishlistId } = await params;
 
     if (!wishlistId) {
       return NextResponse.json(
@@ -40,10 +40,10 @@ export async function GET(
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { wishlistId: string } }
+  { params }: { params: Promise<{ wishlistId: string }> }
 ) {
   try {
-    const wishlistId = params.wishlistId;
+    const { wishlistId: wishlistId } = await params;
     const { isPublic } = await req.json();
 
     if (!wishlistId) {
@@ -81,10 +81,10 @@ export async function PATCH(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { wishlistId: string } }
+  { params }: { params: Promise<{ wishlistId: string }> }
 ) {
   try {
-    const wishlistId = params.wishlistId;
+    const { wishlistId: wishlistId } = await params;
 
     if (!wishlistId) {
       return NextResponse.json(

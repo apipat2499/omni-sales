@@ -4,10 +4,10 @@ import { supabase } from '@/lib/supabase/client';
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { codeId: string } }
+  { params }: { params: Promise<{ codeId: string }> }
 ) {
   try {
-    const codeId = params.codeId;
+    const { codeId: codeId } = await params;
 
     if (!codeId) {
       return NextResponse.json(
@@ -37,10 +37,10 @@ export async function GET(
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { codeId: string } }
+  { params }: { params: Promise<{ codeId: string }> }
 ) {
   try {
-    const codeId = params.codeId;
+    const { codeId: codeId } = await params;
     const updates = await req.json();
 
     if (!codeId) {
@@ -88,10 +88,10 @@ export async function PATCH(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { codeId: string } }
+  { params }: { params: Promise<{ codeId: string }> }
 ) {
   try {
-    const codeId = params.codeId;
+    const { codeId: codeId } = await params;
 
     if (!codeId) {
       return NextResponse.json(

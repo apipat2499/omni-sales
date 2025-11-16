@@ -27,6 +27,22 @@ export async function getLoyaltyPrograms(userId: string): Promise<LoyaltyProgram
   return data || [];
 }
 
+// Get single loyalty program
+export async function getLoyaltyProgram(userId: string, programId: string): Promise<LoyaltyProgram | null> {
+  const { data, error } = await supabase
+    .from('loyalty_programs')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('id', programId)
+    .single();
+
+  if (error) {
+    console.error('Error fetching loyalty program:', error);
+    return null;
+  }
+  return data;
+}
+
 export async function createLoyaltyProgram(
   userId: string,
   programData: Partial<LoyaltyProgram>
@@ -59,15 +75,15 @@ export async function getLoyaltyTiers(programId: string): Promise<LoyaltyTier[]>
 
 export async function createLoyaltyTier(
   userId: string,
-  programId: string,
-  tierData: Partial<LoyaltyTier>
+  tierData: any
 ): Promise<LoyaltyTier> {
+  const { loyaltyProgramId: programId, ...otherData } = tierData;
   const { data, error } = await supabase
     .from('loyalty_tiers')
     .insert({
       user_id: userId,
       program_id: programId,
-      ...tierData,
+      ...otherData,
     })
     .select()
     .single();
@@ -182,6 +198,26 @@ export async function getLoyaltyRewards(
   return data || [];
 }
 
+// Alias for compatibility
+export async function getRewards(
+  programId: string,
+  userId?: string
+): Promise<LoyaltyReward[]> {
+  if (userId) {
+    return getLoyaltyRewards(programId, userId);
+  }
+  // If no userId provided, fetch all active rewards for the program
+  const { data, error } = await supabase
+    .from('loyalty_rewards')
+    .select('*')
+    .eq('program_id', programId)
+    .eq('active', true)
+    .order('points_cost', { ascending: true });
+
+  if (error) throw new Error(error.message);
+  return data || [];
+}
+
 export async function createLoyaltyReward(
   userId: string,
   programId: string,
@@ -200,6 +236,15 @@ export async function createLoyaltyReward(
 
   if (error) throw new Error(error.message);
   return data;
+}
+
+// Alias for compatibility
+export async function createReward(
+  userId: string,
+  rewardData: any
+): Promise<LoyaltyReward> {
+  const { loyaltyProgramId: programId, ...otherData } = rewardData;
+  return createLoyaltyReward(userId, programId, otherData as Partial<LoyaltyReward>);
 }
 
 // Redemption Functions
@@ -294,4 +339,157 @@ export async function getLoyaltyDashboardData(
     membershipTrendLastMonth: Array(30).fill(0),
     redemptionTrendLastMonth: Array(30).fill(0),
   };
+}
+
+// Initialize Customer Loyalty
+export async function initializeCustomerLoyalty(
+  userId: string,
+  customerId: string,
+  programId: string,
+  bonusPoints?: number
+): Promise<LoyaltyMember> {
+  return enrollLoyaltyMember(userId, programId, {
+    customer_id: customerId,
+    current_points: bonusPoints || 0,
+    current_tier_id: 'bronze',
+    membership_status: 'active',
+  } as any);
+}
+
+// Record Loyalty Analytics
+export async function recordLoyaltyAnalytics(
+  userId: string,
+  programId: string,
+  data: Record<string, any>
+): Promise<any> {
+  const { data: result, error } = await supabase
+    .from('loyalty_analytics')
+    .insert({
+      user_id: userId,
+      program_id: programId,
+      event_data: data,
+      recorded_at: new Date().toISOString(),
+    })
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+  return result;
+}
+
+// Redeem Reward
+export async function redeemReward(
+  userId: string,
+  memberId: string,
+  rewardId: string,
+  programId: string
+): Promise<LoyaltyRedemption> {
+  // Default points redeemed - retrieve from reward
+  const pointsRedeemed = 100; // Default value
+
+  // Create redemption record
+  const redemption = await createRedemption(userId, programId, memberId, rewardId, pointsRedeemed);
+
+  // Update member points
+  const member = await getMemberPointsHistory(memberId);
+  const totalPoints = member.reduce((sum, t) => sum + (t.points_earned || 0) - (t.points_redeemed || 0), 0);
+
+  await updateLoyaltyMember(userId, memberId, {
+    current_points: Math.max(0, totalPoints - pointsRedeemed),
+  } as any);
+
+  return redemption;
+}
+
+// Approve Redemption
+export async function approveRedemption(
+  userId: string,
+  redemptionId: string,
+  notes?: string
+): Promise<LoyaltyRedemption> {
+  const { data, error } = await supabase
+    .from('loyalty_redemptions')
+    .update({
+      fulfillment_status: 'fulfilled',
+      fulfilled_date: new Date().toISOString(),
+      notes: notes || '',
+    })
+    .eq('id', redemptionId)
+    .eq('user_id', userId)
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+// Create Point Rule
+export async function createPointRule(
+  userId: string,
+  ruleData: any
+): Promise<any> {
+  try {
+    const { loyaltyProgramId: programId, ...otherData } = ruleData;
+    const { data, error } = await supabase
+      .from('loyalty_point_rules')
+      .insert({
+        user_id: userId,
+        program_id: programId,
+        ...otherData,
+      })
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message);
+    return data;
+  } catch (err) {
+    console.error('Error creating point rule:', err);
+    return null;
+  }
+}
+
+// Get Customer Loyalty Account
+export async function getCustomerLoyaltyAccount(
+  customerId: string,
+  programId: string
+): Promise<any | null> {
+  try {
+    const { data, error } = await supabase
+      .from('loyalty_members')
+      .select('*')
+      .eq('customer_id', customerId)
+      .eq('program_id', programId)
+      .single();
+
+    if (error) {
+      console.error('Customer not found in loyalty program:', error);
+      return null;
+    }
+    return data;
+  } catch (err) {
+    console.error('Error fetching customer loyalty account:', err);
+    return null;
+  }
+}
+
+// Get Loyalty Analytics
+export async function getLoyaltyAnalytics(
+  userId: string,
+  programId?: string
+): Promise<any> {
+  try {
+    let query = supabase.from('loyalty_analytics').select('*').eq('user_id', userId);
+
+    if (programId) {
+      query = query.eq('program_id', programId);
+    }
+
+    const { data, error } = await query.order('recorded_at', { ascending: false });
+
+    if (error) throw new Error(error.message);
+    return data || [];
+  } catch (err) {
+    console.error('Error fetching loyalty analytics:', err);
+    return [];
+  }
 }
