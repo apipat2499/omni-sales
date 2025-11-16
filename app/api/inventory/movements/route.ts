@@ -1,118 +1,54 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/client';
-import { recordStockMovement } from '@/lib/inventory/service';
+import { NextRequest, NextResponse } from "next/server";
+import { getStockMovementHistory, transferStock } from "@/lib/services/inventory";
 
-export async function GET(req: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-    const userId = req.nextUrl.searchParams.get('userId');
-    const productId = req.nextUrl.searchParams.get('productId');
-    const warehouseId = req.nextUrl.searchParams.get('warehouseId');
-    const movementType = req.nextUrl.searchParams.get('movementType');
-    const limit = parseInt(req.nextUrl.searchParams.get('limit') || '100');
-    const offset = parseInt(req.nextUrl.searchParams.get('offset') || '0');
+    const searchParams = request.nextUrl.searchParams;
+    const productId = searchParams.get("productId");
+    const limit = searchParams.get("limit") ? parseInt(searchParams.get("limit")!) : 50;
 
-    if (!userId) {
+    if (!productId) {
       return NextResponse.json(
-        { error: 'Missing userId' },
+        { error: "Product ID is required" },
         { status: 400 }
       );
     }
 
-    let query = supabase
-      .from('stock_movements')
-      .select(
-        `
-        *,
-        products (
-          id,
-          name,
-          sku
-        )
-      `,
-        { count: 'exact' }
-      )
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
-
-    if (productId) {
-      query = query.eq('product_id', productId);
-    }
-
-    if (warehouseId) {
-      query = query.eq('warehouse_id', warehouseId);
-    }
-
-    if (movementType) {
-      query = query.eq('movement_type', movementType);
-    }
-
-    const { data: movements, error, count } = await query.range(
-      offset,
-      offset + limit - 1
-    );
-
-    if (error) {
-      return NextResponse.json(
-        { error: 'Failed to fetch movements' },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json({
-      data: movements || [],
-      total: count || 0,
-      limit,
-      offset,
-    });
+    const movements = await getStockMovementHistory(productId, limit);
+    return NextResponse.json({ movements });
   } catch (error) {
-    console.error('Error fetching movements:', error);
+    console.error("Error fetching movements:", error);
     return NextResponse.json(
-      { error: 'Failed to fetch movements' },
+      { error: "Failed to fetch movements" },
       { status: 500 }
     );
   }
 }
 
-export async function POST(req: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    const {
-      userId,
-      productId,
-      warehouseId,
-      movementType,
-      quantityChange,
-      reason,
-      notes,
-    } = await req.json();
+    const body = await request.json();
+    const { productId, fromWarehouse, toWarehouse, quantity } = body;
 
-    if (!userId || !productId || !movementType || quantityChange === undefined) {
+    if (!productId || !fromWarehouse || !toWarehouse || !quantity) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: "Missing required fields" },
         { status: 400 }
       );
     }
 
-    const movement = await recordStockMovement(userId, {
+    const result = await transferStock(
       productId,
-      warehouseId,
-      movementType,
-      quantityChange,
-      reason,
-      notes,
-    });
+      fromWarehouse,
+      toWarehouse,
+      quantity
+    );
 
-    if (!movement) {
-      return NextResponse.json(
-        { error: 'Failed to record movement' },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json(movement, { status: 201 });
+    return NextResponse.json(result);
   } catch (error) {
-    console.error('Error recording movement:', error);
+    console.error("Error transferring stock:", error);
     return NextResponse.json(
-      { error: 'Failed to record movement' },
+      { error: "Failed to transfer stock" },
       { status: 500 }
     );
   }

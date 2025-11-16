@@ -1,0 +1,14 @@
+{
+  "product_name": "ชื่อสินค้า",
+  "sku": "รหัสสินค้า",
+  "category": "หมวดหมู่",
+  "price": "ราคา",
+  "cost": "ต้นทุน",
+  "stock": "คงคลัง",
+  "description": "รายละเอียด",
+  "add_product": "เพิ่มสินค้า",
+  "edit_product": "แก้ไขสินค้า",
+  "delete_product": "ลบสินค้า",
+  "products_list": "รายการสินค้า",
+  "no_products": "ไม่พบสินค้า"
+}

@@ -1,0 +1,15 @@
+{
+  "order_number": "เลขที่คำสั่งซื้อ",
+  "customer_name": "ชื่อลูกค้า",
+  "total_amount": "จำนวนเงินรวม",
+  "status": "สถานะ",
+  "date": "วันที่",
+  "channel": "ช่องทาง",
+  "pending": "รอดำเนิน",
+  "processing": "กำลังดำเนิน",
+  "shipped": "จัดส่งแล้ว",
+  "delivered": "ส่งถึงแล้ว",
+  "cancelled": "ยกเลิก",
+  "orders_list": "รายการคำสั่งซื้อ",
+  "no_orders": "ไม่พบคำสั่งซื้อ"
+}
