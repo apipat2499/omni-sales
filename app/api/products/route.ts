@@ -1,46 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase/client';
 import type { Product } from '@/types';
+import { withRateLimit, rateLimitPresets } from '@/lib/middleware/rateLimit';
+import { getCachedProducts, invalidateProductCache } from '@/lib/cache/strategies/products-cache';
 
-export async function GET(request: NextRequest) {
+async function handleGET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const search = searchParams.get('search');
-    const category = searchParams.get('category');
+    const search = searchParams.get('search') || undefined;
+    const category = searchParams.get('category') || undefined;
+    const minPrice = searchParams.get('minPrice') ? parseFloat(searchParams.get('minPrice')!) : undefined;
+    const maxPrice = searchParams.get('maxPrice') ? parseFloat(searchParams.get('maxPrice')!) : undefined;
+    const inStock = searchParams.get('inStock') === 'true' ? true : undefined;
 
-    let query = supabase.from('products').select('*');
+    // Use cached products with filters
+    const cachedProducts = await getCachedProducts({
+      search,
+      category: category && category !== 'all' ? category : undefined,
+      minPrice,
+      maxPrice,
+      inStock,
+    });
 
-    // Apply search filter
-    if (search) {
-      query = query.or(`name.ilike.%${search}%,sku.ilike.%${search}%`);
-    }
-
-    // Apply category filter
-    if (category && category !== 'all') {
-      query = query.eq('category', category);
-    }
-
-    // Order by created date descending
-    query = query.order('createdAt', { ascending: false });
-
-    const { data, error } = await query;
-
-    if (error) {
-      console.error('Error fetching products:', error);
-      return NextResponse.json(
-        { error: 'Failed to fetch products', details: error.message },
-        { status: 500 }
-      );
-    }
-
-    // Transform dates to Date objects
-    const products: Product[] = (data || []).map((product) => ({
+    // Transform to Product type with Date objects
+    const products: Product[] = cachedProducts.map((product) => ({
       ...product,
-      createdAt: new Date(product.createdAt),
-      updatedAt: new Date(product.updatedAt),
+      createdAt: new Date(product.created_at),
+      updatedAt: new Date(product.updated_at),
     }));
 
-    return NextResponse.json(products, { status: 200 });
+    // Add cache header
+    return NextResponse.json(products, {
+      status: 200,
+      headers: {
+        'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=7200',
+      },
+    });
   } catch (error) {
     console.error('Unexpected error in GET /api/products:', error);
     return NextResponse.json(
@@ -50,7 +45,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   try {
     const body = await request.json();
 
@@ -147,6 +142,9 @@ export async function POST(request: NextRequest) {
       updatedAt: new Date(data.updatedAt),
     };
 
+    // Invalidate product cache
+    await invalidateProductCache();
+
     return NextResponse.json(product, { status: 201 });
   } catch (error) {
     console.error('Unexpected error in POST /api/products:', error);
@@ -156,3 +154,7 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+// Apply rate limiting to route handlers
+export const GET = withRateLimit(rateLimitPresets.read, handleGET);
+export const POST = withRateLimit(rateLimitPresets.write, handlePOST);

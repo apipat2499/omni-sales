@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateTwoFactorSecret } from "@/lib/services/two-factor-auth";
+import { withRateLimit, rateLimitPresets } from "@/lib/middleware/rateLimit";
 
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   try {
     const body = await request.json();
     const { userEmail } = body;
@@ -23,3 +24,6 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+// Apply strict rate limiting to auth route
+export const POST = withRateLimit(rateLimitPresets.auth, handlePOST);

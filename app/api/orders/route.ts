@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase/client';
+import { withRateLimit, rateLimitPresets } from '@/lib/middleware/rateLimit';
 
-export async function GET(req: NextRequest) {
+async function handleGET(req: NextRequest) {
   try {
     const customerId = req.nextUrl.searchParams.get('customerId');
     const status = req.nextUrl.searchParams.get('status');
@@ -69,3 +70,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to fetch orders' }, { status: 500 });
   }
 }
+
+// Apply rate limiting to route handler
+export const GET = withRateLimit(rateLimitPresets.read, handleGET);
