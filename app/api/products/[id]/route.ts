@@ -170,6 +170,78 @@ export async function PUT(
   }
 }
 
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+
+    if (!id) {
+      return NextResponse.json(
+        { error: 'Product ID is required' },
+        { status: 400 }
+      );
+    }
+
+    const body = await request.json();
+
+    // Validate stock if provided
+    if (body.stock !== undefined && (typeof body.stock !== 'number' || body.stock < 0)) {
+      return NextResponse.json(
+        { error: 'Stock must be a positive number' },
+        { status: 400 }
+      );
+    }
+
+    // Prepare update data (only stock for PATCH)
+    const updateData: any = {
+      updated_at: new Date().toISOString(),
+    };
+
+    if (body.stock !== undefined) updateData.stock = body.stock;
+
+    // Update product stock in Supabase
+    const { data, error } = await supabase
+      .from('products')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating product stock:', error);
+
+      if (error.code === 'PGRST116') {
+        return NextResponse.json(
+          { error: 'Product not found' },
+          { status: 404 }
+        );
+      }
+
+      return NextResponse.json(
+        { error: 'Failed to update product stock', details: error.message },
+        { status: 500 }
+      );
+    }
+
+    // Transform dates to Date objects
+    const product: Product = {
+      ...data,
+      createdAt: new Date(data.created_at),
+      updatedAt: new Date(data.updated_at),
+    };
+
+    return NextResponse.json(product, { status: 200 });
+  } catch (error) {
+    console.error('Unexpected error in PATCH /api/products/[id]:', error);
+    return NextResponse.json(
+      { error: 'An unexpected error occurred' },
+      { status: 500 }
+    );
+  }
+}
+
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
