@@ -5526,3 +5526,192 @@ CREATE POLICY "Allow all for loyalty_redemptions" ON loyalty_redemptions FOR ALL
 CREATE POLICY "Allow all for loyalty_tier_progression" ON loyalty_tier_progression FOR ALL USING (true);
 CREATE POLICY "Allow all for loyalty_program_analytics" ON loyalty_program_analytics FOR ALL USING (true);
 CREATE POLICY "Allow all for loyalty_member_activity" ON loyalty_member_activity FOR ALL USING (true);
+
+-- Support & Live Chat Tables
+-- Support Tickets
+CREATE TABLE IF NOT EXISTS support_tickets (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  ticket_number VARCHAR(50) NOT NULL UNIQUE,
+  customer_id VARCHAR(255),
+  customer_email VARCHAR(255),
+  customer_name VARCHAR(255),
+  subject VARCHAR(255) NOT NULL,
+  description TEXT NOT NULL,
+  category VARCHAR(100) NOT NULL,
+  priority VARCHAR(50) NOT NULL DEFAULT 'medium',
+  status VARCHAR(50) NOT NULL DEFAULT 'open',
+  assigned_agent_id UUID,
+  assigned_agent_name VARCHAR(255),
+  resolution_notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  closed_at TIMESTAMP WITH TIME ZONE,
+  response_time_minutes INT,
+  resolution_time_minutes INT
+);
+
+-- Ticket Conversations
+CREATE TABLE IF NOT EXISTS ticket_conversations (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  ticket_id UUID NOT NULL REFERENCES support_tickets(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL,
+  sender_id VARCHAR(255),
+  sender_name VARCHAR(255),
+  sender_type VARCHAR(50) NOT NULL,
+  message TEXT NOT NULL,
+  attachments JSONB DEFAULT '[]'::jsonb,
+  is_internal BOOLEAN DEFAULT false,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Support Agents
+CREATE TABLE IF NOT EXISTS support_agents (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  agent_email VARCHAR(255) NOT NULL,
+  agent_name VARCHAR(255) NOT NULL,
+  status VARCHAR(50) NOT NULL DEFAULT 'offline',
+  current_chats INT DEFAULT 0,
+  max_chats INT DEFAULT 5,
+  department VARCHAR(100),
+  skills JSONB DEFAULT '[]'::jsonb,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Live Chat Sessions
+CREATE TABLE IF NOT EXISTS live_chat_sessions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  visitor_id VARCHAR(255) NOT NULL,
+  visitor_email VARCHAR(255),
+  visitor_name VARCHAR(255),
+  assigned_agent_id UUID REFERENCES support_agents(id),
+  status VARCHAR(50) NOT NULL DEFAULT 'active',
+  chat_type VARCHAR(50) NOT NULL,
+  duration_seconds INT,
+  message_count INT DEFAULT 0,
+  started_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  ended_at TIMESTAMP WITH TIME ZONE,
+  visitor_ip VARCHAR(50),
+  browser_info JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Chat Messages
+CREATE TABLE IF NOT EXISTS chat_messages (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  session_id UUID NOT NULL REFERENCES live_chat_sessions(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL,
+  sender_id VARCHAR(255),
+  sender_type VARCHAR(50) NOT NULL,
+  message TEXT NOT NULL,
+  attachments JSONB DEFAULT '[]'::jsonb,
+  is_system_message BOOLEAN DEFAULT false,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Canned Responses
+CREATE TABLE IF NOT EXISTS canned_responses (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  category VARCHAR(100),
+  title VARCHAR(255) NOT NULL,
+  content TEXT NOT NULL,
+  shortcut VARCHAR(50),
+  tags JSONB DEFAULT '[]'::jsonb,
+  usage_count INT DEFAULT 0,
+  last_used_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Support Analytics
+CREATE TABLE IF NOT EXISTS support_analytics (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  analytics_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  total_tickets INT DEFAULT 0,
+  open_tickets INT DEFAULT 0,
+  closed_tickets INT DEFAULT 0,
+  average_response_time_minutes INT DEFAULT 0,
+  average_resolution_time_minutes INT DEFAULT 0,
+  satisfaction_score DECIMAL(5, 2) DEFAULT 0,
+  total_chats INT DEFAULT 0,
+  active_chats INT DEFAULT 0,
+  chat_satisfaction_score DECIMAL(5, 2) DEFAULT 0,
+  agent_count INT DEFAULT 0,
+  busy_agents INT DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Ticket Feedback
+CREATE TABLE IF NOT EXISTS ticket_feedback (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  ticket_id UUID NOT NULL REFERENCES support_tickets(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL,
+  rating INT NOT NULL,
+  comment TEXT,
+  would_recommend BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create Indexes for Support System
+CREATE INDEX IF NOT EXISTS idx_support_tickets_user ON support_tickets(user_id);
+CREATE INDEX IF NOT EXISTS idx_support_tickets_status ON support_tickets(status);
+CREATE INDEX IF NOT EXISTS idx_support_tickets_priority ON support_tickets(priority);
+CREATE INDEX IF NOT EXISTS idx_support_tickets_assigned_agent ON support_tickets(assigned_agent_id);
+CREATE INDEX IF NOT EXISTS idx_support_tickets_created_at ON support_tickets(created_at);
+CREATE INDEX IF NOT EXISTS idx_support_tickets_customer_email ON support_tickets(customer_email);
+CREATE INDEX IF NOT EXISTS idx_ticket_conversations_ticket ON ticket_conversations(ticket_id);
+CREATE INDEX IF NOT EXISTS idx_ticket_conversations_created_at ON ticket_conversations(created_at);
+CREATE INDEX IF NOT EXISTS idx_support_agents_user ON support_agents(user_id);
+CREATE INDEX IF NOT EXISTS idx_support_agents_status ON support_agents(status);
+CREATE INDEX IF NOT EXISTS idx_support_agents_active ON support_agents(is_active);
+CREATE INDEX IF NOT EXISTS idx_live_chat_sessions_user ON live_chat_sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_live_chat_sessions_visitor ON live_chat_sessions(visitor_id);
+CREATE INDEX IF NOT EXISTS idx_live_chat_sessions_agent ON live_chat_sessions(assigned_agent_id);
+CREATE INDEX IF NOT EXISTS idx_live_chat_sessions_status ON live_chat_sessions(status);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_session ON chat_messages(session_id);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_created_at ON chat_messages(created_at);
+CREATE INDEX IF NOT EXISTS idx_canned_responses_user ON canned_responses(user_id);
+CREATE INDEX IF NOT EXISTS idx_canned_responses_category ON canned_responses(category);
+CREATE INDEX IF NOT EXISTS idx_support_analytics_user_date ON support_analytics(user_id, analytics_date);
+CREATE INDEX IF NOT EXISTS idx_ticket_feedback_ticket ON ticket_feedback(ticket_id);
+
+-- Composite Indexes for Performance
+CREATE INDEX IF NOT EXISTS idx_support_tickets_user_status ON support_tickets(user_id, status);
+CREATE INDEX IF NOT EXISTS idx_support_tickets_agent_status ON support_tickets(assigned_agent_id, status);
+CREATE INDEX IF NOT EXISTS idx_live_chat_sessions_user_status ON live_chat_sessions(user_id, status);
+
+-- Create Triggers for Support System
+CREATE TRIGGER update_support_tickets_updated_at BEFORE UPDATE ON support_tickets
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_support_agents_updated_at BEFORE UPDATE ON support_agents
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_canned_responses_updated_at BEFORE UPDATE ON canned_responses
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Enable RLS for Support System Tables
+ALTER TABLE support_tickets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ticket_conversations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE support_agents ENABLE ROW LEVEL SECURITY;
+ALTER TABLE live_chat_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE chat_messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE canned_responses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE support_analytics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ticket_feedback ENABLE ROW LEVEL SECURITY;
+
+-- Create Policies for Support System Tables
+CREATE POLICY "Allow all for support_tickets" ON support_tickets FOR ALL USING (true);
+CREATE POLICY "Allow all for ticket_conversations" ON ticket_conversations FOR ALL USING (true);
+CREATE POLICY "Allow all for support_agents" ON support_agents FOR ALL USING (true);
+CREATE POLICY "Allow all for live_chat_sessions" ON live_chat_sessions FOR ALL USING (true);
+CREATE POLICY "Allow all for chat_messages" ON chat_messages FOR ALL USING (true);
+CREATE POLICY "Allow all for canned_responses" ON canned_responses FOR ALL USING (true);
+CREATE POLICY "Allow all for support_analytics" ON support_analytics FOR ALL USING (true);
+CREATE POLICY "Allow all for ticket_feedback" ON ticket_feedback FOR ALL USING (true);
