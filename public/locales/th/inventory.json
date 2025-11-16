@@ -1,0 +1,11 @@
+{
+  "low_stock_alert": "แจ้งเตือนสินค้าต่ำ",
+  "stock_level": "ระดับสินค้าคงคลัง",
+  "reorder_point": "จุดสั่งซื้อใหม่",
+  "warehouse": "คลังสินค้า",
+  "stock_movement": "การเคลื่อนย้ายสินค้า",
+  "inventory_value": "มูลค่าสินค้าคงคลัง",
+  "adjust_stock": "ปรับสินค้าคงคลัง",
+  "transfer_stock": "โอนสินค้า",
+  "inventory_report": "รายงานสินค้าคงคลัง"
+}

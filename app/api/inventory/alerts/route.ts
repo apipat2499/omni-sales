@@ -1,15 +1,18 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { checkLowStockAlerts } from '@/lib/inventory/service';
+import { NextRequest, NextResponse } from "next/server";
+import { getLowStockProducts } from "@/lib/services/inventory";
 
-export async function GET(req: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-    const userId = req.nextUrl.searchParams.get('userId');
-    if (!userId) return NextResponse.json({ error: 'Missing userId' }, { status: 400 });
-
-    const alerts = await checkLowStockAlerts(userId);
-    return NextResponse.json({ data: alerts, total: alerts.length });
+    const lowStockProducts = await getLowStockProducts();
+    return NextResponse.json({
+      alerts: lowStockProducts,
+      totalAlerts: lowStockProducts.length,
+    });
   } catch (error) {
-    console.error('Error checking alerts:', error);
-    return NextResponse.json({ error: 'Failed to check alerts' }, { status: 500 });
+    console.error("Error fetching alerts:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch alerts" },
+      { status: 500 }
+    );
   }
 }

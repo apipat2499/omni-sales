@@ -1,0 +1,11 @@
+{
+  "low_stock_alert": "Low Stock Alert",
+  "stock_level": "Stock Level",
+  "reorder_point": "Reorder Point",
+  "warehouse": "Warehouse",
+  "stock_movement": "Stock Movement",
+  "inventory_value": "Inventory Value",
+  "adjust_stock": "Adjust Stock",
+  "transfer_stock": "Transfer Stock",
+  "inventory_report": "Inventory Report"
+}

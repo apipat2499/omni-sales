@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "omni-sales-mobile",
+    "slug": "omni-sales-mobile",
+    "version": "0.1.0",
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTabletMode": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow access to photos",
+          "cameraPermission": "Allow access to camera"
+        }
+      ]
+    ]
+  }
+}
