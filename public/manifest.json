@@ -1,7 +1,7 @@
 {
   "name": "Omni Sales - ระบบจัดการขาย Omnichannel",
   "short_name": "Omni Sales",
-  "description": "ระบบจัดการขายออนไลน์และออฟไลน์แบบครบวงจร",
+  "description": "ระบบจัดการขายออนไลน์และออฟไลน์แบบครบวงจร รองรับการใช้งานออฟไลน์",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
@@ -11,6 +11,22 @@
   "lang": "th",
   "dir": "ltr",
   "scope": "/",
+  "prefer_related_applications": false,
+  "display_override": ["window-controls-overlay", "standalone"],
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
+  "protocol_handlers": [],
+  "share_target": {
+    "action": "/share",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  },
   "icons": [
     {
       "src": "/icons/icon-192x192.png",

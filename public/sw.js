@@ -1,56 +1,59 @@
-// Service Worker for Omni Sales PWA
-// Cache version - increment when you need to force cache update
-const CACHE_VERSION = 'v1';
-const CACHE_NAME = `omni-sales-${CACHE_VERSION}`;
-const OFFLINE_URL = '/offline';
 
-// Assets to cache immediately on install
-const STATIC_ASSETS = [
-  '/',
-  '/offline',
-  '/manifest.json',
-  // Add your critical static assets here
-  // '/icons/icon-192x192.png',
-  // '/icons/icon-512x512.png',
-];
+// Service Worker for Omni Sales PWA - Offline-First Architecture
+// Note: This is a simplified version. For production, compile from TypeScript.
 
-// API endpoints to cache (with network-first strategy)
-const API_CACHE_NAME = `omni-sales-api-${CACHE_VERSION}`;
+const CACHE_VERSION = 'v2';
+const CACHE_PREFIX = 'omni-sales';
+const STATIC_CACHE = CACHE_PREFIX + '-static-' + CACHE_VERSION;
+const API_CACHE = CACHE_PREFIX + '-api-' + CACHE_VERSION;
+const IMAGE_CACHE = CACHE_PREFIX + '-images-' + CACHE_VERSION;
+const DOCUMENT_CACHE = CACHE_PREFIX + '-documents-' + CACHE_VERSION;
+const OFFLINE_URL = '/offline.html';
 
-// Install event - cache static assets
+const MAX_ENTRIES = {
+  static: 60,
+  api: 100,
+  images: 50,
+  documents: 30,
+};
+
+const MAX_AGE = {
+  static: 30 * 24 * 60 * 60,
+  api: 5 * 60,
+  images: 7 * 24 * 60 * 60,
+  documents: 24 * 60 * 60,
+};
+
+// Install event
 self.addEventListener('install', (event) => {
   console.log('[SW] Installing service worker...');
+  self.skipWaiting();
 
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('[SW] Caching static assets');
-        return cache.addAll(STATIC_ASSETS);
-      })
-      .then(() => {
-        console.log('[SW] Skip waiting');
-        return self.skipWaiting();
-      })
-      .catch((error) => {
-        console.error('[SW] Installation failed:', error);
-      })
+    caches.open(STATIC_CACHE).then((cache) => {
+      return cache.addAll([
+        '/',
+        '/offline.html',
+        '/manifest.json',
+      ]).catch((error) => {
+        console.error('[SW] Failed to cache static assets:', error);
+      });
+    })
   );
 });
 
-// Activate event - clean up old caches
+// Activate event
 self.addEventListener('activate', (event) => {
   console.log('[SW] Activating service worker...');
 
   event.waitUntil(
-    caches.keys()
-      .then((cacheNames) => {
+    Promise.all([
+      self.clients.claim(),
+      caches.keys().then((cacheNames) => {
         return Promise.all(
           cacheNames
             .filter((cacheName) => {
-              // Delete old cache versions
-              return cacheName.startsWith('omni-sales-') &&
-                     cacheName !== CACHE_NAME &&
-                     cacheName !== API_CACHE_NAME;
+              return cacheName.startsWith(CACHE_PREFIX) && !cacheName.includes(CACHE_VERSION);
             })
             .map((cacheName) => {
               console.log('[SW] Deleting old cache:', cacheName);
@@ -58,155 +61,122 @@ self.addEventListener('activate', (event) => {
             })
         );
       })
-      .then(() => {
-        console.log('[SW] Claiming clients');
-        return self.clients.claim();
-      })
+    ])
   );
 });
 
-// Fetch event - handle requests with caching strategies
+// Fetch event
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
   // Skip cross-origin requests
-  if (url.origin !== location.origin) {
-    return;
-  }
+  if (url.origin !== location.origin) return;
+  if (!request.url.startsWith('http')) return;
 
-  // Skip chrome-extension and other non-http(s) requests
-  if (!request.url.startsWith('http')) {
-    return;
-  }
-
-  // API requests - Network first, fall back to cache
+  // API requests - Network first
   if (url.pathname.startsWith('/api/')) {
-    event.respondWith(networkFirstStrategy(request, API_CACHE_NAME));
+    event.respondWith(networkFirst(request, API_CACHE));
     return;
   }
 
-  // Next.js specific files - Network first
-  if (
-    url.pathname.startsWith('/_next/') ||
-    url.pathname.includes('/static/')
-  ) {
-    event.respondWith(networkFirstStrategy(request, CACHE_NAME));
+  // Static assets - Cache first
+  if (url.pathname.startsWith('/_next/') || url.pathname.startsWith('/static/')) {
+    event.respondWith(cacheFirst(request, STATIC_CACHE));
     return;
   }
 
-  // Navigation requests (HTML pages) - Network first with offline fallback
+  // Images - Cache first
+  if (request.destination === 'image') {
+    event.respondWith(cacheFirst(request, IMAGE_CACHE));
+    return;
+  }
+
+  // Navigation - Network first with offline fallback
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          // Clone and cache successful responses
           if (response.ok) {
-            const responseClone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(request, responseClone);
-            });
+            const clone = response.clone();
+            caches.open(DOCUMENT_CACHE).then((cache) => cache.put(request, clone));
           }
           return response;
         })
         .catch(() => {
-          // Network failed, try cache
-          return caches.match(request).then((cachedResponse) => {
-            if (cachedResponse) {
-              return cachedResponse;
-            }
-            // No cached version, return offline page
-            return caches.match(OFFLINE_URL);
+          return caches.match(request).then((cached) => {
+            return cached || caches.match(OFFLINE_URL);
           });
         })
     );
     return;
   }
 
-  // All other requests - Stale While Revalidate
-  event.respondWith(staleWhileRevalidateStrategy(request, CACHE_NAME));
+  // Default - Stale while revalidate
+  event.respondWith(staleWhileRevalidate(request, DOCUMENT_CACHE));
 });
 
-// Caching Strategy: Network First
-// Try network first, fall back to cache if network fails
-async function networkFirstStrategy(request, cacheName) {
+// Caching strategies
+async function networkFirst(request, cacheName) {
   try {
-    const networkResponse = await fetch(request);
-
-    // Clone and cache successful responses
-    if (networkResponse.ok) {
+    const response = await fetch(request);
+    if (response.ok) {
       const cache = await caches.open(cacheName);
-      cache.put(request, networkResponse.clone());
+      cache.put(request, response.clone());
     }
-
-    return networkResponse;
+    return response;
   } catch (error) {
-    // Network failed, try cache
-    const cachedResponse = await caches.match(request);
-    if (cachedResponse) {
-      console.log('[SW] Serving from cache:', request.url);
-      return cachedResponse;
-    }
-
-    // If it's an API request and not in cache, return error response
+    const cached = await caches.match(request);
+    if (cached) return cached;
     throw error;
   }
 }
 
-// Caching Strategy: Stale While Revalidate
-// Return cached version immediately, update cache in background
-async function staleWhileRevalidateStrategy(request, cacheName) {
-  const cache = await caches.open(cacheName);
-  const cachedResponse = await cache.match(request);
+async function cacheFirst(request, cacheName) {
+  const cached = await caches.match(request);
+  if (cached) return cached;
 
-  const fetchPromise = fetch(request).then((networkResponse) => {
-    // Update cache with fresh response
-    if (networkResponse.ok) {
-      cache.put(request, networkResponse.clone());
+  try {
+    const response = await fetch(request);
+    if (response.ok) {
+      const cache = await caches.open(cacheName);
+      cache.put(request, response.clone());
     }
-    return networkResponse;
-  }).catch(() => {
-    // Network failed, but we might have a cached version
-    return cachedResponse;
-  });
-
-  // Return cached response immediately if available, otherwise wait for network
-  return cachedResponse || fetchPromise;
+    return response;
+  } catch (error) {
+    throw error;
+  }
 }
 
-// Handle messages from clients
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
+async function staleWhileRevalidate(request, cacheName) {
+  const cache = await caches.open(cacheName);
+  const cached = await cache.match(request);
 
-  if (event.data && event.data.type === 'CLEAR_CACHE') {
-    event.waitUntil(
-      caches.keys().then((cacheNames) => {
-        return Promise.all(
-          cacheNames.map((cacheName) => caches.delete(cacheName))
-        );
-      })
-    );
-  }
-});
+  const fetchPromise = fetch(request).then((response) => {
+    if (response.ok) {
+      cache.put(request, response.clone());
+    }
+    return response;
+  }).catch(() => cached);
 
-// Background Sync (for offline actions)
+  return cached || fetchPromise;
+}
+
+// Background sync
 self.addEventListener('sync', (event) => {
   console.log('[SW] Background sync:', event.tag);
 
-  if (event.tag === 'sync-orders') {
-    event.waitUntil(syncOrders());
+  if (event.tag.startsWith('sync-')) {
+    event.waitUntil(handleSync(event.tag));
   }
 });
 
-async function syncOrders() {
-  // Implement offline order synchronization logic here
-  console.log('[SW] Syncing offline orders...');
-  // This would typically get pending orders from IndexedDB and POST them to the server
+async function handleSync(tag) {
+  console.log('[SW] Handling sync:', tag);
+  // Sync logic handled by the app
 }
 
-// Push notifications support (optional)
+// Push notifications
 self.addEventListener('push', (event) => {
   if (!event.data) return;
 
@@ -219,34 +189,45 @@ self.addEventListener('push', (event) => {
     data: data.url || '/',
     tag: data.tag || 'general',
     requireInteraction: data.requireInteraction || false,
+    vibrate: [200, 100, 200],
   };
 
-  event.waitUntil(
-    self.registration.showNotification(title, options)
-  );
+  event.waitUntil(self.registration.showNotification(title, options));
 });
 
-// Handle notification clicks
+// Notification click
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-
-  const urlToOpen = event.notification.data || '/';
+  const url = event.notification.data || '/';
 
   event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true })
-      .then((windowClients) => {
-        // Check if there's already a window open
-        for (let client of windowClients) {
-          if (client.url === urlToOpen && 'focus' in client) {
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+      .then((clients) => {
+        for (const client of clients) {
+          if (client.url === url && 'focus' in client) {
             return client.focus();
           }
         }
-        // No window open, open a new one
-        if (clients.openWindow) {
-          return clients.openWindow(urlToOpen);
+        if (self.clients.openWindow) {
+          return self.clients.openWindow(url);
         }
       })
   );
 });
 
-console.log('[SW] Service worker loaded');
+// Message handling
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+
+  if (event.data?.type === 'CLEAR_CACHE') {
+    event.waitUntil(
+      caches.keys().then((names) => {
+        return Promise.all(names.map(name => caches.delete(name)));
+      })
+    );
+  }
+});
+
+console.log('[SW] Service worker loaded - Offline-First Mode');
