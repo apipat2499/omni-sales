@@ -5715,3 +5715,311 @@ CREATE POLICY "Allow all for chat_messages" ON chat_messages FOR ALL USING (true
 CREATE POLICY "Allow all for canned_responses" ON canned_responses FOR ALL USING (true);
 CREATE POLICY "Allow all for support_analytics" ON support_analytics FOR ALL USING (true);
 CREATE POLICY "Allow all for ticket_feedback" ON ticket_feedback FOR ALL USING (true);
+
+-- ============================================================================
+-- FEATURE #26: Payment Processing & Invoicing System
+-- ============================================================================
+
+-- Payment Methods Table
+CREATE TABLE IF NOT EXISTS payment_methods (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  payment_method_name VARCHAR(100) NOT NULL,
+  payment_type VARCHAR(50) NOT NULL,
+  is_active BOOLEAN DEFAULT true,
+  api_key_encrypted TEXT,
+  secret_key_encrypted TEXT,
+  webhook_secret TEXT,
+  test_mode BOOLEAN DEFAULT false,
+  configuration JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT payment_methods_user_id_fk FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
+);
+
+-- Payments Table
+CREATE TABLE IF NOT EXISTS payments (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  invoice_id UUID,
+  order_id UUID,
+  customer_id VARCHAR(100) NOT NULL,
+  customer_name VARCHAR(255) NOT NULL,
+  customer_email VARCHAR(255),
+  payment_method_id UUID REFERENCES payment_methods(id),
+  payment_type VARCHAR(50) NOT NULL,
+  provider VARCHAR(50) NOT NULL,
+  provider_transaction_id VARCHAR(255),
+  amount DECIMAL(12, 2) NOT NULL,
+  currency VARCHAR(3) DEFAULT 'USD',
+  status VARCHAR(50) DEFAULT 'pending',
+  payment_date TIMESTAMP WITH TIME ZONE,
+  refund_status VARCHAR(50) DEFAULT 'none',
+  refund_amount DECIMAL(12, 2),
+  refunded_at TIMESTAMP WITH TIME ZONE,
+  description TEXT,
+  metadata JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT payments_user_id_fk FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
+);
+
+-- Invoices Table
+CREATE TABLE IF NOT EXISTS invoices (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  order_id UUID,
+  invoice_number VARCHAR(50) NOT NULL UNIQUE,
+  customer_id VARCHAR(100) NOT NULL,
+  customer_name VARCHAR(255) NOT NULL,
+  customer_email VARCHAR(255),
+  customer_phone VARCHAR(20),
+  billing_address JSONB DEFAULT '{}'::jsonb,
+  shipping_address JSONB DEFAULT '{}'::jsonb,
+  subtotal DECIMAL(12, 2) NOT NULL DEFAULT 0,
+  tax DECIMAL(12, 2) NOT NULL DEFAULT 0,
+  tax_rate DECIMAL(5, 2),
+  discount_amount DECIMAL(12, 2) DEFAULT 0,
+  shipping_cost DECIMAL(12, 2) DEFAULT 0,
+  total_amount DECIMAL(12, 2) NOT NULL,
+  paid_amount DECIMAL(12, 2) DEFAULT 0,
+  due_amount DECIMAL(12, 2) NOT NULL,
+  status VARCHAR(50) DEFAULT 'draft',
+  payment_terms VARCHAR(50),
+  due_date DATE,
+  issued_date DATE NOT NULL,
+  paid_date DATE,
+  invoice_date DATE NOT NULL,
+  notes TEXT,
+  terms_and_conditions TEXT,
+  pdf_url VARCHAR(500),
+  email_sent BOOLEAN DEFAULT false,
+  email_sent_at TIMESTAMP WITH TIME ZONE,
+  reminders_sent INTEGER DEFAULT 0,
+  last_reminder_sent_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT invoices_user_id_fk FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
+);
+
+-- Invoice Items Table
+CREATE TABLE IF NOT EXISTS invoice_items (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  invoice_id UUID NOT NULL,
+  product_id VARCHAR(100),
+  product_name VARCHAR(255) NOT NULL,
+  description TEXT,
+  quantity DECIMAL(10, 2) NOT NULL,
+  unit_price DECIMAL(12, 2) NOT NULL,
+  discount_percent DECIMAL(5, 2) DEFAULT 0,
+  line_total DECIMAL(12, 2) NOT NULL,
+  tax_rate DECIMAL(5, 2),
+  tax_amount DECIMAL(12, 2) DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT invoice_items_invoice_id_fk FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE CASCADE
+);
+
+-- Transactions Table
+CREATE TABLE IF NOT EXISTS transactions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  invoice_id UUID,
+  payment_id UUID,
+  transaction_type VARCHAR(50) NOT NULL,
+  amount DECIMAL(12, 2) NOT NULL,
+  currency VARCHAR(3) DEFAULT 'USD',
+  status VARCHAR(50) DEFAULT 'completed',
+  reference_id VARCHAR(255),
+  notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT transactions_user_id_fk FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE,
+  CONSTRAINT transactions_invoice_id_fk FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE SET NULL,
+  CONSTRAINT transactions_payment_id_fk FOREIGN KEY (payment_id) REFERENCES payments(id) ON DELETE SET NULL
+);
+
+-- Refunds Table
+CREATE TABLE IF NOT EXISTS refunds (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  payment_id UUID NOT NULL,
+  invoice_id UUID,
+  refund_amount DECIMAL(12, 2) NOT NULL,
+  reason VARCHAR(255) NOT NULL,
+  status VARCHAR(50) DEFAULT 'pending',
+  provider_refund_id VARCHAR(255),
+  notes TEXT,
+  processed_at TIMESTAMP WITH TIME ZONE,
+  requested_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT refunds_user_id_fk FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE,
+  CONSTRAINT refunds_payment_id_fk FOREIGN KEY (payment_id) REFERENCES payments(id) ON DELETE CASCADE,
+  CONSTRAINT refunds_invoice_id_fk FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE SET NULL
+);
+
+-- Payment Disputes Table
+CREATE TABLE IF NOT EXISTS payment_disputes (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  payment_id UUID NOT NULL,
+  invoice_id UUID,
+  dispute_id VARCHAR(255),
+  reason VARCHAR(255) NOT NULL,
+  status VARCHAR(50) DEFAULT 'open',
+  amount_disputed DECIMAL(12, 2),
+  amount_won DECIMAL(12, 2),
+  evidence_urls JSONB DEFAULT '[]'::jsonb,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  resolved_at TIMESTAMP WITH TIME ZONE,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT payment_disputes_user_id_fk FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE,
+  CONSTRAINT payment_disputes_payment_id_fk FOREIGN KEY (payment_id) REFERENCES payments(id) ON DELETE CASCADE,
+  CONSTRAINT payment_disputes_invoice_id_fk FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE SET NULL
+);
+
+-- Payment Reconciliation Table
+CREATE TABLE IF NOT EXISTS payment_reconciliations (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  reconciliation_date DATE NOT NULL,
+  payment_method_id UUID REFERENCES payment_methods(id),
+  total_expected DECIMAL(12, 2) NOT NULL,
+  total_received DECIMAL(12, 2) NOT NULL,
+  discrepancy DECIMAL(12, 2),
+  status VARCHAR(50) DEFAULT 'pending',
+  notes TEXT,
+  reconciled_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT payment_reconciliations_user_id_fk FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
+);
+
+-- Payment Analytics Table
+CREATE TABLE IF NOT EXISTS payment_analytics (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  analytics_date DATE NOT NULL,
+  total_revenue DECIMAL(12, 2) DEFAULT 0,
+  total_payments DECIMAL(12, 2) DEFAULT 0,
+  successful_payments INTEGER DEFAULT 0,
+  failed_payments INTEGER DEFAULT 0,
+  total_invoices INTEGER DEFAULT 0,
+  paid_invoices INTEGER DEFAULT 0,
+  unpaid_invoices INTEGER DEFAULT 0,
+  overdue_invoices INTEGER DEFAULT 0,
+  total_refunded DECIMAL(12, 2) DEFAULT 0,
+  average_payment_amount DECIMAL(12, 2),
+  payment_success_rate DECIMAL(5, 2),
+  revenue_by_payment_type JSONB DEFAULT '{}'::jsonb,
+  revenue_by_provider JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT payment_analytics_user_id_fk FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
+);
+
+-- ============================================================================
+-- Payment Indexes for Performance
+-- ============================================================================
+
+CREATE INDEX idx_payment_methods_user_id ON payment_methods(user_id);
+CREATE INDEX idx_payment_methods_payment_type ON payment_methods(payment_type);
+
+CREATE INDEX idx_payments_user_id ON payments(user_id);
+CREATE INDEX idx_payments_customer_id ON payments(customer_id);
+CREATE INDEX idx_payments_status ON payments(status);
+CREATE INDEX idx_payments_provider_transaction_id ON payments(provider_transaction_id);
+CREATE INDEX idx_payments_payment_date ON payments(payment_date);
+CREATE INDEX idx_payments_created_at ON payments(created_at);
+CREATE INDEX idx_payments_user_status ON payments(user_id, status);
+CREATE INDEX idx_payments_user_payment_date ON payments(user_id, payment_date DESC);
+
+CREATE INDEX idx_invoices_user_id ON invoices(user_id);
+CREATE INDEX idx_invoices_customer_id ON invoices(customer_id);
+CREATE INDEX idx_invoices_status ON invoices(status);
+CREATE INDEX idx_invoices_invoice_number ON invoices(invoice_number);
+CREATE INDEX idx_invoices_invoice_date ON invoices(invoice_date);
+CREATE INDEX idx_invoices_due_date ON invoices(due_date);
+CREATE INDEX idx_invoices_created_at ON invoices(created_at);
+CREATE INDEX idx_invoices_user_status ON invoices(user_id, status);
+CREATE INDEX idx_invoices_user_invoice_date ON invoices(user_id, invoice_date DESC);
+
+CREATE INDEX idx_invoice_items_invoice_id ON invoice_items(invoice_id);
+CREATE INDEX idx_invoice_items_product_id ON invoice_items(product_id);
+
+CREATE INDEX idx_transactions_user_id ON transactions(user_id);
+CREATE INDEX idx_transactions_invoice_id ON transactions(invoice_id);
+CREATE INDEX idx_transactions_payment_id ON transactions(payment_id);
+CREATE INDEX idx_transactions_type ON transactions(transaction_type);
+CREATE INDEX idx_transactions_created_at ON transactions(created_at);
+CREATE INDEX idx_transactions_user_created ON transactions(user_id, created_at DESC);
+
+CREATE INDEX idx_refunds_user_id ON refunds(user_id);
+CREATE INDEX idx_refunds_payment_id ON refunds(payment_id);
+CREATE INDEX idx_refunds_invoice_id ON refunds(invoice_id);
+CREATE INDEX idx_refunds_status ON refunds(status);
+CREATE INDEX idx_refunds_created_at ON refunds(created_at);
+
+CREATE INDEX idx_payment_disputes_user_id ON payment_disputes(user_id);
+CREATE INDEX idx_payment_disputes_payment_id ON payment_disputes(payment_id);
+CREATE INDEX idx_payment_disputes_status ON payment_disputes(status);
+CREATE INDEX idx_payment_disputes_created_at ON payment_disputes(created_at);
+
+CREATE INDEX idx_payment_reconciliations_user_id ON payment_reconciliations(user_id);
+CREATE INDEX idx_payment_reconciliations_date ON payment_reconciliations(reconciliation_date);
+CREATE INDEX idx_payment_reconciliations_status ON payment_reconciliations(status);
+
+CREATE INDEX idx_payment_analytics_user_id ON payment_analytics(user_id);
+CREATE INDEX idx_payment_analytics_date ON payment_analytics(analytics_date);
+
+-- ============================================================================
+-- Payment Triggers for Automatic Updates
+-- ============================================================================
+
+CREATE OR REPLACE FUNCTION update_payment_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = CURRENT_TIMESTAMP;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER payment_methods_updated_at BEFORE UPDATE ON payment_methods
+FOR EACH ROW EXECUTE FUNCTION update_payment_updated_at();
+
+CREATE TRIGGER payments_updated_at BEFORE UPDATE ON payments
+FOR EACH ROW EXECUTE FUNCTION update_payment_updated_at();
+
+CREATE TRIGGER invoices_updated_at BEFORE UPDATE ON invoices
+FOR EACH ROW EXECUTE FUNCTION update_payment_updated_at();
+
+CREATE TRIGGER refunds_updated_at BEFORE UPDATE ON refunds
+FOR EACH ROW EXECUTE FUNCTION update_payment_updated_at();
+
+CREATE TRIGGER payment_disputes_updated_at BEFORE UPDATE ON payment_disputes
+FOR EACH ROW EXECUTE FUNCTION update_payment_updated_at();
+
+CREATE TRIGGER payment_reconciliations_updated_at BEFORE UPDATE ON payment_reconciliations
+FOR EACH ROW EXECUTE FUNCTION update_payment_updated_at();
+
+-- ============================================================================
+-- Payment RLS Policies
+-- ============================================================================
+
+ALTER TABLE payment_methods ENABLE ROW LEVEL SECURITY;
+ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE invoices ENABLE ROW LEVEL SECURITY;
+ALTER TABLE invoice_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE refunds ENABLE ROW LEVEL SECURITY;
+ALTER TABLE payment_disputes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE payment_reconciliations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE payment_analytics ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow all for payment_methods" ON payment_methods FOR ALL USING (true);
+CREATE POLICY "Allow all for payments" ON payments FOR ALL USING (true);
+CREATE POLICY "Allow all for invoices" ON invoices FOR ALL USING (true);
+CREATE POLICY "Allow all for invoice_items" ON invoice_items FOR ALL USING (true);
+CREATE POLICY "Allow all for transactions" ON transactions FOR ALL USING (true);
+CREATE POLICY "Allow all for refunds" ON refunds FOR ALL USING (true);
+CREATE POLICY "Allow all for payment_disputes" ON payment_disputes FOR ALL USING (true);
+CREATE POLICY "Allow all for payment_reconciliations" ON payment_reconciliations FOR ALL USING (true);
+CREATE POLICY "Allow all for payment_analytics" ON payment_analytics FOR ALL USING (true);
