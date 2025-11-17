@@ -424,7 +424,7 @@ export async function setCache<T = any>(
   key: string,
   value: T,
   ttl?: number
-): Promise<void> {
+): Promise<boolean> {
   return getCacheManager().set(key, value, ttl);
 }
 
