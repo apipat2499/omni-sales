@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import WebhookManager from '@/components/webhooks/WebhookManager';
 import WebhookLogs from '@/components/webhooks/WebhookLogs';
-import { Webhook2, List, Activity } from 'lucide-react';
+import { Webhook, List, Activity } from 'lucide-react';
 
 export default function WebhooksPage() {
   const [activeTab, setActiveTab] = useState<'webhooks' | 'logs' | 'events'>('webhooks');
@@ -32,7 +32,7 @@ export default function WebhooksPage() {
               }`}
             >
               <div className="flex items-center gap-2">
-                <Webhook2 className="h-5 w-5" />
+                <Webhook className="h-5 w-5" />
                 <span>Webhooks</span>
               </div>
             </button>
