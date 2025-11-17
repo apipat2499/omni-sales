@@ -14,6 +14,9 @@ import {
   Store,
   LogOut,
   Loader2,
+  TrendingUp,
+  Receipt,
+  Megaphone,
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -22,9 +25,12 @@ import { useAuth } from '@/lib/auth/AuthContext';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Analytics', href: '/analytics', icon: TrendingUp },
   { name: 'Products', href: '/products', icon: Package },
   { name: 'Orders', href: '/orders', icon: ShoppingCart },
   { name: 'Customers', href: '/customers', icon: Users },
+  { name: 'Marketing', href: '/marketing', icon: Megaphone },
+  { name: 'Billing', href: '/billing', icon: Receipt },
   { name: 'Reports', href: '/reports', icon: BarChart3 },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];

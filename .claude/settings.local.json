@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(lsof:*)",
+      "Bash(kill:*)",
+      "Bash(npm run dev:*)",
+      "Bash(open -a \"Google Chrome\" http://localhost:3000/login)",
+      "Bash(open:*)",
+      "Bash(node test-supabase.js:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git checkout:*)",
+      "Bash(git push:*)",
+      "Bash(npm install:*)",
+      "Bash(vercel --version:*)",
+      "Bash(vercel login)",
+      "Bash(vercel --prod:*)",
+      "Bash(vercel env add:*)",
+      "Bash(vercel logs:*)",
+      "Bash(vercel list:*)",
+      "Bash(vercel inspect:*)",
+      "Bash(npm run build:*)",
+      "Bash(vercel env:*)",
+      "WebFetch(domain:omni-sales-qazskgfbz-flog2499s-projects.vercel.app)",
+      "Bash(cat:*)",
+      "Bash(rm:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

@@ -22,7 +22,7 @@ async function handleGET(request: NextRequest) {
     }
 
     // Order by created date descending
-    query = query.order('createdAt', { ascending: false });
+    query = query.order('created_at', { ascending: false });
 
     const { data, error } = await query;
 
@@ -34,12 +34,19 @@ async function handleGET(request: NextRequest) {
       );
     }
 
-    // Transform dates to Date objects
+    // Transform dates to Date objects and convert snake_case to camelCase
     const customers: Customer[] = (data || []).map((customer) => ({
-      ...customer,
-      createdAt: new Date(customer.createdAt),
-      updatedAt: new Date(customer.updatedAt),
-      lastOrderDate: customer.lastOrderDate ? new Date(customer.lastOrderDate) : undefined,
+      id: customer.id,
+      name: customer.name,
+      email: customer.email,
+      phone: customer.phone,
+      address: customer.address,
+      tags: customer.tags || [],
+      totalOrders: customer.total_orders || 0,
+      totalSpent: parseFloat(customer.total_spent) || 0,
+      createdAt: new Date(customer.created_at),
+      updatedAt: new Date(customer.updated_at),
+      lastOrderDate: customer.last_order_date ? new Date(customer.last_order_date) : undefined,
     }));
 
     return NextResponse.json(customers, { status: 200 });

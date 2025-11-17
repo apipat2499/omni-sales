@@ -20,7 +20,10 @@ export default function CategoryChart() {
               cx="50%"
               cy="50%"
               labelLine={false}
-              label={({ category, percentage }) => `${category} ${percentage.toFixed(1)}%`}
+              label={(props: any) => {
+                const { category, percentage } = props.payload || {};
+                return category && percentage ? `${category} ${percentage.toFixed(1)}%` : '';
+              }}
               outerRadius={100}
               fill="#8884d8"
               dataKey="value"

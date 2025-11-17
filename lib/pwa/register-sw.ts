@@ -127,7 +127,7 @@ export function isStandalone(): boolean {
 export async function getServiceWorkerRegistration(): Promise<ServiceWorkerRegistration | null> {
   if ('serviceWorker' in navigator) {
     try {
-      return await navigator.serviceWorker.getRegistration();
+      return (await navigator.serviceWorker.getRegistration()) || null;
     } catch (error) {
       console.error('[PWA] Failed to get service worker registration:', error);
       return null;
@@ -202,7 +202,7 @@ export async function subscribeToPushNotifications(vapidPublicKey: string): Prom
 /**
  * Convert VAPID key from base64 to Uint8Array
  */
-function urlBase64ToUint8Array(base64String: string): Uint8Array {
+function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
 
@@ -213,5 +213,5 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
     outputArray[i] = rawData.charCodeAt(i);
   }
 
-  return outputArray;
+  return outputArray as Uint8Array<ArrayBuffer>;
 }
