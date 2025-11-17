@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/client';
+import { getSupabaseClient } from '@/lib/supabase/client';
 import { formatCurrency } from '@/lib/utils';
 
 export async function GET() {
   try {
-    const supabase = createClient();
+    const supabase = getSupabaseClient();
     const activities: any[] = [];
 
     // Get recent orders

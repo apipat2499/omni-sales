@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { resend, FROM_EMAIL, ADMIN_EMAIL } from '@/lib/email/resend';
 import {
-  getOrderCreatedEmailHTML,
-  getOrderStatusUpdateEmailHTML,
-  getLowStockEmailHTML,
-  getOutOfStockEmailHTML,
+  orderConfirmationEmail,
+  lowStockAlertEmail,
+  welcomeEmail,
 } from '@/lib/email/templates';
 import type { Order } from '@/types';
 
@@ -31,8 +30,9 @@ export async function POST(request: NextRequest) {
             { status: 400 }
           );
         }
-        subject = `Order Confirmation - #${order.id.slice(0, 8).toUpperCase()}`;
-        html = getOrderCreatedEmailHTML(order as Order, to);
+        const orderTemplate = orderConfirmationEmail(order as Order, { email: to });
+        subject = orderTemplate.subject;
+        html = orderTemplate.html;
         break;
 
       case 'order_status_update':
@@ -42,8 +42,9 @@ export async function POST(request: NextRequest) {
             { status: 400 }
           );
         }
+        const updateTemplate = orderConfirmationEmail(order as Order, { email: to });
         subject = `Order Update - ${newStatus.charAt(0).toUpperCase() + newStatus.slice(1)}`;
-        html = getOrderStatusUpdateEmailHTML(order as Order, to, oldStatus, newStatus);
+        html = updateTemplate.html;
         break;
 
       case 'low_stock':
@@ -53,8 +54,9 @@ export async function POST(request: NextRequest) {
             { status: 400 }
           );
         }
-        subject = `⚠️ Low Stock Alert - ${product.name}`;
-        html = getLowStockEmailHTML(product.name, product.stock, product.sku);
+        const lowStockTemplate = lowStockAlertEmail([product]);
+        subject = lowStockTemplate.subject;
+        html = lowStockTemplate.html;
         break;
 
       case 'out_of_stock':
@@ -64,8 +66,9 @@ export async function POST(request: NextRequest) {
             { status: 400 }
           );
         }
+        const outOfStockTemplate = lowStockAlertEmail([product]);
         subject = `🚨 Out of Stock Alert - ${product.name}`;
-        html = getOutOfStockEmailHTML(product.name, product.sku);
+        html = outOfStockTemplate.html;
         break;
 
       default:

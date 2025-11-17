@@ -5,6 +5,7 @@ import { AuthProvider } from "@/lib/auth/AuthContext";
 import { ToastProvider } from "@/components/ToastProvider";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Script from "next/script";
+import { AuthStatusBanner } from "@/components/AuthStatusBanner";
 
 // Use system fonts as fallback
 const geistSans = {
@@ -61,6 +62,7 @@ export default function RootLayout({
           <ThemeProvider>
             <AuthProvider>
               <ToastProvider>
+                <AuthStatusBanner />
                 {children}
               </ToastProvider>
             </AuthProvider>

@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/client';
+import { getSupabaseClient } from '@/lib/supabase/client';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createClient();
+    const supabase = getSupabaseClient();
     const orderId = parseInt(params.id);
 
     if (isNaN(orderId)) {
@@ -39,7 +39,7 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createClient();
+    const supabase = getSupabaseClient();
     const orderId = parseInt(params.id);
     const body = await request.json();
 

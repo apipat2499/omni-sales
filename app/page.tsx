@@ -12,11 +12,57 @@ import {
   Smartphone,
   ArrowRight,
   CheckCircle2,
+  Sparkles,
+  Activity,
+  PackageCheck,
+  Clock3,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth/AuthContext';
 
 export default function Home() {
-  const { user, loading } = useAuth();
+  const { user, loading, supabaseReady } = useAuth();
+  const isDemoMode = !supabaseReady;
+
+  const demoMetrics = [
+    {
+      label: 'ยอดขายรวมวันนี้',
+      value: '฿1,280,000',
+      change: '+18%',
+      hint: 'จาก 6 ช่องทาง',
+    },
+    {
+      label: 'ออเดอร์ใหม่ (1 ชม.)',
+      value: '46',
+      change: '+12%',
+      hint: 'ถูกปิดการขายแล้ว 92%',
+    },
+    {
+      label: 'สินค้าใกล้หมด',
+      value: '8 รายการ',
+      change: 'แนะนำสั่งเพิ่ม',
+      hint: 'สาขา Central',
+    },
+  ];
+
+  const demoOrders = [
+    { time: '09:12', channel: 'Shopee', customer: 'คุณกมล', amount: '฿8,450', status: 'จัดส่งแล้ว' },
+    { time: '09:05', channel: 'หน้าร้าน', customer: 'Walk-in', amount: '฿2,190', status: 'รอชำระ' },
+    { time: '08:55', channel: 'Line OA', customer: 'คุณปิยะ', amount: '฿5,600', status: 'ยืนยันแล้ว' },
+    { time: '08:40', channel: 'Website', customer: 'คุณธันวา', amount: '฿12,300', status: 'กำลังแพ็ค' },
+  ];
+
+  const demoInventoryHighlights = [
+    {
+      title: 'Warehouse Bangkok',
+      stocked: '98%',
+      alert: 'สินค้า A-102 ต่ำกว่า MIN',
+    },
+    {
+      title: 'Pop-up Siam',
+      stocked: '65%',
+      alert: 'พร้อมกระตุ้น Flash Sale',
+    },
+  ];
 
   // Determine the link destination based on auth state
   const getAuthLink = () => {
@@ -69,6 +115,33 @@ export default function Home() {
             </Link>
           </div>
         </section>
+
+        {isDemoMode && (
+          <section className="container mx-auto px-4 pb-10">
+            <div className="bg-white dark:bg-gray-900 border border-blue-100 dark:border-gray-800 rounded-3xl p-8 shadow-lg">
+              <div className="flex flex-col gap-2 mb-8">
+                <span className="inline-flex items-center gap-2 bg-blue-100/70 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 px-4 py-1 rounded-full text-sm font-semibold w-fit">
+                  <Sparkles className="w-4 h-4" />
+                  โหมดทดลอง - แสดงข้อมูลตัวอย่างแบบ Real-time
+                </span>
+                <p className="text-gray-600 dark:text-gray-300">
+                  ระบบสาธิตข้อมูลอัตโนมัติเมื่อ Supabase ยังไม่พร้อม เพื่อให้ทีมขายนำเสนอฟีเจอร์ได้เต็มรูปแบบ
+                </p>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-3">
+                {demoMetrics.map((metric) => (
+                  <DemoMetricCard key={metric.label} metric={metric} />
+                ))}
+              </div>
+
+              <div className="mt-10 grid gap-8 lg:grid-cols-2">
+                <DemoOrderTimeline orders={demoOrders} />
+                <DemoInventoryPanel highlights={demoInventoryHighlights} />
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* Features */}
         <section className="container mx-auto px-4 py-20">
@@ -322,6 +395,86 @@ function BenefitItem({ text }: { text: string }) {
     <div className="flex items-start gap-3">
       <CheckCircle2 className="h-6 w-6 text-green-600 dark:text-green-500 flex-shrink-0 mt-0.5" />
       <p className="text-lg text-gray-700 dark:text-gray-300">{text}</p>
+    </div>
+  );
+}
+
+function DemoMetricCard({
+  metric,
+}: {
+  metric: { label: string; value: string; change: string; hint: string };
+}) {
+  return (
+    <div className="rounded-2xl border border-gray-100 dark:border-gray-800 p-6 bg-gradient-to-br from-white to-blue-50/60 dark:from-gray-900 dark:to-gray-800/40">
+      <p className="text-sm text-gray-500 dark:text-gray-400">{metric.label}</p>
+      <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">{metric.value}</p>
+      <p className="text-sm text-emerald-600 dark:text-emerald-400 font-semibold mt-1">{metric.change}</p>
+      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">{metric.hint}</p>
+    </div>
+  );
+}
+
+function DemoOrderTimeline({
+  orders,
+}: {
+  orders: { time: string; channel: string; customer: string; amount: string; status: string }[];
+}) {
+  return (
+    <div className="rounded-2xl border border-gray-100 dark:border-gray-800 p-6 bg-slate-50 dark:bg-gray-900/40">
+      <div className="flex items-center gap-2 mb-4">
+        <Activity className="w-5 h-5 text-blue-600" />
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">ออเดอร์เข้าใหม่ (15 นาที)</h3>
+      </div>
+      <div className="space-y-4">
+        {orders.map((order, index) => (
+          <div key={`${order.channel}-${index}`} className="flex items-center gap-4">
+            <div className="text-sm font-semibold text-gray-500 w-16">{order.time}</div>
+            <div className="flex-1">
+              <p className="font-medium text-gray-900 dark:text-white">{order.customer}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">{order.channel}</p>
+            </div>
+            <p className="font-semibold text-gray-900 dark:text-white">{order.amount}</p>
+            <span className="text-xs px-3 py-1 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-200">
+              {order.status}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function DemoInventoryPanel({
+  highlights,
+}: {
+  highlights: { title: string; stocked: string; alert: string }[];
+}) {
+  return (
+    <div className="rounded-2xl border border-gray-100 dark:border-gray-800 p-6 bg-indigo-50/60 dark:bg-indigo-950/40">
+      <div className="flex items-center gap-2 mb-4">
+        <PackageCheck className="w-5 h-5 text-indigo-600" />
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">สต็อกสำคัญ</h3>
+      </div>
+      <div className="space-y-4">
+        {highlights.map((highlight) => (
+          <div key={highlight.title} className="p-4 rounded-xl bg-white/80 dark:bg-gray-900/50 border border-indigo-100 dark:border-indigo-900/50">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500 dark:text-gray-400">คลัง</p>
+                <p className="font-semibold text-gray-900 dark:text-white">{highlight.title}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-sm text-gray-500 dark:text-gray-400">พร้อมขาย</p>
+                <p className="text-xl font-bold text-indigo-700 dark:text-indigo-200">{highlight.stocked}</p>
+              </div>
+            </div>
+            <div className="mt-3 flex items-center gap-2 text-sm text-amber-700 dark:text-amber-300">
+              <Clock3 className="w-4 h-4" />
+              {highlight.alert}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

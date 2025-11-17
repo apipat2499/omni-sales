@@ -23,7 +23,18 @@
       "Bash(vercel env:*)",
       "WebFetch(domain:omni-sales-qazskgfbz-flog2499s-projects.vercel.app)",
       "Bash(cat:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(git branch:*)",
+      "Bash(claude/add-feature-01PCvZoA1knL91XM62KaXdJY )",
+      "Bash(claude/add-menu-order-features-01EFdjWk2FUivmcKn4XqtbKU )",
+      "Bash(claude/add-payment-inventory-01CZtRcBCuRD9DQyYrqTToqa )",
+      "Bash(claude/final-merge-main-01CZtRcBCuRD9DQyYrqTToqa )",
+      "Bash(claude/main-merge-final-01CZtRcBCuRD9DQyYrqTToqa)",
+      "Bash(claude/add-feature-01Gt5eY7FHigrrdBaop4Lbb5 )",
+      "Bash(claude/adjustable-improvements-01HjizACkwrgJyEZaWYTiNmR )",
+      "Bash(claude/incomplete-description-01EKqsT8wE25yWteTNCqra6U )",
+      "Bash(claude/task-request-01RTzcQyiS1Frro2D6RHdtNj)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []

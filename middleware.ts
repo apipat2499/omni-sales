@@ -4,6 +4,11 @@ import { applySecurityHeaders } from './lib/middleware/security-headers';
 import { corsMiddleware } from './lib/middleware/cors';
 import { generateRequestID } from './lib/security/edge-security';
 import { tenantMiddleware } from './lib/middleware/tenant-middleware';
+import { logServerTelemetry } from './lib/telemetry';
+
+const redirectCounters = new Map<string, { count: number; windowStart: number }>();
+const REDIRECT_WINDOW = 60000;
+const REDIRECT_THRESHOLD = 20;
 
 /**
  * Production Security Hardening Middleware
@@ -15,6 +20,31 @@ import { tenantMiddleware } from './lib/middleware/tenant-middleware';
  * - Request ID tracking
  * - Rate limiting (via API routes)
  */
+
+function recordRedirectSpike(reason: string, metadata: Record<string, any>) {
+  const now = Date.now();
+  const existing = redirectCounters.get(reason) ?? { count: 0, windowStart: now };
+
+  if (now - existing.windowStart > REDIRECT_WINDOW) {
+    existing.count = 0;
+    existing.windowStart = now;
+  }
+
+  existing.count += 1;
+  redirectCounters.set(reason, existing);
+
+  if (existing.count >= REDIRECT_THRESHOLD) {
+    logServerTelemetry({
+      type: 'middleware_redirect_spike',
+      level: 'warning',
+      message: `Redirect spike detected for ${reason}`,
+      context: { ...metadata, count: existing.count },
+      source: 'middleware',
+    });
+    existing.count = 0;
+    existing.windowStart = now;
+  }
+}
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const startTime = Date.now();
@@ -48,6 +78,7 @@ export async function middleware(req: NextRequest) {
   if (!hasSession && !isPublicRoute) {
     const redirectUrl = req.nextUrl.clone();
     redirectUrl.pathname = '/login';
+    recordRedirectSpike('unauthenticated_access', { pathname, requestId });
     return NextResponse.redirect(redirectUrl);
   }
 
@@ -55,6 +86,7 @@ export async function middleware(req: NextRequest) {
   if (hasSession && pathname === '/login') {
     const redirectUrl = req.nextUrl.clone();
     redirectUrl.pathname = '/dashboard';
+    recordRedirectSpike('login_loop', { pathname, requestId });
     return NextResponse.redirect(redirectUrl);
   }
 

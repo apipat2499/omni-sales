@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/client';
+import { getSupabaseClient } from '@/lib/supabase/client';
 import { getPaginationParams, createPaginatedResponse, getOffsetLimit } from '@/lib/utils/pagination';
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient();
+    const supabase = getSupabaseClient();
     const searchParams = request.nextUrl.searchParams;
     const { page, limit, sortBy, sortOrder } = getPaginationParams(searchParams);
 
@@ -86,7 +86,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient();
+    const supabase = getSupabaseClient();
     const body = await request.json();
 
     const {
