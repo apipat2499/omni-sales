@@ -410,5 +410,23 @@ export function getCacheManager(): CacheManager {
   return cacheManager;
 }
 
+/**
+ * Helper function to get cached value
+ */
+export async function getCache<T = any>(key: string): Promise<T | null> {
+  return getCacheManager().get<T>(key);
+}
+
+/**
+ * Helper function to set cached value
+ */
+export async function setCache<T = any>(
+  key: string,
+  value: T,
+  ttl?: number
+): Promise<void> {
+  return getCacheManager().set(key, value, ttl);
+}
+
 // Export default instance
 export default getCacheManager();
