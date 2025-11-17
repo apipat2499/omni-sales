@@ -1,10 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import type { Product, ProductCategory } from '@/types';
+import type { Product, ProductCategory, ProductFilters } from '@/types';
 
-interface UseProductsOptions {
-  search?: string;
+interface UseProductsOptions extends ProductFilters {
   category?: ProductCategory | 'all';
 }
 
@@ -36,6 +35,34 @@ export function useProducts(options: UseProductsOptions = {}): UseProductsReturn
         params.append('category', options.category);
       }
 
+      if (options.minPrice !== undefined) {
+        params.append('minPrice', options.minPrice.toString());
+      }
+
+      if (options.maxPrice !== undefined) {
+        params.append('maxPrice', options.maxPrice.toString());
+      }
+
+      if (options.minRating !== undefined) {
+        params.append('minRating', options.minRating.toString());
+      }
+
+      if (options.inStock) {
+        params.append('inStock', 'true');
+      }
+
+      if (options.isFeatured) {
+        params.append('isFeatured', 'true');
+      }
+
+      if (options.sortBy) {
+        params.append('sortBy', options.sortBy);
+      }
+
+      if (options.sortOrder) {
+        params.append('sortOrder', options.sortOrder);
+      }
+
       const queryString = params.toString();
       const url = `/api/products${queryString ? `?${queryString}` : ''}`;
 
@@ -46,13 +73,14 @@ export function useProducts(options: UseProductsOptions = {}): UseProductsReturn
         throw new Error(data.error || 'Failed to fetch products');
       }
 
-      const data = await response.json();
+      const result = await response.json();
+      const data = result.data || result;
 
       // Transform date strings to Date objects
-      const productsWithDates = data.map((product: any) => ({
+      const productsWithDates = (Array.isArray(data) ? data : []).map((product: any) => ({
         ...product,
-        createdAt: new Date(product.createdAt),
-        updatedAt: new Date(product.updatedAt),
+        createdAt: new Date(product.createdAt || product.created_at),
+        updatedAt: new Date(product.updatedAt || product.updated_at),
       }));
 
       setProducts(productsWithDates);
@@ -62,7 +90,17 @@ export function useProducts(options: UseProductsOptions = {}): UseProductsReturn
     } finally {
       setLoading(false);
     }
-  }, [options.search, options.category]);
+  }, [
+    options.search,
+    options.category,
+    options.minPrice,
+    options.maxPrice,
+    options.minRating,
+    options.inStock,
+    options.isFeatured,
+    options.sortBy,
+    options.sortOrder,
+  ]);
 
   useEffect(() => {
     fetchProducts();

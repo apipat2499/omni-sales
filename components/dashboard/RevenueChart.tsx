@@ -1,16 +1,31 @@
 'use client';
 
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { mockChartData } from '@/lib/data/mock-data';
 import { formatCurrency } from '@/lib/utils';
 import { format } from 'date-fns';
 import { th } from 'date-fns/locale';
+import { useChartData } from '@/lib/hooks/useDashboard';
 
 export default function RevenueChart() {
-  const data = mockChartData.slice(-14).map(item => ({
+  const { chartData, loading } = useChartData(14);
+
+  const data = chartData.map(item => ({
     ...item,
     dateFormatted: format(new Date(item.date), 'dd MMM', { locale: th }),
   }));
+
+  if (loading) {
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
+          รายได้ 14 วันล่าสุด
+        </h2>
+        <div className="h-80 flex items-center justify-center">
+          <div className="animate-pulse text-gray-400">กำลังโหลดข้อมูล...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">

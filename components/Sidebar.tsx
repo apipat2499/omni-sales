@@ -23,11 +23,14 @@ import { cn } from '@/lib/utils';
 import ThemeToggle from './ThemeToggle';
 import NotificationsCenter from './NotificationsCenter';
 import { useAuth } from '@/lib/auth/AuthContext';
+import { useLowStock } from '@/lib/hooks/useLowStock';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Analytics', href: '/analytics', icon: TrendingUp },
   { name: 'Products', href: '/products', icon: Package },
+  { name: 'Low Stock', href: '/low-stock', icon: AlertTriangle },
+  { name: 'Scanner', href: '/scanner', icon: Camera },
   { name: 'Orders', href: '/orders', icon: ShoppingCart },
   { name: 'Invoices', href: '/invoices', icon: FileText },
   { name: 'Customers', href: '/customers', icon: Users },
@@ -42,6 +45,7 @@ export default function Sidebar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const { user, logout } = useAuth();
+  const { count: lowStockCount } = useLowStock(10);
 
   const handleLogout = async () => {
     if (confirm('คุณต้องการออกจากระบบหรือไม่?')) {
@@ -117,6 +121,8 @@ export default function Sidebar() {
               {navigation.map((item) => {
                 const isActive = pathname === item.href;
                 const Icon = item.icon;
+                const showBadge = (item.name === 'Products' || item.name === 'Low Stock') && lowStockCount > 0;
+
                 return (
                   <li key={item.name}>
                     <Link
@@ -129,8 +135,16 @@ export default function Sidebar() {
                           : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
                       )}
                     >
-                      <Icon className="h-5 w-5" />
-                      {item.name}
+                      <Icon className={cn(
+                        "h-5 w-5",
+                        item.name === 'Low Stock' && lowStockCount > 0 && 'text-red-600 dark:text-red-400'
+                      )} />
+                      <span className="flex-1">{item.name}</span>
+                      {showBadge && (
+                        <span className="flex items-center gap-1 px-2 py-0.5 text-xs font-semibold bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-full">
+                          {lowStockCount}
+                        </span>
+                      )}
                     </Link>
                   </li>
                 );

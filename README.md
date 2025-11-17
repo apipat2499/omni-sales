@@ -1,23 +1,34 @@
 # 🛒 Omni Sales - ระบบจัดการขาย Omnichannel
 
-ระบบจัดการขายออนไลน์และออฟไลน์แบบครบวงจร พัฒนาด้วย Next.js 14 และ TypeScript
+ระบบจัดการขายออนไลน์และออฟไลน์แบบครบวงจร พัฒนาด้วย Next.js 16 และ TypeScript
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/apipat2499/omni-sales)
+
+> 🚀 **Quick Start**: ดูวิธี deploy ใน 10 นาทีได้ที่ [QUICKSTART.md](./QUICKSTART.md)
+
+---
 
 ## ✨ ฟีเจอร์หลัก
 
 ### ✅ ฟีเจอร์ที่พร้อมใช้งาน
 
 - 🏠 **Landing Page** - หน้าแรกแสดงฟีเจอร์และช่องทางการขาย
-- 📊 **Dashboard** - ภาพรวมธุรกิจด้วยกราฟและสถิติแบบ Real-time
-  - สถิติยอดขาย, คำสั่งซื้อ, ลูกค้า
-  - กราฟแสดงรายได้รายวัน (Line Chart)
-  - กราฟแสดงยอดขายตามหมวดหมู่ (Pie Chart)
-  - ตารางคำสั่งซื้อล่าสุด
+- 📊 **Dashboard แบบ Real-time** - ภาพรวมธุรกิจจากฐานข้อมูลจริง
+  - สถิติ KPI (รายได้, ออเดอร์, ลูกค้า) พร้อม growth %
+  - กราฟรายได้ 14 วันล่าสุด (Line Chart)
+  - กราฟยอดขายตามหมวดหมู่ (Pie Chart)
+  - ตารางออเดอร์ล่าสุด 5 รายการ
+  - ดึงข้อมูลจาก Supabase แบบ real-time
 - 📦 **Products** - จัดการสินค้า
   - ตารางแสดงสินค้าทั้งหมด
   - ค้นหาและกรองตามหมวดหมู่
   - แจ้งเตือนสต็อกเหลือน้อย
   - แสดงกำไรต่อชิ้น
-- 🛍️ **Orders** - จัดการคำสั่งซื้อ
+- 🛍️ **Orders - สร้างออเดอร์ใหม่ได้แล้ว!**
+  - ✨ **สร้างออเดอร์ผ่าน API** (POST /api/orders)
+  - ✨ **ตัดสต็อกอัตโนมัติ** เมื่อสร้างออเดอร์
+  - ✨ **ตรวจสอบสต็อกก่อนสร้าง** - ป้องกันขายเกิน
+  - ✨ **คำนวณราคาอัตโนมัติ** (subtotal, tax 7%, shipping, total)
   - ตารางคำสั่งซื้อทั้งหมด
   - กรองตามสถานะ (Pending, Processing, Shipped, Delivered, Cancelled)
   - กรองตามช่องทาง (Online, Offline, Mobile, Phone)
@@ -103,6 +114,13 @@
   - Cache strategies (Network-first, Stale-while-revalidate)
   - Background sync support
   - Platform detection และ smart install UI
+- 📦 **Stock Management System** - ระบบจัดการสต็อกที่สมบูรณ์
+  - ✨ **ประวัติการเคลื่อนไหวสต็อก** (Stock Movements)
+  - ✨ **บันทึกทุกการเปลี่ยนแปลง** (sale, adjustment, return, restock)
+  - ✨ **API สำหรับปรับสต็อกด้วยตนเอง** (GET/POST /api/stock-movements)
+  - ✨ **Rollback mechanism** - ถ้าการอัพเดทล้มเหลว
+  - เก็บ previous_stock และ new_stock ไว้ตรวจสอบ
+  - Link กับ order_id เพื่อ traceability
 
 ### 🎯 ฟีเจอร์เพิ่มเติมที่แนะนำ (Optional)
 
@@ -117,14 +135,16 @@
 
 ## 🛠️ Tech Stack
 
-- **Framework:** Next.js 14 (App Router)
-- **Language:** TypeScript
-- **Styling:** TailwindCSS
-- **Charts:** Recharts
-- **Icons:** Lucide React
-- **Date:** date-fns
+- **Framework:** Next.js 16 (App Router)
+- **Language:** TypeScript 5
+- **Styling:** TailwindCSS 4
+- **UI:** Lucide React (icons)
+- **Charts:** Recharts 3.4
+- **Date:** date-fns 4.1
 - **Export:** jsPDF, xlsx
-- **Database (Coming):** Supabase
+- **Database:** Supabase (PostgreSQL)
+- **Auth:** Supabase Auth
+- **Deployment:** Vercel (recommended)
 
 ## 🚀 Getting Started
 
@@ -169,9 +189,46 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 npm run dev
 ```
 
-6. Open [http://localhost:3000](http://localhost:3000) in your browser
+6. Create your first admin user in Supabase
+- Go to Supabase Dashboard → **Authentication** → **Users**
+- Click "Add user" → "Create new user"
+- Enter email and password
+- Now you can login!
 
-7. Login with your Supabase user credentials
+7. Open [http://localhost:3000](http://localhost:3000) in your browser
+
+8. Login with your Supabase user credentials
+
+---
+
+## 🚀 Deployment
+
+### Deploy to Vercel (Recommended - ฟรี!)
+
+**Option 1: Quick Deploy (1-Click)**
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/apipat2499/omni-sales)
+
+**Option 2: From GitHub**
+
+1. Push โค้ดไป GitHub repository ของคุณ
+2. ไปที่ [vercel.com/new](https://vercel.com/new)
+3. Import repository
+4. ตั้งค่า Environment Variables:
+   ```
+   NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGc...
+   ```
+5. คลิก **Deploy** → รอ 2-3 นาที → เสร็จ! 🎉
+
+**📖 คู่มือ Deployment:**
+- ⚡ **Quick Start** (10 นาที): [QUICKSTART.md](./QUICKSTART.md)
+- 📚 **Full Guide** (ฉบับเต็ม): [DEPLOYMENT.md](./DEPLOYMENT.md)
+
+### URL หลัง Deploy
+
+- **Vercel**: `https://[your-project].vercel.app`
+- **Custom Domain**: ตั้งค่าได้ฟรีใน Vercel Dashboard
 - Create a user in Supabase Dashboard → Authentication → Users
 - Or sign up via the login page
 

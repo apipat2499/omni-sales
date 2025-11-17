@@ -25,6 +25,8 @@ import {
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import type { Product, ProductCategory } from '@/types';
+import type { ExportFormat } from '@/components/ExportButton';
+import { useToast } from '@/lib/hooks/useToast';
 
 export default function ProductsPage() {
   const [searchTerm, setSearchTerm] = useState('');

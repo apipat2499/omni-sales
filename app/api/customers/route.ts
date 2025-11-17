@@ -27,25 +27,37 @@ async function handleGET(request: NextRequest) {
     // Build data query with pagination
     let query = supabase.from('customer_stats').select('*');
 
-    // Apply search filter (name, email, or phone)
+    // Build data query
+    let dataQuery = supabase
+      .from('customer_stats')
+      .select('*');
+
+    // Apply search filter to both (name, email, or phone)
     if (search) {
-      query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%,phone.ilike.%${search}%`);
+      const searchFilter = `name.ilike.%${search}%,email.ilike.%${search}%,phone.ilike.%${search}%`;
+      dataQuery = dataQuery.or(searchFilter);
+      countQuery = countQuery.or(searchFilter);
     }
 
-    // Apply tags filter
+    // Apply tags filter to both
     if (tags && tags !== 'all') {
-      query = query.contains('tags', [tags]);
+      dataQuery = dataQuery.contains('tags', [tags]);
+      countQuery = countQuery.contains('tags', [tags]);
     }
 
     // Order by created date descending
     query = query.order('created_at', { ascending: false });
 
-    const { data, error } = await query;
+    // Execute both queries in parallel
+    const [{ data, error }, { count, error: countError }] = await Promise.all([
+      dataQuery,
+      countQuery,
+    ]);
 
-    if (error) {
-      console.error('Error fetching customers:', error);
+    if (error || countError) {
+      console.error('Error fetching customers:', error || countError);
       return NextResponse.json(
-        { error: 'Failed to fetch customers', details: error.message },
+        { error: 'Failed to fetch customers', details: (error || countError)?.message },
         { status: 500 }
       );
     }

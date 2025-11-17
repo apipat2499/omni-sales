@@ -84,6 +84,33 @@ export default function CustomersPage() {
     return <div className="flex h-screen items-center justify-center"><div className="text-gray-600 dark:text-gray-400">Loading customers...</div></div>;
   }
 
+  const handleExport = (format: ExportFormat) => {
+    try {
+      let result = false;
+
+      switch (format) {
+        case 'excel':
+          result = exportCustomersToExcel(customers);
+          break;
+        case 'pdf':
+          result = exportCustomersToPDF(customers);
+          break;
+        case 'csv':
+          result = exportCustomersToCSV(customers);
+          break;
+      }
+
+      if (result) {
+        success(`Export ลูกค้าเป็น ${format.toUpperCase()} สำเร็จ`);
+      } else {
+        showError('เกิดข้อผิดพลาดในการ Export');
+      }
+    } catch (err) {
+      console.error('Export error:', err);
+      showError('เกิดข้อผิดพลาดในการ Export');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-4 dark:bg-gray-900">
       <div className="mx-auto max-w-7xl">

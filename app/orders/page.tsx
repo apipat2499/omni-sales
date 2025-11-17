@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
+import ExportButton from '@/components/ExportButton';
 import { formatCurrency, getStatusColor, getChannelColor } from '@/lib/utils';
 import { Search, Eye, Download, ShoppingCart, RefreshCw, Edit, Plus } from 'lucide-react';
 import { format } from 'date-fns';
@@ -74,6 +75,33 @@ export default function OrdersPage() {
 
   const handlePaymentSuccess = () => {
     refresh();
+  };
+
+  const handleExport = (format: ExportFormat) => {
+    try {
+      let result = false;
+
+      switch (format) {
+        case 'excel':
+          result = exportOrdersToExcel(orders);
+          break;
+        case 'pdf':
+          result = exportOrdersToPDF(orders);
+          break;
+        case 'csv':
+          result = exportOrdersToCSV(orders);
+          break;
+      }
+
+      if (result) {
+        success(`Export คำสั่งซื้อเป็น ${format.toUpperCase()} สำเร็จ`);
+      } else {
+        showError('เกิดข้อผิดพลาดในการ Export');
+      }
+    } catch (err) {
+      console.error('Export error:', err);
+      showError('เกิดข้อผิดพลาดในการ Export');
+    }
   };
 
   return (
@@ -254,6 +282,11 @@ export default function OrdersPage() {
                         </div>
                         <div className="text-xs text-gray-500 dark:text-gray-400">
                           สุทธิ: {formatCurrency(order.subtotal)}
+                          {order.discountAmount && order.discountAmount > 0 && (
+                            <span className="text-green-600 dark:text-green-400 ml-1">
+                              (-{formatCurrency(order.discountAmount)})
+                            </span>
+                          )}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">

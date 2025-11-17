@@ -1,9 +1,23 @@
+'use client';
+
 import { TrendingUp, TrendingDown, DollarSign, ShoppingCart, Users, CreditCard } from 'lucide-react';
-import { mockSalesStats } from '@/lib/data/mock-data';
 import { formatCurrency, formatNumber, formatPercent } from '@/lib/utils';
+import { useDashboardStats } from '@/lib/hooks/useDashboard';
 
 export default function StatsCards() {
-  const stats = mockSalesStats;
+  const { stats, loading } = useDashboardStats(30);
+
+  if (loading || !stats) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 animate-pulse">
+            <div className="h-20"></div>
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

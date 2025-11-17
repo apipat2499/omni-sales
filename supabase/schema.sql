@@ -537,6 +537,10 @@ CREATE INDEX IF NOT EXISTS idx_orders_channel ON orders(channel);
 CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders(created_at);
 CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id);
 CREATE INDEX IF NOT EXISTS idx_order_items_product_id ON order_items(product_id);
+CREATE INDEX IF NOT EXISTS idx_stock_movements_product_id ON stock_movements(product_id);
+CREATE INDEX IF NOT EXISTS idx_stock_movements_order_id ON stock_movements(order_id);
+CREATE INDEX IF NOT EXISTS idx_stock_movements_type ON stock_movements(type);
+CREATE INDEX IF NOT EXISTS idx_stock_movements_created_at ON stock_movements(created_at);
 
 -- Create Indexes for Order Management
 CREATE INDEX IF NOT EXISTS idx_order_status_history_order ON order_status_history(order_id);
@@ -653,6 +657,7 @@ ALTER TABLE products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE order_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE stock_movements ENABLE ROW LEVEL SECURITY;
 
 -- Subscription Plans Table
 CREATE TABLE IF NOT EXISTS subscription_plans (

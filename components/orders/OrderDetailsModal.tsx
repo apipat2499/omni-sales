@@ -1,10 +1,12 @@
 'use client';
 
-import { X, Printer, Package, MapPin, CreditCard, FileText } from 'lucide-react';
+import { X, Printer, Package, MapPin, CreditCard, FileText, Download } from 'lucide-react';
 import { format } from 'date-fns';
 import { th } from 'date-fns/locale';
+import { useState } from 'react';
 import type { Order } from '@/types';
 import { formatCurrency, getStatusColor } from '@/lib/utils';
+import { generateInvoicePDF } from '@/lib/utils/generateInvoicePDF';
 
 interface OrderDetailsModalProps {
   isOpen: boolean;
@@ -17,10 +19,34 @@ export default function OrderDetailsModal({
   onClose,
   order,
 }: OrderDetailsModalProps) {
+  const [isDownloading, setIsDownloading] = useState(false);
+
   if (!isOpen || !order) return null;
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleDownloadInvoice = async () => {
+    try {
+      setIsDownloading(true);
+
+      // Fetch invoice data
+      const response = await fetch(`/api/orders/${order.id}/invoice`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch invoice data');
+      }
+
+      const invoiceData = await response.json();
+
+      // Generate PDF
+      await generateInvoicePDF(invoiceData);
+    } catch (error) {
+      console.error('Error downloading invoice:', error);
+      alert('เกิดข้อผิดพลาดในการดาวน์โหลดใบแจ้งหนี้');
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   return (
@@ -46,14 +72,27 @@ export default function OrderDetailsModal({
             </div>
             <div className="flex items-center gap-2">
               <button
+                onClick={handleDownloadInvoice}
+                disabled={isDownloading}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title="ดาวน์โหลดใบแจ้งหนี้ PDF"
+              >
+                <Download className="h-5 w-5" />
+                <span className="hidden sm:inline">
+                  {isDownloading ? 'กำลังสร้าง...' : 'ใบแจ้งหนี้'}
+                </span>
+              </button>
+              <button
                 onClick={handlePrint}
                 className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+                title="พิมพ์"
               >
                 <Printer className="h-5 w-5" />
               </button>
               <button
                 onClick={onClose}
                 className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+                title="ปิด"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -209,6 +248,16 @@ export default function OrderDetailsModal({
                     {formatCurrency(order.subtotal)}
                   </span>
                 </div>
+                {order.discountAmount && order.discountAmount > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-green-600 dark:text-green-400">
+                      ส่วนลด{order.couponCode ? ` (${order.couponCode})` : ''}:
+                    </span>
+                    <span className="text-green-600 dark:text-green-400 font-medium">
+                      -{formatCurrency(order.discountAmount)}
+                    </span>
+                  </div>
+                )}
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600 dark:text-gray-400">ภาษี (7%):</span>
                   <span className="text-gray-900 dark:text-white font-medium">
