@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { getSupabaseClient } from '@/lib/supabase/client';
 import {
   startOfDay,
   endOfDay,
@@ -118,7 +118,7 @@ export function useAnalyticsDashboard() {
     setError(null);
 
     try {
-      const supabase = createClient();
+      const supabase = getSupabaseClient();
 
       // Calculate date ranges
       const { from, to } = dateRange;

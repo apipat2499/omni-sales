@@ -5,7 +5,7 @@
  * metrics, filtering, and export capabilities (PDF/Excel).
  */
 
-import { createClient } from '@/lib/supabase/client';
+import { getSupabaseClient } from '@/lib/supabase/client';
 import jsPDF from 'jspdf';
 import * as XLSX from 'xlsx';
 
@@ -196,7 +196,7 @@ export const DIMENSION_DEFINITIONS: Record<Dimension, {
 // ============================================
 
 export class BIReportGenerator {
-  private supabase = createClient();
+  private supabase = getSupabaseClient();
 
   /**
    * Generate a report based on the provided configuration
