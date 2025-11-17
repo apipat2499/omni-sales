@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { applySecurityHeaders } from './lib/middleware/security-headers';
 import { corsMiddleware } from './lib/middleware/cors';
-import { generateRequestID } from './lib/security/api-security';
+import { generateRequestID } from './lib/security/edge-security';
 import { tenantMiddleware } from './lib/middleware/tenant-middleware';
 
 /**
