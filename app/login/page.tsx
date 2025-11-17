@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/AuthContext';
-import { Store, Mail, Lock, LogIn, Loader2 } from 'lucide-react';
+import { Store, Mail, Lock, LogIn, Loader2, Eye } from 'lucide-react';
 import Link from 'next/link';
 import WebAuthnLoginButton from '@/components/auth/webauthn/WebAuthnLoginButton';
 
@@ -60,6 +60,11 @@ export default function LoginPage() {
 
   const handleWebAuthnError = (error: string) => {
     setError(error);
+  };
+
+  const handleDemoMode = () => {
+    // Redirect to onboard/dashboard in demo mode
+    router.push('/onboard');
   };
 
   // Show loading state while checking auth
@@ -218,6 +223,18 @@ export default function LoginPage() {
               )}
             </button>
           </form>
+
+          {/* Demo Mode Button */}
+          <div className="mt-6">
+            <button
+              type="button"
+              onClick={handleDemoMode}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-medium rounded-lg hover:from-green-600 hover:to-emerald-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-all shadow-lg hover:shadow-xl"
+            >
+              <Eye className="h-5 w-5" />
+              <span>เข้าชมระบบ (ไม่ต้อง Login)</span>
+            </button>
+          </div>
 
           {/* Additional Links */}
           <div className="mt-6 text-center space-y-2">

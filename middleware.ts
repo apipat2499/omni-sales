@@ -53,7 +53,17 @@ export async function middleware(req: NextRequest) {
   const requestId = generateRequestID();
 
   // Public routes that don't require authentication
-  const publicRoutes = ['/', '/login', '/api/health', '/api/status', '/onboard'];
+  const publicRoutes = [
+    '/',
+    '/login',
+    '/api/health',
+    '/api/status',
+    '/onboard',
+    '/dashboard', // Allow demo access
+    '/products', // Allow demo access
+    '/orders', // Allow demo access
+    '/customers', // Allow demo access
+  ];
   const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route));
 
   // Apply tenant detection first (before auth check)
