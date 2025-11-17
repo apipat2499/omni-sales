@@ -66,12 +66,20 @@ export async function middleware(req: NextRequest) {
   ];
   const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route));
 
-  // Apply tenant detection first (before auth check)
-  // This sets the tenant context for the request
-  const tenantResponse = await tenantMiddleware(req);
-  if (tenantResponse.status !== 200 && tenantResponse.status !== 304) {
-    // Tenant middleware returned a redirect or error
-    return tenantResponse;
+  // Skip tenant detection for demo/public routes
+  const skipTenantPaths = ['/dashboard', '/products', '/orders', '/customers', '/login', '/'];
+  const skipTenant = skipTenantPaths.some(path =>
+    pathname === path || pathname.startsWith(path + '/')
+  );
+
+  if (!skipTenant) {
+    // Apply tenant detection first (before auth check)
+    // This sets the tenant context for the request
+    const tenantResponse = await tenantMiddleware(req);
+    if (tenantResponse.status !== 200 && tenantResponse.status !== 304) {
+      // Tenant middleware returned a redirect or error
+      return tenantResponse;
+    }
   }
 
   // API routes that require CORS handling

@@ -6,6 +6,7 @@ import { ToastProvider } from "@/components/ToastProvider";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Script from "next/script";
 import { AuthStatusBanner } from "@/components/AuthStatusBanner";
+import { LeadCaptureWidget } from "@/components/LeadCaptureWidget";
 
 // Use system fonts as fallback
 const geistSans = {
@@ -63,6 +64,7 @@ export default function RootLayout({
             <AuthProvider>
               <ToastProvider>
                 <AuthStatusBanner />
+                <LeadCaptureWidget />
                 {children}
               </ToastProvider>
             </AuthProvider>
