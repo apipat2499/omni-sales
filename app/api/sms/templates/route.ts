@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createSMSTemplate, getSMSTemplates } from '@/lib/sms/service';
+import { createSMSTemplate, getSMSTemplates } from '@/lib/sms/sms-service';
 
 export async function GET(req: NextRequest) {
   try {

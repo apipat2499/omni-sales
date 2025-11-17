@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createSMSCampaign, getSMSCampaigns } from '@/lib/sms/service';
+import { createSMSCampaign, getSMSCampaigns } from '@/lib/sms/sms-service';
 
 export async function GET(req: NextRequest) {
   try {

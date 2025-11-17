@@ -19,8 +19,8 @@ import {
   getAgents,
   getConversation,
 } from '../chat/database';
-import { sendEmail } from '../email/service';
-import { sendSMS } from '../sms/service';
+import { sendEmail } from '../email/email-service';
+import { sendSMS } from '../sms/sms-service';
 
 // SLA configuration (in hours)
 const SLA_CONFIG = {

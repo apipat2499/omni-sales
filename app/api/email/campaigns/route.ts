@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createEmailCampaign, getEmailCampaigns } from '@/lib/email/service';
+import { createEmailCampaign, getEmailCampaigns } from '@/lib/email/email-service';
 
 export async function GET(req: NextRequest) {
   try {

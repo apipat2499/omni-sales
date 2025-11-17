@@ -4,7 +4,7 @@
  */
 
 import type { Conversation, Message, Ticket } from './types';
-import { sendEmail } from '../email/service';
+import { sendEmail } from '../email/email-service';
 import { sendSMS } from '../sms/service';
 
 /**
