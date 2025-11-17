@@ -50,6 +50,20 @@ export default function OrdersPage() {
     refresh();
   };
 
+  const handlePaymentClick = (order: Order) => {
+    setSelectedOrder(order);
+    setIsPaymentModalOpen(true);
+  };
+
+  const handleInvoiceClick = (order: Order) => {
+    setSelectedOrder(order);
+    setIsInvoiceModalOpen(true);
+  };
+
+  const handlePaymentSuccess = () => {
+    refresh();
+  };
+
   return (
     <DashboardLayout>
       <div className="p-6 space-y-6">
@@ -281,6 +295,20 @@ export default function OrdersPage() {
                           >
                             <Edit className="h-4 w-4" />
                           </button>
+                          <button
+                            onClick={() => handlePaymentClick(order)}
+                            className="p-1 text-purple-600 dark:text-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/30 rounded"
+                            title="ชำระเงิน"
+                          >
+                            <CreditCard className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleInvoiceClick(order)}
+                            className="p-1 text-orange-600 dark:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/30 rounded"
+                            title="ออกใบเสร็จ"
+                          >
+                            <FileText className="h-4 w-4" />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -308,6 +336,30 @@ export default function OrdersPage() {
           order={selectedOrder}
           onSuccess={handleStatusUpdateSuccess}
         />
+        {selectedOrder && (
+          <>
+            <PaymentModal
+              isOpen={isPaymentModalOpen}
+              orderId={selectedOrder.id}
+              amount={Math.round(selectedOrder.total * 100)}
+              onClose={() => setIsPaymentModalOpen(false)}
+              onSuccess={handlePaymentSuccess}
+            />
+            <InvoiceModal
+              isOpen={isInvoiceModalOpen}
+              orderId={selectedOrder.id}
+              customerId={selectedOrder.customerId}
+              items={selectedOrder.items.map((item) => ({
+                description: item.productName,
+                quantity: item.quantity,
+                price: item.price,
+              }))}
+              totalAmount={selectedOrder.total}
+              onClose={() => setIsInvoiceModalOpen(false)}
+              onSuccess={handlePaymentSuccess}
+            />
+          </>
+        )}
       </div>
     </DashboardLayout>
   );

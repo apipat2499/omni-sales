@@ -28,6 +28,7 @@ const navigation = [
   { name: 'Analytics', href: '/analytics', icon: TrendingUp },
   { name: 'Products', href: '/products', icon: Package },
   { name: 'Orders', href: '/orders', icon: ShoppingCart },
+  { name: 'Invoices', href: '/invoices', icon: FileText },
   { name: 'Customers', href: '/customers', icon: Users },
   { name: 'Marketing', href: '/marketing', icon: Megaphone },
   { name: 'Billing', href: '/billing', icon: Receipt },
