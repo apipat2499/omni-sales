@@ -240,7 +240,23 @@ function buildReport(
   };
 }
 
-function summarizeUsage(tenant: any): TenantUsageSummary {
+type TenantRecord = {
+  usage?: {
+    currentUsers?: number;
+    currentStorage?: number;
+    currentOrders?: number;
+  };
+  features?: {
+    maxUsers?: number;
+    maxStorage?: number;
+    maxOrders?: number;
+  };
+  settings?: {
+    apiUsagePercent?: number;
+  };
+};
+
+function summarizeUsage(tenant: TenantRecord): TenantUsageSummary {
   const usage = tenant.usage || {
     currentUsers: 0,
     currentStorage: 0,

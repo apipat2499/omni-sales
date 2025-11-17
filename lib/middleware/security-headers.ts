@@ -44,11 +44,9 @@ function generateCSP(nonce?: string): string {
     // Scripts
     'script-src': [
       "'self'",
+      "'unsafe-inline'", // Required for Next.js runtime
+      "'unsafe-eval'", // Required for Next.js and some React features
       nonce ? `'nonce-${nonce}'` : '',
-      // Allow inline scripts in development
-      isDev ? "'unsafe-inline'" : '',
-      // Allow eval in development
-      isDev ? "'unsafe-eval'" : '',
       // External script sources
       'https://cdn.jsdelivr.net',
       'https://unpkg.com',
@@ -95,6 +93,8 @@ function generateCSP(nonce?: string): string {
       'https://maps.googleapis.com',
       'https://*.sentry.io',
       'https://www.google-analytics.com',
+      'https://*.vercel.app',
+      'wss://*.vercel.app',
       isDev ? 'ws://localhost:*' : '',
       isDev ? 'http://localhost:*' : '',
     ].filter(Boolean),

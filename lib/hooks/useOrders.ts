@@ -3,6 +3,12 @@ import type { Order, OrderStatus, OrderChannel } from '@/types';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { getDemoOrders } from '@/lib/demo/data';
 
+type ApiOrder = Omit<Order, 'createdAt' | 'updatedAt' | 'deliveredAt'> & {
+  createdAt: string | Date;
+  updatedAt: string | Date;
+  deliveredAt?: string | Date | null;
+};
+
 interface UseOrdersOptions {
   search?: string;
   status?: OrderStatus | 'all';
@@ -61,13 +67,19 @@ export function useOrders(options: UseOrdersOptions = {}): UseOrdersReturn {
       }
 
       const data = await response.json();
+      const rawOrders: ApiOrder[] = Array.isArray(data) ? data : data.data || [];
 
-      // API already returns transformed data with Date objects
-      const ordersWithDates: Order[] = (Array.isArray(data) ? data : data.data || []).map((order: any) => ({
+      const ordersWithDates: Order[] = rawOrders.map((order) => ({
         ...order,
-        createdAt: order.createdAt instanceof Date ? order.createdAt : new Date(order.createdAt),
-        updatedAt: order.updatedAt instanceof Date ? order.updatedAt : new Date(order.updatedAt),
-        deliveredAt: order.deliveredAt ? (order.deliveredAt instanceof Date ? order.deliveredAt : new Date(order.deliveredAt)) : undefined,
+        createdAt:
+          order.createdAt instanceof Date ? order.createdAt : new Date(order.createdAt),
+        updatedAt:
+          order.updatedAt instanceof Date ? order.updatedAt : new Date(order.updatedAt),
+        deliveredAt: order.deliveredAt
+          ? order.deliveredAt instanceof Date
+            ? order.deliveredAt
+            : new Date(order.deliveredAt)
+          : undefined,
       }));
 
       setOrders(ordersWithDates);
@@ -79,16 +91,14 @@ export function useOrders(options: UseOrdersOptions = {}): UseOrdersReturn {
       } else {
         setOrders([]);
       }
-      setLoading(false);
-      return;
     } finally {
       setLoading(false);
     }
-  }, [search, status, channel, refreshKey, supabaseReady]);
+  }, [search, status, channel, supabaseReady]);
 
   useEffect(() => {
     fetchOrders();
-  }, [fetchOrders]);
+  }, [fetchOrders, refreshKey]);
 
   const refresh = useCallback(() => {
     setRefreshKey((prev) => prev + 1);
