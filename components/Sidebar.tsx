@@ -17,6 +17,7 @@ import {
   TrendingUp,
   Receipt,
   Megaphone,
+  Satellite,
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -38,6 +39,7 @@ const navigation = [
   { name: 'Billing', href: '/billing', icon: Receipt },
   { name: 'Reports', href: '/reports', icon: BarChart3 },
   { name: 'Settings', href: '/settings', icon: Settings },
+  { name: 'Telemetry', href: '/admin/telemetry', icon: Satellite },
 ];
 
 export default function Sidebar() {

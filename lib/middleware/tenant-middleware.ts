@@ -25,7 +25,27 @@ export async function tenantMiddleware(req: NextRequest): Promise<NextResponse> 
   const tenant = await tenantManager.detectTenantFromRequest(hostname);
 
   if (!tenant) {
-    // No tenant found - redirect to onboarding or show error
+    // DEMO MODE: Allow access without tenant for public routes
+    // This enables demo/preview mode without onboarding
+    const demoAllowedPaths = [
+      '/dashboard',
+      '/products',
+      '/orders',
+      '/customers',
+      '/login',
+      '/',
+    ];
+
+    const isAllowedPath = demoAllowedPaths.some(path =>
+      req.nextUrl.pathname === path || req.nextUrl.pathname.startsWith(path)
+    );
+
+    if (isAllowedPath) {
+      // Continue without tenant in demo mode
+      return NextResponse.next();
+    }
+
+    // No tenant found - redirect to onboarding for other paths
     if (!req.nextUrl.pathname.startsWith('/onboard')) {
       const url = req.nextUrl.clone();
       url.pathname = '/onboard';
