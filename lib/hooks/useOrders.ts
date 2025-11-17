@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Order, OrderStatus, OrderChannel } from '@/types';
+import { useAuth } from '@/lib/auth/AuthContext';
+import { getDemoOrders } from '@/lib/demo/data';
 
 interface UseOrdersOptions {
   search?: string;
@@ -19,6 +21,7 @@ export function useOrders(options: UseOrdersOptions = {}): UseOrdersReturn {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const { supabaseReady } = useAuth();
 
   const { search = '', status = 'all', channel = 'all' } = options;
 
@@ -27,6 +30,13 @@ export function useOrders(options: UseOrdersOptions = {}): UseOrdersReturn {
     setError(null);
 
     try {
+      if (!supabaseReady) {
+        const filtered = filterDemoOrders(getDemoOrders(), search, status, channel);
+        setOrders(filtered);
+        setLoading(false);
+        return;
+      }
+
       // Build query parameters
       const params = new URLSearchParams();
 
@@ -64,11 +74,17 @@ export function useOrders(options: UseOrdersOptions = {}): UseOrdersReturn {
     } catch (err) {
       console.error('Error fetching orders:', err);
       setError(err instanceof Error ? err.message : 'An unexpected error occurred');
-      setOrders([]);
+      if (!supabaseReady) {
+        setOrders(filterDemoOrders(getDemoOrders(), search, status, channel));
+      } else {
+        setOrders([]);
+      }
+      setLoading(false);
+      return;
     } finally {
       setLoading(false);
     }
-  }, [search, status, channel, refreshKey]);
+  }, [search, status, channel, refreshKey, supabaseReady]);
 
   useEffect(() => {
     fetchOrders();
@@ -84,4 +100,21 @@ export function useOrders(options: UseOrdersOptions = {}): UseOrdersReturn {
     error,
     refresh,
   };
+}
+
+function filterDemoOrders(
+  source: Order[],
+  search: string,
+  status: OrderStatus | 'all',
+  channel: OrderChannel | 'all'
+) {
+  return source.filter((order) => {
+    const matchSearch =
+      !search ||
+      order.id.toLowerCase().includes(search.toLowerCase()) ||
+      order.customerName.toLowerCase().includes(search.toLowerCase());
+    const matchStatus = status === 'all' || order.status === status;
+    const matchChannel = channel === 'all' || order.channel === channel;
+    return matchSearch && matchStatus && matchChannel;
+  });
 }

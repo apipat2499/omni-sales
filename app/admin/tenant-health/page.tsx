@@ -17,6 +17,13 @@ interface HealthResponse {
     lastActivityAt: string | null;
     health: "healthy" | "warning" | "critical";
     issues: string[];
+    usageSummary: {
+      users: { current: number; limit: number; percent: number };
+      storage: { current: number; limit: number; percent: number };
+      orders: { current: number; limit: number; percent: number };
+      apiUsagePercent: number | null;
+    };
+    billingStatus: "current" | "trial" | "overdue" | "suspended";
   }[];
   summary: {
     total: number;
@@ -33,6 +40,8 @@ export default function TenantHealthPage() {
   const [data, setData] = useState<HealthResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [actionTenant, setActionTenant] = useState<string | null>(null);
+  const [actionMsg, setActionMsg] = useState<string | null>(null);
   const summary = data?.summary;
 
   const loadData = async () => {
@@ -49,6 +58,50 @@ export default function TenantHealthPage() {
       setError((err as Error).message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleTenantAction = async (tenantId: string, action: "suspend" | "reactivate") => {
+    try {
+      setActionTenant(tenantId);
+      setActionMsg(null);
+      const response = await fetch(`/api/tenants/${tenantId}/status`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+
+      const payload = await response.json();
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.error || "อัปเดตสถานะไม่สำเร็จ");
+      }
+
+      setData((prev) =>
+        prev
+          ? {
+              ...prev,
+              tenants: prev.tenants.map((tenant) =>
+                tenant.id === tenantId
+                  ? {
+                      ...tenant,
+                      status: payload.status,
+                      subscriptionStatus: payload.subscriptionStatus ?? tenant.subscriptionStatus,
+                      billingStatus: payload.status === "suspended" ? "suspended" : "current",
+                    }
+                  : tenant
+              ),
+            }
+          : prev
+      );
+      setActionMsg(
+        action === "suspend"
+          ? "พักการใช้งาน tenant แล้ว"
+          : "เปิดใช้งาน tenant สำเร็จ"
+      );
+    } catch (err) {
+      setActionMsg(err instanceof Error ? err.message : "เกิดข้อผิดพลาดขณะอัปเดตสถานะ");
+    } finally {
+      setActionTenant(null);
     }
   };
 
@@ -94,6 +147,12 @@ export default function TenantHealthPage() {
           </div>
         )}
 
+        {actionMsg && (
+          <div className="rounded-2xl border border-blue-200 bg-blue-50 text-blue-900 px-5 py-3">
+            {actionMsg}
+          </div>
+        )}
+
         <div className="grid gap-4 md:grid-cols-3">
           <SummaryCard label="Tenant ทั้งหมด" value={summary?.total ?? 0} tone="default" />
           <SummaryCard label="พร้อมใช้งาน" value={summary?.healthy ?? 0} tone="success" />
@@ -121,7 +180,9 @@ export default function TenantHealthPage() {
                   <th className="px-6 py-3 font-medium">สถานะ</th>
                   <th className="px-6 py-3 font-medium">Trial</th>
                   <th className="px-6 py-3 font-medium">Environment</th>
+                  <th className="px-6 py-3 font-medium">Usage</th>
                   <th className="px-6 py-3 font-medium">Issues</th>
+                  <th className="px-6 py-3 font-medium text-center">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-800 text-sm">
@@ -159,6 +220,22 @@ export default function TenantHealthPage() {
                           Missing ENV
                         </span>
                       )}
+                      <p className="text-xs text-gray-500 mt-1">
+                        สถานะบิล: {tenant.billingStatus}
+                      </p>
+                    </td>
+                    <td className="px-6 py-4 text-sm">
+                      <UsageBar label="Users" current={tenant.usageSummary.users.current} limit={tenant.usageSummary.users.limit} percent={tenant.usageSummary.users.percent} />
+                      <UsageBar label="Storage (GB)" current={tenant.usageSummary.storage.current} limit={tenant.usageSummary.storage.limit} percent={tenant.usageSummary.storage.percent} />
+                      <UsageBar label="Orders" current={tenant.usageSummary.orders.current} limit={tenant.usageSummary.orders.limit} percent={tenant.usageSummary.orders.percent} />
+                      {tenant.usageSummary.apiUsagePercent !== null && (
+                        <UsageBar
+                          label="API"
+                          current={Math.round((tenant.usageSummary.apiUsagePercent || 0) * 100)}
+                          limit={100}
+                          percent={tenant.usageSummary.apiUsagePercent}
+                        />
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       {tenant.issues.length ? (
@@ -170,6 +247,17 @@ export default function TenantHealthPage() {
                       ) : (
                         <span className="text-gray-400 text-xs">ไม่มี</span>
                       )}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2 justify-center">
+                        <button
+                          onClick={() => handleTenantAction(tenant.id, tenant.status === "suspended" ? "reactivate" : "suspend")}
+                          disabled={actionTenant === tenant.id || data?.offline}
+                          className="px-3 py-1 text-xs rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
+                        >
+                          {tenant.status === "suspended" ? "เปิดใช้งาน" : "พักการใช้งาน"}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -220,6 +308,37 @@ function SummaryCard({ label, value, tone }: SummaryCardProps) {
     <div className={`rounded-2xl p-6 bg-gradient-to-br ${colors} shadow-lg`}>
       <p className="text-sm uppercase tracking-wide opacity-80">{label}</p>
       <p className="text-4xl font-bold mt-2">{value}</p>
+    </div>
+  );
+}
+
+function UsageBar({
+  label,
+  current,
+  limit,
+  percent,
+}: {
+  label: string;
+  current: number;
+  limit: number;
+  percent: number;
+}) {
+  const percentage = Math.min(Math.round(percent * 100), 100);
+  const tone =
+    percent >= 1 ? "bg-red-500" : percent >= 0.8 ? "bg-amber-500" : "bg-emerald-500";
+
+  return (
+    <div className="mb-2">
+      <div className="flex justify-between text-xs text-gray-500">
+        <span>{label}</span>
+        <span>
+          {current}
+          {limit ? ` / ${limit}` : ''}
+        </span>
+      </div>
+      <div className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full mt-1 overflow-hidden">
+        <div className={`h-full ${tone}`} style={{ width: `${percentage}%` }}></div>
+      </div>
     </div>
   );
 }

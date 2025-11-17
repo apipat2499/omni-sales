@@ -1,17 +1,27 @@
-import { useState, useEffect } from 'react';
-import type { Discount } from '@/types';
+import { useState, useEffect, useCallback } from 'react';
+import type { Discount, OrderItem } from '@/types';
+import { useAuth } from '@/lib/auth/AuthContext';
+import { getDemoDiscounts } from '@/lib/demo/data';
 
 export function useDiscounts(search?: string, activeFilter?: string) {
   const [discounts, setDiscounts] = useState<Discount[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { supabaseReady } = useAuth();
 
-  const fetchDiscounts = async () => {
+  const fetchDiscounts = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const params = new URLSearchParams();
+      if (!supabaseReady) {
+        const data = filterDemoDiscounts(getDemoDiscounts(), search, activeFilter);
+        setDiscounts(data);
+      setLoading(false);
+      return;
+    }
+
+    const params = new URLSearchParams();
       if (search) params.append('search', search);
       if (activeFilter) params.append('active', activeFilter);
 
@@ -28,11 +38,11 @@ export function useDiscounts(search?: string, activeFilter?: string) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [supabaseReady, search, activeFilter]);
 
   useEffect(() => {
     fetchDiscounts();
-  }, [search, activeFilter]);
+  }, [fetchDiscounts]);
 
   const createDiscount = async (discountData: Partial<Discount>) => {
     try {
@@ -94,7 +104,11 @@ export function useDiscounts(search?: string, activeFilter?: string) {
     }
   };
 
-  const validateDiscount = async (code: string, subtotal: number, items?: any[]) => {
+  const validateDiscount = async (
+    code: string,
+    subtotal: number,
+    items?: Array<Pick<OrderItem, 'productId' | 'quantity'>>
+  ) => {
     try {
       const response = await fetch('/api/discounts/validate', {
         method: 'POST',
@@ -122,4 +136,20 @@ export function useDiscounts(search?: string, activeFilter?: string) {
     deleteDiscount,
     validateDiscount,
   };
+}
+
+function filterDemoDiscounts(discounts: Discount[], search?: string, activeFilter?: string) {
+  return discounts.filter((discount) => {
+    const matchSearch = search
+      ? discount.code.toLowerCase().includes(search.toLowerCase()) ||
+        discount.name.toLowerCase().includes(search.toLowerCase())
+      : true;
+    const matchActive =
+      !activeFilter || activeFilter === 'true'
+        ? discount.active
+        : activeFilter === 'false'
+        ? !discount.active
+        : true;
+    return matchSearch && matchActive;
+  });
 }

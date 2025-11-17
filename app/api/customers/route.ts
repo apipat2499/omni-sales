@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/client';
+import { getSupabaseClient } from '@/lib/supabase/client';
 import type { Customer } from '@/types';
 import { withRateLimit, rateLimitPresets } from '@/lib/middleware/rateLimit';
+import { getPaginationParams, createPaginatedResponse, getOffsetLimit } from '@/lib/utils/pagination';
 
 async function handleGET(request: NextRequest) {
   try {
+    const supabase = getSupabaseClient();
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search');
     const tags = searchParams.get('tags');
@@ -20,12 +22,6 @@ async function handleGET(request: NextRequest) {
     if (tags && tags !== 'all') {
       countQuery = countQuery.contains('tags', [tags]);
     }
-
-    const { count } = await countQuery;
-    const total = count || 0;
-
-    // Build data query with pagination
-    let query = supabase.from('customer_stats').select('*');
 
     // Build data query
     let dataQuery = supabase
@@ -46,18 +42,24 @@ async function handleGET(request: NextRequest) {
     }
 
     // Order by created date descending
-    query = query.order('created_at', { ascending: false });
+    dataQuery = dataQuery.order('created_at', { ascending: false });
+
+    // Apply pagination
+    const { from, to } = getOffsetLimit(page, limit);
+    dataQuery = dataQuery.range(from, to);
 
     // Execute both queries in parallel
-    const [{ data, error }, { count, error: countError }] = await Promise.all([
+    const [{ data, error }, { count }] = await Promise.all([
       dataQuery,
       countQuery,
     ]);
 
-    if (error || countError) {
-      console.error('Error fetching customers:', error || countError);
+    const total = count || 0;
+
+    if (error) {
+      console.error('Error fetching customers:', error);
       return NextResponse.json(
-        { error: 'Failed to fetch customers', details: (error || countError)?.message },
+        { error: 'Failed to fetch customers', details: error.message },
         { status: 500 }
       );
     }
@@ -91,6 +93,7 @@ async function handleGET(request: NextRequest) {
 
 async function handlePOST(request: NextRequest) {
   try {
+    const supabase = getSupabaseClient();
     const body = await request.json();
 
     // Validate required fields

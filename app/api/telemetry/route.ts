@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
-import { logServerTelemetry } from '@/lib/telemetry';
+import { dispatchTelemetry } from '@/lib/telemetry';
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    logServerTelemetry({
+    await dispatchTelemetry({
       type: body?.type || 'client_event',
       level: body?.level || 'info',
       message: body?.message || 'Client telemetry event',

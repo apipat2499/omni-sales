@@ -4,7 +4,7 @@ import { useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import ExportButton from '@/components/ExportButton';
 import { formatCurrency, getStatusColor, getChannelColor } from '@/lib/utils';
-import { Search, Eye, Download, ShoppingCart, RefreshCw, Edit, Plus } from 'lucide-react';
+import { Search, Eye, RefreshCw, Edit, Plus, ArrowUpDown, ShoppingCart } from 'lucide-react';
 import { format } from 'date-fns';
 import { th } from 'date-fns/locale';
 import type { OrderStatus, OrderChannel } from '@/types';
@@ -12,6 +12,7 @@ import { useOrdersQuery } from '@/lib/hooks/useOrdersQuery';
 import OrderDetailsModal from '@/components/orders/OrderDetailsModal';
 import UpdateOrderStatusModal from '@/components/orders/UpdateOrderStatusModal';
 import CreateOrderModal from '@/components/orders/CreateOrderModal';
+import Pagination from '@/components/ui/Pagination';
 
 export default function OrdersPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -21,8 +22,11 @@ export default function OrdersPage() {
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [isUpdateStatusModalOpen, setIsUpdateStatusModalOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const [sortBy, setSortBy] = useState<string>('created_at');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
-  const { data, isLoading, error } = useOrdersQuery({
+  const { data, isLoading, error, refetch } = useOrdersQuery({
     search: searchTerm,
     status: statusFilter,
     channel: channelFilter,
@@ -63,45 +67,8 @@ export default function OrdersPage() {
     }
   };
 
-  const handlePaymentClick = (order: Order) => {
-    setSelectedOrder(order);
-    setIsPaymentModalOpen(true);
-  };
-
-  const handleInvoiceClick = (order: Order) => {
-    setSelectedOrder(order);
-    setIsInvoiceModalOpen(true);
-  };
-
-  const handlePaymentSuccess = () => {
-    refresh();
-  };
-
-  const handleExport = (format: ExportFormat) => {
-    try {
-      let result = false;
-
-      switch (format) {
-        case 'excel':
-          result = exportOrdersToExcel(orders);
-          break;
-        case 'pdf':
-          result = exportOrdersToPDF(orders);
-          break;
-        case 'csv':
-          result = exportOrdersToCSV(orders);
-          break;
-      }
-
-      if (result) {
-        success(`Export คำสั่งซื้อเป็น ${format.toUpperCase()} สำเร็จ`);
-      } else {
-        showError('เกิดข้อผิดพลาดในการ Export');
-      }
-    } catch (err) {
-      console.error('Export error:', err);
-      showError('เกิดข้อผิดพลาดในการ Export');
-    }
+  const handleStatusUpdateSuccess = () => {
+    refetch();
   };
 
   return (
@@ -227,7 +194,7 @@ export default function OrdersPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                {loading ? (
+                {isLoading ? (
                   <tr>
                     <td colSpan={8} className="px-6 py-12 text-center">
                       <div className="flex flex-col items-center gap-3">
@@ -317,20 +284,6 @@ export default function OrdersPage() {
                           >
                             <Edit className="h-4 w-4" />
                           </button>
-                          <button
-                            onClick={() => handlePaymentClick(order)}
-                            className="p-1 text-purple-600 dark:text-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/30 rounded"
-                            title="ชำระเงิน"
-                          >
-                            <CreditCard className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => handleInvoiceClick(order)}
-                            className="p-1 text-orange-600 dark:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/30 rounded"
-                            title="ออกใบเสร็จ"
-                          >
-                            <FileText className="h-4 w-4" />
-                          </button>
                         </div>
                       </td>
                     </tr>
@@ -339,124 +292,10 @@ export default function OrdersPage() {
               </tbody>
             </table>
           </div>
-        ) : orders.length === 0 ? (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
-            <ShoppingCart className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600 dark:text-gray-400">ไม่พบคำสั่งซื้อ</p>
-          </div>
-        ) : (
-          <>
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                  <thead className="bg-gray-50 dark:bg-gray-700">
-                    <tr>
-                      <th
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
-                        onClick={() => handleSort('id')}
-                      >
-                        <div className="flex items-center gap-2">
-                          Order ID
-                          <ArrowUpDown className="h-4 w-4" />
-                        </div>
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        ลูกค้า
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        รายการ
-                      </th>
-                      <th
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
-                        onClick={() => handleSort('total')}
-                      >
-                        <div className="flex items-center gap-2">
-                          ยอดรวม
-                          <ArrowUpDown className="h-4 w-4" />
-                        </div>
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        สถานะ
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        ช่องทาง
-                      </th>
-                      <th
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
-                        onClick={() => handleSort('created_at')}
-                      >
-                        <div className="flex items-center gap-2">
-                          วันที่
-                          <ArrowUpDown className="h-4 w-4" />
-                        </div>
-                      </th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        จัดการ
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                    {orders.map((order) => (
-                      <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                          #{order.id.slice(0, 8)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                          {order.customerName}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
-                          {order.items.length} รายการ
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                          {formatCurrency(order.total)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.status)}`}>
-                            {order.status === 'pending' && 'รอดำเนินการ'}
-                            {order.status === 'processing' && 'กำลังดำเนินการ'}
-                            {order.status === 'shipped' && 'จัดส่งแล้ว'}
-                            {order.status === 'delivered' && 'สำเร็จ'}
-                            {order.status === 'cancelled' && 'ยกเลิก'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getChannelColor(order.channel)}`}>
-                            {order.channel === 'online' && 'ออนไลน์'}
-                            {order.channel === 'pos' && 'หน้าร้าน'}
-                            {order.channel === 'phone' && 'โทรศัพท์'}
-                            {order.channel === 'other' && 'อื่นๆ'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
-                          {format(new Date(order.createdAt), 'd MMM yyyy', { locale: th })}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <div className="flex justify-end gap-2">
-                            <button
-                              onClick={() => handleViewOrder(order)}
-                              className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
-                              title="ดูรายละเอียด"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => handleUpdateStatus(order)}
-                              className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300"
-                              title="อัพเดทสถานะ"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
 
-            {/* Pagination */}
-            {pagination && pagination.totalPages > 1 && (
+          {/* Pagination */}
+          {pagination && pagination.totalPages > 1 && (
+            <div className="mt-4">
               <Pagination
                 currentPage={pagination.page}
                 totalPages={pagination.totalPages}
@@ -464,9 +303,9 @@ export default function OrdersPage() {
                 total={pagination.total}
                 limit={pagination.limit}
               />
-            )}
-          </>
-        )}
+            </div>
+          )}
+        </div>
 
         {/* Modals */}
         <CreateOrderModal
@@ -484,35 +323,6 @@ export default function OrdersPage() {
           onClose={() => setIsUpdateStatusModalOpen(false)}
           order={selectedOrder}
         />
-        <CreateOrderModal
-          isOpen={isCreateModalOpen}
-          onClose={() => setIsCreateModalOpen(false)}
-          onSuccess={() => setIsCreateModalOpen(false)}
-        />
-        {selectedOrder && (
-          <>
-            <PaymentModal
-              isOpen={isPaymentModalOpen}
-              orderId={selectedOrder.id}
-              amount={Math.round(selectedOrder.total * 100)}
-              onClose={() => setIsPaymentModalOpen(false)}
-              onSuccess={handlePaymentSuccess}
-            />
-            <InvoiceModal
-              isOpen={isInvoiceModalOpen}
-              orderId={selectedOrder.id}
-              customerId={selectedOrder.customerId}
-              items={selectedOrder.items.map((item) => ({
-                description: item.productName,
-                quantity: item.quantity,
-                price: item.price,
-              }))}
-              totalAmount={selectedOrder.total}
-              onClose={() => setIsInvoiceModalOpen(false)}
-              onSuccess={handlePaymentSuccess}
-            />
-          </>
-        )}
       </div>
     </DashboardLayout>
   );

@@ -30,3 +30,16 @@ jobs:
 
       - name: Validate deploy configuration
         run: npm run deploy:check
+
+      - name: Notify Slack on failure
+        if: failure()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          if [ -n "$SLACK_WEBHOOK_URL" ]; then
+            curl -X POST -H 'Content-type: application/json' \
+              --data "{\"text\":\"❌ Deploy check failed for ${GITHUB_REF} (<${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}|ดูรายละเอียด>)\"}" \
+              "$SLACK_WEBHOOK_URL"
+          else
+            echo "Slack webhook not configured"
+          fi

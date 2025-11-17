@@ -2,6 +2,13 @@ import { createClient } from '@supabase/supabase-js';
 
 export type TenantHealthStatus = 'healthy' | 'warning' | 'critical';
 
+export interface TenantUsageSummary {
+  users: { current: number; limit: number; percent: number };
+  storage: { current: number; limit: number; percent: number };
+  orders: { current: number; limit: number; percent: number };
+  apiUsagePercent: number | null;
+}
+
 export interface TenantHealth {
   id: string;
   name: string;
@@ -14,6 +21,8 @@ export interface TenantHealth {
   lastActivityAt: string | null;
   health: TenantHealthStatus;
   issues: string[];
+  usageSummary: TenantUsageSummary;
+  billingStatus: 'current' | 'trial' | 'overdue' | 'suspended';
 }
 
 export interface TenantHealthReport {
@@ -42,6 +51,13 @@ const FALLBACK_TENANTS: TenantHealth[] = [
     lastActivityAt: new Date(Date.now() - 1000 * 60 * 10).toISOString(),
     health: 'warning',
     issues: ['Supabase credentials missing', 'Trial จะหมดใน 7 วัน'],
+    usageSummary: {
+      users: { current: 12, limit: 25, percent: 0.48 },
+      storage: { current: 6, limit: 10, percent: 0.6 },
+      orders: { current: 720, limit: 1000, percent: 0.72 },
+      apiUsagePercent: 0.55,
+    },
+    billingStatus: 'trial',
   },
   {
     id: 'demo-tenant-2',
@@ -55,6 +71,13 @@ const FALLBACK_TENANTS: TenantHealth[] = [
     lastActivityAt: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
     health: 'critical',
     issues: ['Suspended by billing', 'ต้องติดต่อทีมการเงิน'],
+    usageSummary: {
+      users: { current: 5, limit: 5, percent: 1 },
+      storage: { current: 1, limit: 1, percent: 1 },
+      orders: { current: 980, limit: 1000, percent: 0.98 },
+      apiUsagePercent: 0.92,
+    },
+    billingStatus: 'suspended',
   },
 ];
 
@@ -108,6 +131,23 @@ export async function getTenantHealthReport(): Promise<TenantHealthReport> {
           issues.push(`Trial จะหมดใน ${trialEndsInDays} วัน`);
         }
 
+        const usageSummary = summarizeUsage(tenant);
+        if (usageSummary.users.percent >= 1) {
+          issues.push('จำนวนผู้ใช้งานเต็มโควตา');
+        }
+        if (usageSummary.storage.percent >= 1) {
+          issues.push('พื้นที่จัดเก็บเต็ม');
+        }
+        if (usageSummary.orders.percent >= 1) {
+          issues.push('คำสั่งซื้อแตะขีดจำกัด');
+        }
+        if (
+          typeof usageSummary.apiUsagePercent === 'number' &&
+          usageSummary.apiUsagePercent >= 0.9
+        ) {
+          issues.push('API ใกล้เต็มโควตา');
+        }
+
         if (!envReady) {
           issues.push('Supabase credentials missing');
         }
@@ -126,6 +166,15 @@ export async function getTenantHealthReport(): Promise<TenantHealthReport> {
             ? tenant.updated_at
             : null;
 
+        const billingStatus =
+          tenant.subscription_status === 'suspended'
+            ? 'suspended'
+            : tenant.subscription_status === 'trial'
+            ? 'trial'
+            : tenant.status === 'active'
+            ? 'current'
+            : 'overdue';
+
         return {
           id: tenant.id,
           name: tenant.name,
@@ -138,6 +187,8 @@ export async function getTenantHealthReport(): Promise<TenantHealthReport> {
           lastActivityAt: lastActivity,
           health,
           issues,
+          usageSummary,
+          billingStatus,
         } as TenantHealth;
       }) || [];
 
@@ -186,5 +237,42 @@ function buildReport(
     summary,
     generatedAt: new Date().toISOString(),
     offline,
+  };
+}
+
+function summarizeUsage(tenant: any): TenantUsageSummary {
+  const usage = tenant.usage || {
+    currentUsers: 0,
+    currentStorage: 0,
+    currentOrders: 0,
+  };
+  const features = tenant.features || {
+    maxUsers: 1,
+    maxStorage: 1,
+    maxOrders: 1,
+  };
+
+  const calc = (current: number, limit: number) => {
+    if (!limit || limit < 0) return 0;
+    return Math.min(current / limit, 1);
+  };
+
+  return {
+    users: {
+      current: usage.currentUsers || 0,
+      limit: features.maxUsers > 0 ? features.maxUsers : usage.currentUsers || 0,
+      percent: calc(usage.currentUsers || 0, features.maxUsers || 1),
+    },
+    storage: {
+      current: usage.currentStorage || 0,
+      limit: features.maxStorage > 0 ? features.maxStorage : usage.currentStorage || 0,
+      percent: calc(usage.currentStorage || 0, features.maxStorage || 1),
+    },
+    orders: {
+      current: usage.currentOrders || 0,
+      limit: features.maxOrders > 0 ? features.maxOrders : usage.currentOrders || 0,
+      percent: calc(usage.currentOrders || 0, features.maxOrders || 1),
+    },
+    apiUsagePercent: tenant.settings?.apiUsagePercent ?? null,
   };
 }

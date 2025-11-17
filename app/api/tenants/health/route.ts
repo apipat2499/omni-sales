@@ -8,10 +8,13 @@ export async function GET() {
       success: true,
       ...report,
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Failed to load tenant health:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to load tenant health' },
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to load tenant health',
+      },
       { status: 500 }
     );
   }
