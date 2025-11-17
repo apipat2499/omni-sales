@@ -65,6 +65,8 @@ export interface Order {
   paymentMethod?: string;
   shippingAddress?: string;
   notes?: string;
+  discountCode?: string;
+  discountAmount?: number;
   createdAt: Date;
   updatedAt: Date;
   deliveredAt?: Date;
@@ -4892,4 +4894,74 @@ export interface SupplierPerformance {
   qualityScore: number;
   costScore: number;
   overallScore: number;
+}
+
+// Discount & Promotion Types
+export type DiscountType = 'percentage' | 'fixed';
+export type DiscountAppliesTo = 'all' | 'category' | 'product';
+
+export interface Discount {
+  id: string;
+  code: string;
+  name: string;
+  description?: string;
+  type: DiscountType;
+  value: number;
+  minPurchaseAmount: number;
+  maxDiscountAmount?: number;
+  usageLimit?: number;
+  usageCount: number;
+  startDate?: Date;
+  endDate?: Date;
+  active: boolean;
+  appliesTo: DiscountAppliesTo;
+  appliesToValue?: string; // JSON array of product IDs or category name
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface DiscountUsage {
+  id: string;
+  discountId: string;
+  orderId: string;
+  customerId: string;
+  discountAmount: number;
+  createdAt: Date;
+}
+
+// Notification Types
+export type NotificationType =
+  | 'low_stock'
+  | 'out_of_stock'
+  | 'order_created'
+  | 'order_shipped'
+  | 'order_delivered'
+  | 'system';
+
+export type NotificationSeverity = 'info' | 'warning' | 'error' | 'success';
+
+export interface Notification {
+  id: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  severity: NotificationSeverity;
+  relatedId?: string;
+  relatedType?: string;
+  isRead: boolean;
+  createdAt: Date;
+}
+
+export interface NotificationPreferences {
+  id: string;
+  userId?: string;
+  emailEnabled: boolean;
+  emailOnOrderCreated: boolean;
+  emailOnOrderShipped: boolean;
+  emailOnOrderDelivered: boolean;
+  emailOnLowStock: boolean;
+  emailOnOutOfStock: boolean;
+  lowStockThreshold: number;
+  createdAt: Date;
+  updatedAt: Date;
 }

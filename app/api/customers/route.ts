@@ -8,7 +8,23 @@ async function handleGET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search');
     const tags = searchParams.get('tags');
+    const { page, limit, sortBy, sortOrder } = getPaginationParams(searchParams);
 
+    // Build count query
+    let countQuery = supabase.from('customer_stats').select('*', { count: 'exact', head: true });
+
+    // Apply filters to count query
+    if (search) {
+      countQuery = countQuery.or(`name.ilike.%${search}%,email.ilike.%${search}%,phone.ilike.%${search}%`);
+    }
+    if (tags && tags !== 'all') {
+      countQuery = countQuery.contains('tags', [tags]);
+    }
+
+    const { count } = await countQuery;
+    const total = count || 0;
+
+    // Build data query with pagination
     let query = supabase.from('customer_stats').select('*');
 
     // Apply search filter (name, email, or phone)
@@ -49,7 +65,9 @@ async function handleGET(request: NextRequest) {
       lastOrderDate: customer.last_order_date ? new Date(customer.last_order_date) : undefined,
     }));
 
-    return NextResponse.json(customers, { status: 200 });
+    // Return paginated response
+    const response = createPaginatedResponse(customers, total, page, limit);
+    return NextResponse.json(response, { status: 200 });
   } catch (error) {
     console.error('Unexpected error in GET /api/customers:', error);
     return NextResponse.json(

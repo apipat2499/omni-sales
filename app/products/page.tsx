@@ -33,12 +33,21 @@ export default function ProductsPage() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isStockModalOpen, setIsStockModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [page, setPage] = useState(1);
+  const [sortBy, setSortBy] = useState<string>('createdAt');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
-  const { products, loading, error, refresh } = useProducts({
+  const { data, isLoading, error } = useProductsQuery({
     search: searchTerm,
     category: selectedCategory,
+    page,
+    limit: 20,
+    sortBy,
+    sortOrder,
   });
 
+  const products = data?.data || [];
+  const pagination = data?.pagination;
   const lowStockCount = products.filter((p) => isLowStock(p.stock)).length;
   const totalStock = products.reduce((sum, p) => sum + p.stock, 0);
   const totalValue = products.reduce((sum, p) => sum + p.cost * p.stock, 0);
@@ -261,14 +270,19 @@ export default function ProductsPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
+
             <select
               className="px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-white transition-all"
               value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value as ProductCategory | 'all')}
+              onChange={(e) => {
+                setSelectedCategory(e.target.value as ProductCategory | 'all');
+                setPage(1);
+              }}
+              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
             >
-              {categories.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat === 'all' ? 'ทุกหมวดหมู่' : cat}
+              {categories.map((category) => (
+                <option key={category} value={category}>
+                  {category === 'all' ? 'ทุกหมวดหมู่' : category}
                 </option>
               ))}
             </select>
