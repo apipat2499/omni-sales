@@ -1,0 +1,22 @@
+name: Telemetry Heartbeat
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+jobs:
+  heartbeat:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Send telemetry heartbeat
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          if [ -z "$SLACK_WEBHOOK_URL" ]; then
+            echo "Slack webhook not configured; skipping heartbeat."
+            exit 0
+          fi
+          npm run telemetry:test "Telemetry heartbeat from ${GITHUB_REPOSITORY} (run ${GITHUB_RUN_ID})"

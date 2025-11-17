@@ -63,8 +63,8 @@ export default function LoginPage() {
   };
 
   const handleDemoMode = () => {
-    // Redirect to onboard/dashboard in demo mode
-    router.push('/onboard');
+    // Redirect directly to dashboard in demo mode
+    router.push('/dashboard');
   };
 
   // Show loading state while checking auth

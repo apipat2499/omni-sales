@@ -1,4 +1,5 @@
 import type { SalesStats, ChartDataPoint, CategorySales, Order, OrderItem, Discount } from '@/types';
+import type { Notification } from '@/lib/utils/notifications';
 
 function minutesAgo(mins: number) {
   const date = new Date();
@@ -120,6 +121,39 @@ export const demoCategorySales: CategorySales[] = [
   { category: 'อุปกรณ์', value: 320000, percentage: 0.27 },
   { category: 'เมล็ดกาแฟ', value: 280000, percentage: 0.22 },
   { category: 'อื่น ๆ', value: 260000, percentage: 0.16 },
+];
+
+export const demoNotifications: Notification[] = [
+  {
+    id: 'demo-notif-1',
+    type: 'order',
+    category: 'order',
+    priority: 'medium',
+    title: 'ออเดอร์ใหม่จาก Shopee',
+    message: 'ออเดอร์ #SH-1299 มูลค่า ฿8,450 รอการยืนยัน',
+    read: false,
+    createdAt: minutesAgo(5),
+  },
+  {
+    id: 'demo-notif-2',
+    type: 'stock',
+    category: 'stock',
+    priority: 'high',
+    title: 'สินค้าใกล้หมดคลัง',
+    message: 'Warehouse Bangkok: Beans A-102 เหลือ 5 หน่วย',
+    read: false,
+    createdAt: minutesAgo(20),
+  },
+  {
+    id: 'demo-notif-3',
+    type: 'system',
+    category: 'system',
+    priority: 'low',
+    title: 'สำรองข้อมูลเสร็จสิ้น',
+    message: 'Backup 09:00 น. สำเร็จ',
+    read: true,
+    createdAt: minutesAgo(60),
+  },
 ];
 
 export function getDemoOrders(): Order[] {

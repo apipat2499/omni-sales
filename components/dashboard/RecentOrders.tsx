@@ -6,10 +6,14 @@ import { formatCurrency, getStatusColor, getChannelColor } from '@/lib/utils';
 import { format } from 'date-fns';
 import { th } from 'date-fns/locale';
 import { useOrders } from '@/lib/hooks/useOrders';
+import { useAuth } from '@/lib/auth/AuthContext';
+import { DemoPill } from '@/components/DemoPill';
 
 export default function RecentOrders() {
   const { orders, loading } = useOrders();
   const recentOrders = orders.slice(0, 5);
+  const { supabaseReady } = useAuth();
+  const isDemo = !supabaseReady;
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
@@ -20,13 +24,16 @@ export default function RecentOrders() {
             รายการคำสั่งซื้อล่าสุดในระบบ
           </p>
         </div>
-        <Link
-          href="/orders"
-          className="flex items-center gap-1 text-sm font-medium text-blue-600 dark:text-blue-500 hover:text-blue-700 dark:hover:text-blue-400"
-        >
-          ดูทั้งหมด
-          <ArrowRight className="h-4 w-4" />
-        </Link>
+        <div className="flex items-center gap-2">
+          {isDemo && <DemoPill />}
+          <Link
+            href="/orders"
+            className="flex items-center gap-1 text-sm font-medium text-blue-600 dark:text-blue-500 hover:text-blue-700 dark:hover:text-blue-400"
+          >
+            ดูทั้งหมด
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full">
@@ -53,7 +60,7 @@ export default function RecentOrders() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-            {loading ? (
+            {loading && supabaseReady ? (
               <tr>
                 <td colSpan={6} className="px-6 py-8 text-center">
                   <div className="animate-pulse text-gray-400">กำลังโหลดข้อมูล...</div>

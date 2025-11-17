@@ -67,6 +67,20 @@ describe('operations workflows', () => {
     expect(result.errors).toHaveLength(2);
   });
 
+  it('processReturnWorkflow handles initiate failure', async () => {
+    returnsService.initiateReturn.mockResolvedValue(null);
+
+    const result = await processReturnWorkflow({
+      userId: 'user-1',
+      orderId: 'order-123',
+      customerId: 'cust-9',
+      items: [],
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.errors[0]).toContain('คำขอคืนสินค้า');
+  });
+
   it('runStockTransferWorkflow chains create and complete', async () => {
     inventoryService.createStockTransfer.mockResolvedValue({ id: 'transfer-1' });
     inventoryService.completeStockTransfer.mockResolvedValue(true);
@@ -121,5 +135,23 @@ describe('operations workflows', () => {
     expect(orderService.createFulfillmentTask).toHaveBeenCalledTimes(2);
     expect(orderService.updateFulfillmentTask).toHaveBeenCalled();
     expect(result.success).toBe(true);
+  });
+
+  it('advanceFulfillmentWorkflow reports task errors', async () => {
+    orderService.createFulfillmentTask
+      .mockResolvedValueOnce({ id: 'task-1' })
+      .mockResolvedValueOnce(null);
+    orderService.updateFulfillmentTask.mockResolvedValueOnce(false);
+
+    const result = await advanceFulfillmentWorkflow({
+      orderId: 'order-42',
+      tasks: [
+        { type: 'pick', nextStatus: 'completed' },
+        { type: 'pack', nextStatus: 'completed' },
+      ],
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.errors).toHaveLength(2);
   });
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AlertTriangle, CheckCircle2, CloudOff, RefreshCw } from "lucide-react";
 
 interface HealthResponse {
@@ -36,15 +36,17 @@ interface HealthResponse {
   offline: boolean;
 }
 
+type ActionKind = "status" | "trial" | "usage";
+
 export default function TenantHealthPage() {
   const [data, setData] = useState<HealthResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [actionTenant, setActionTenant] = useState<string | null>(null);
+  const [actionState, setActionState] = useState<{ tenantId: string; type: ActionKind } | null>(null);
   const [actionMsg, setActionMsg] = useState<string | null>(null);
   const summary = data?.summary;
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -59,11 +61,14 @@ export default function TenantHealthPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  const isActionBusy = (tenantId: string, type: ActionKind) =>
+    actionState?.tenantId === tenantId && actionState.type === type;
 
   const handleTenantAction = async (tenantId: string, action: "suspend" | "reactivate") => {
     try {
-      setActionTenant(tenantId);
+      setActionState({ tenantId, type: "status" });
       setActionMsg(null);
       const response = await fetch(`/api/tenants/${tenantId}/status`, {
         method: "POST",
@@ -76,32 +81,58 @@ export default function TenantHealthPage() {
         throw new Error(payload.error || "อัปเดตสถานะไม่สำเร็จ");
       }
 
-      setData((prev) =>
-        prev
-          ? {
-              ...prev,
-              tenants: prev.tenants.map((tenant) =>
-                tenant.id === tenantId
-                  ? {
-                      ...tenant,
-                      status: payload.status,
-                      subscriptionStatus: payload.subscriptionStatus ?? tenant.subscriptionStatus,
-                      billingStatus: payload.status === "suspended" ? "suspended" : "current",
-                    }
-                  : tenant
-              ),
-            }
-          : prev
-      );
       setActionMsg(
         action === "suspend"
           ? "พักการใช้งาน tenant แล้ว"
           : "เปิดใช้งาน tenant สำเร็จ"
       );
+      await loadData();
     } catch (err) {
       setActionMsg(err instanceof Error ? err.message : "เกิดข้อผิดพลาดขณะอัปเดตสถานะ");
     } finally {
-      setActionTenant(null);
+      setActionState(null);
+    }
+  };
+
+  const handleExtendTrial = async (tenantId: string, days: number = 14) => {
+    try {
+      setActionState({ tenantId, type: "trial" });
+      setActionMsg(null);
+      const response = await fetch(`/api/tenants/${tenantId}/trial`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ days }),
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.error || "ไม่สามารถต่ออายุ Trial");
+      }
+      setActionMsg(`ต่ออายุ Trial เพิ่ม ${payload.trialEndsInDays ?? days} วันแล้ว`);
+      await loadData();
+    } catch (err) {
+      setActionMsg(err instanceof Error ? err.message : "ไม่สามารถต่ออายุ Trial");
+    } finally {
+      setActionState(null);
+    }
+  };
+
+  const handleRefreshUsage = async (tenantId: string) => {
+    try {
+      setActionState({ tenantId, type: "usage" });
+      setActionMsg(null);
+      const response = await fetch(`/api/tenants/${tenantId}/refresh-usage`, {
+        method: "POST",
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.error || "ไม่สามารถรีเฟรช usage");
+      }
+      setActionMsg(payload.message || "รีเฟรช usage แล้ว");
+      await loadData();
+    } catch (err) {
+      setActionMsg(err instanceof Error ? err.message : "ไม่สามารถรีเฟรช usage");
+    } finally {
+      setActionState(null);
     }
   };
 
@@ -109,7 +140,7 @@ export default function TenantHealthPage() {
     loadData();
     const interval = setInterval(loadData, 60000);
     return () => clearInterval(interval);
-  }, []);
+  }, [loadData]);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-6">
@@ -249,13 +280,27 @@ export default function TenantHealthPage() {
                       )}
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-2 justify-center">
+                      <div className="flex flex-col gap-2 items-center">
                         <button
                           onClick={() => handleTenantAction(tenant.id, tenant.status === "suspended" ? "reactivate" : "suspend")}
-                          disabled={actionTenant === tenant.id || data?.offline}
-                          className="px-3 py-1 text-xs rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
+                          disabled={isActionBusy(tenant.id, "status") || data?.offline}
+                          className="px-3 py-1 text-xs rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 w-full"
                         >
                           {tenant.status === "suspended" ? "เปิดใช้งาน" : "พักการใช้งาน"}
+                        </button>
+                        <button
+                          onClick={() => handleExtendTrial(tenant.id)}
+                          disabled={isActionBusy(tenant.id, "trial") || data?.offline}
+                          className="px-3 py-1 text-xs rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 w-full"
+                        >
+                          ต่อ Trial +14 วัน
+                        </button>
+                        <button
+                          onClick={() => handleRefreshUsage(tenant.id)}
+                          disabled={isActionBusy(tenant.id, "usage") || data?.offline}
+                          className="px-3 py-1 text-xs rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 w-full"
+                        >
+                          รีเฟรช Usage
                         </button>
                       </div>
                     </td>

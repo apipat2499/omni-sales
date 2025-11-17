@@ -1,13 +1,18 @@
 'use client';
 
 import { useDiscounts } from '@/lib/hooks/useDiscounts';
-import { Tag, Percent, Calendar, TrendingUp } from 'lucide-react';
+import { Tag, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { th } from 'date-fns/locale';
 import Link from 'next/link';
+import { useAuth } from '@/lib/auth/AuthContext';
+import { DemoPill } from '@/components/DemoPill';
+import { formatCurrency } from '@/lib/utils';
 
 export default function ActiveDiscounts() {
   const { discounts, loading } = useDiscounts('', 'true');
+  const { supabaseReady } = useAuth();
+  const isDemo = !supabaseReady;
 
   const activeDiscounts = discounts.filter((d) => d.active).slice(0, 5);
   const totalSavings = discounts.reduce((sum, d) => sum + (d.usageCount * (d.value || 0)), 0);
@@ -19,15 +24,18 @@ export default function ActiveDiscounts() {
           <Tag className="h-5 w-5 text-purple-600" />
           ส่วนลดที่ใช้งาน
         </h2>
-        <Link
-          href="/discounts"
-          className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
-        >
-          ดูทั้งหมด
-        </Link>
+        <div className="flex items-center gap-2">
+          {isDemo && <DemoPill />}
+          <Link
+            href="/discounts"
+            className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+          >
+            ดูทั้งหมด
+          </Link>
+        </div>
       </div>
 
-      {loading ? (
+      {loading && supabaseReady ? (
         <div className="text-center py-8 text-gray-500">กำลังโหลด...</div>
       ) : activeDiscounts.length === 0 ? (
         <div className="text-center py-8">
@@ -80,10 +88,14 @@ export default function ActiveDiscounts() {
             ))}
           </div>
 
-          <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="pt-4 border-t border-gray-200 dark:border-gray-700 space-y-1">
             <div className="flex items-center justify-between text-sm">
               <span className="text-gray-600 dark:text-gray-400">ส่วนลดทั้งหมด</span>
               <span className="font-semibold text-gray-900 dark:text-white">{discounts.length} รายการ</span>
+            </div>
+            <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+              <span>ยอดรวมส่วนลด</span>
+              <span className="font-semibold text-gray-900 dark:text-white">{formatCurrency(totalSavings)}</span>
             </div>
           </div>
         </>

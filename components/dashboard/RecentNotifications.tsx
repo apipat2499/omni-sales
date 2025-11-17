@@ -1,12 +1,18 @@
 'use client';
 
 import { useNotifications } from '@/lib/hooks/useNotifications';
-import { Bell, AlertCircle, CheckCircle, Info, AlertTriangle } from 'lucide-react';
+import { Bell, CheckCircle, Info, AlertTriangle } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { th } from 'date-fns/locale';
+import { useAuth } from '@/lib/auth/AuthContext';
+import { DemoPill } from '@/components/DemoPill';
+import { demoNotifications } from '@/lib/demo/data';
 
 export default function RecentNotifications() {
   const { notifications, loading } = useNotifications(false, 5);
+  const { supabaseReady } = useAuth();
+  const displayNotifications = supabaseReady ? notifications : demoNotifications;
+  const isLoading = supabaseReady ? loading : false;
 
   const getIcon = (type: string) => {
     switch (type) {
@@ -43,18 +49,19 @@ export default function RecentNotifications() {
           <Bell className="h-5 w-5 text-blue-600" />
           การแจ้งเตือนล่าสุด
         </h2>
+        {!supabaseReady && <DemoPill />}
       </div>
 
-      {loading ? (
+      {isLoading ? (
         <div className="text-center py-8 text-gray-500">กำลังโหลด...</div>
-      ) : notifications.length === 0 ? (
+      ) : displayNotifications.length === 0 ? (
         <div className="text-center py-8">
           <Bell className="h-12 w-12 text-gray-400 mx-auto mb-3" />
           <p className="text-gray-500 dark:text-gray-400">ไม่มีการแจ้งเตือนใหม่</p>
         </div>
       ) : (
         <div className="space-y-3">
-          {notifications.map((notification) => (
+          {displayNotifications.map((notification) => (
             <div
               key={notification.id}
               className={`p-3 rounded-lg border ${getSeverityColor(notification.severity)} ${
