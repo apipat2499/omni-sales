@@ -355,26 +355,13 @@ export default function ProductsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                {loading ? (
+                {isLoading ? (
                   <tr>
                     <td colSpan={9} className="px-6 py-12 text-center">
                       <div className="flex flex-col items-center gap-3">
                         <Loader2 className="h-12 w-12 text-blue-500 dark:text-blue-400 animate-spin" />
                         <p className="text-gray-600 dark:text-gray-400">กำลังโหลดข้อมูล...</p>
                       </div>
-                    </td>
-                  </tr>
-                ) : error ? (
-                  <tr>
-                    <td colSpan={9} className="px-6 py-12 text-center">
-                      <AlertCircle className="h-12 w-12 text-red-500 dark:text-red-400 mx-auto mb-4" />
-                      <p className="text-red-600 dark:text-red-400">{error}</p>
-                      <button
-                        onClick={refresh}
-                        className="mt-4 px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
-                      >
-                        ลองอีกครั้ง
-                      </button>
                     </td>
                   </tr>
                 ) : products.length === 0 ? (
