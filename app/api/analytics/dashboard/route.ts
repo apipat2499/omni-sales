@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAnalyticsDashboardData } from '@/lib/analytics/service';
 import { getCachedDashboardAnalytics } from '@/lib/cache/strategies/analytics-cache';
 import { createClient } from '@/lib/supabase/server';
-import { getCache, setCache } from '@/lib/cache/manager';
+import { getCache, setCache } from '@/lib/cache/cache-manager';
 
 export const dynamic = 'force-dynamic';
 

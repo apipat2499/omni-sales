@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createReportGenerator, ReportConfig } from '@/lib/analytics/bi/report-generator';
-import { getCache, setCache } from '@/lib/cache/manager';
+import { getCache, setCache } from '@/lib/cache/cache-manager';
 
 export const dynamic = 'force-dynamic';
 
