@@ -18,6 +18,9 @@ import {
   Receipt,
   Megaphone,
   Satellite,
+  AlertTriangle,
+  Camera,
+  FileText,
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
