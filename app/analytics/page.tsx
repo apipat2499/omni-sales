@@ -74,6 +74,7 @@ export default function AnalyticsPage() {
   const [activeTab, setActiveTab] = useState("overview");
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState(
     new Date().toISOString().split("T")[0]
   );
@@ -93,15 +94,39 @@ export default function AnalyticsPage() {
   const fetchAnalyticsData = async () => {
     try {
       setIsLoading(true);
+      setError(null);
       const response = await fetch(
         `/api/analytics/dashboard?userId=${userId}&date=${selectedDate}`
       );
       if (response.ok) {
         const data = await response.json();
         setAnalyticsData(data.data);
+      } else {
+        setError(`Failed to load analytics data (${response.status})`);
+        // Set empty data for demo mode
+        setAnalyticsData({
+          salesAnalytics: null,
+          customerAnalytics: null,
+          financialAnalytics: null,
+          operationalAnalytics: null,
+          marketingAnalytics: [],
+          topProducts: [],
+          kpiTracking: [],
+        });
       }
     } catch (error) {
       console.error("Error fetching analytics:", error);
+      setError("Unable to connect to analytics service");
+      // Set empty data for demo mode
+      setAnalyticsData({
+        salesAnalytics: null,
+        customerAnalytics: null,
+        financialAnalytics: null,
+        operationalAnalytics: null,
+        marketingAnalytics: [],
+        topProducts: [],
+        kpiTracking: [],
+      });
     } finally {
       setIsLoading(false);
     }
@@ -125,7 +150,7 @@ export default function AnalyticsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
           <BarChart3 className="w-12 h-12 text-blue-500 mx-auto mb-4 animate-spin" />
           <p className="text-gray-600 dark:text-gray-400">
