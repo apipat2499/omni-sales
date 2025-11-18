@@ -39,21 +39,15 @@ export default function ProductsPage() {
   const [sortBy, setSortBy] = useState<string>('createdAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
-  const { data, isLoading, error } = useProductsQuery({
+  const { products, loading: isLoading, error, refresh } = useProducts({
     search: searchTerm,
     category: selectedCategory,
-    page,
-    limit: 20,
-    sortBy,
-    sortOrder,
   });
 
-  const products = data?.data || [];
-  const pagination = data?.pagination;
   const lowStockCount = products.filter((p) => isLowStock(p.stock)).length;
-  const totalStock = products.reduce((sum, p) => sum + p.stock, 0);
-  const totalValue = products.reduce((sum, p) => sum + p.cost * p.stock, 0);
-  const totalPotentialProfit = products.reduce((sum, p) => sum + (p.price - p.cost) * p.stock, 0);
+  const totalStock = products.reduce((sum, p) => sum + (p.stock || 0), 0);
+  const totalValue = products.reduce((sum, p) => sum + (p.cost || 0) * (p.stock || 0), 0);
+  const totalPotentialProfit = products.reduce((sum, p) => sum + ((p.price || 0) - (p.cost || 0)) * (p.stock || 0), 0);
 
   const handleAddProduct = () => {
     setSelectedProduct(null);
@@ -87,18 +81,48 @@ export default function ProductsPage() {
     refresh();
   };
 
+  // Handle errors gracefully
+  if (error) {
+    return (
+      <DashboardLayout>
+        <div className="p-6">
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6 text-center">
+            <div className="flex flex-col items-center gap-4">
+              <Package className="h-12 w-12 text-red-600 dark:text-red-400" />
+              <div>
+                <h3 className="text-lg font-semibold text-red-900 dark:text-red-200 mb-2">
+                  ไม่สามารถโหลดข้อมูลสินค้าได้
+                </h3>
+                <p className="text-red-700 dark:text-red-300 mb-4">
+                  {error}
+                </p>
+                <button
+                  onClick={() => refresh()}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                >
+                  <Loader2 className="h-4 w-4" />
+                  ลองอีกครั้ง
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   const handleExport = () => {
     // Prepare data for export
     const exportData = products.map((product) => ({
-      'SKU': product.sku,
-      'ชื่อสินค้า': product.name,
-      'หมวดหมู่': product.category,
-      'ราคาขาย': product.price,
-      'ราคาทุน': product.cost,
-      'สต็อก': product.stock,
-      'มูลค่าสต็อก': product.cost * product.stock,
-      'กำไรต่อชิ้น': product.price - product.cost,
-      'กำไร %': (((product.price - product.cost) / product.price) * 100).toFixed(2),
+      'SKU': product.sku || '',
+      'ชื่อสินค้า': product.name || '',
+      'หมวดหมู่': product.category || '',
+      'ราคาขาย': product.price || 0,
+      'ราคาทุน': product.cost || 0,
+      'สต็อก': product.stock || 0,
+      'มูลค่าสต็อก': (product.cost || 0) * (product.stock || 0),
+      'กำไรต่อชิ้น': (product.price || 0) - (product.cost || 0),
+      'กำไร %': product.price ? (((product.price - (product.cost || 0)) / product.price) * 100).toFixed(2) : '0.00',
       'รายละเอียด': product.description || '',
     }));
 
