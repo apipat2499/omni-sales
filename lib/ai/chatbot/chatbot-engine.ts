@@ -16,7 +16,7 @@ import type {
   IntentDetectionResult,
 } from './types';
 import { detectIntent } from './intents';
-import { getCache, setCache } from '../../cache/cache-manager';
+import { getCache, setCache } from '@/lib/cache/cache-manager';
 
 // OpenAI Integration
 async function callOpenAI(
