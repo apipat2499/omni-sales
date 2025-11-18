@@ -76,10 +76,10 @@ export default function RecentOrders() {
               recentOrders.map((order) => (
               <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                  #{order.id.toUpperCase()}
+                  #{String(order.id || '').toUpperCase()}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
-                  {order.customerName}
+                  {order.customerName || '-'}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className={`px-2 py-1 text-xs font-medium rounded-md border ${getChannelColor(order.channel)}`}>
@@ -87,7 +87,7 @@ export default function RecentOrders() {
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 dark:text-white">
-                  {formatCurrency(order.total)}
+                  {formatCurrency(order.total || 0)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className={`px-2 py-1 text-xs font-medium rounded-md border ${getStatusColor(order.status)}`}>
@@ -95,7 +95,7 @@ export default function RecentOrders() {
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
-                  {format(order.createdAt, 'dd MMM yyyy', { locale: th })}
+                  {order.createdAt ? format(order.createdAt, 'dd MMM yyyy', { locale: th }) : '-'}
                 </td>
               </tr>
               ))

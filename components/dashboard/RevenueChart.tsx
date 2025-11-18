@@ -9,12 +9,7 @@ import { useChartData } from '@/lib/hooks/useDashboard';
 export default function RevenueChart() {
   const { chartData, loading } = useChartData(14);
 
-  const data = chartData.map(item => ({
-    ...item,
-    dateFormatted: format(new Date(item.date), 'dd MMM', { locale: th }),
-  }));
-
-  if (loading) {
+  if (loading || !chartData) {
     return (
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
         <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
@@ -26,6 +21,11 @@ export default function RevenueChart() {
       </div>
     );
   }
+
+  const data = chartData.map(item => ({
+    ...item,
+    dateFormatted: format(new Date(item.date), 'dd MMM', { locale: th }),
+  }));
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">

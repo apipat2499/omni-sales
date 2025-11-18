@@ -14,8 +14,8 @@ export default function ActiveDiscounts() {
   const { supabaseReady } = useAuth();
   const isDemo = !supabaseReady;
 
-  const activeDiscounts = discounts.filter((d) => d.active).slice(0, 5);
-  const totalSavings = discounts.reduce((sum, d) => sum + (d.usageCount * (d.value || 0)), 0);
+  const activeDiscounts = (discounts || []).filter((d) => d.active).slice(0, 5);
+  const totalSavings = (discounts || []).reduce((sum, d) => sum + (d.usageCount * (d.value || 0)), 0);
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">

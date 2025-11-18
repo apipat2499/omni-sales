@@ -34,7 +34,13 @@
       "Bash(claude/adjustable-improvements-01HjizACkwrgJyEZaWYTiNmR )",
       "Bash(claude/incomplete-description-01EKqsT8wE25yWteTNCqra6U )",
       "Bash(claude/task-request-01RTzcQyiS1Frro2D6RHdtNj)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(vercel ls:*)",
+      "Bash(curl:*)",
+      "Bash(vercel project:*)",
+      "Bash(vercel link:*)",
+      "WebSearch",
+      "Bash(vercel promote:*)"
     ],
     "deny": [],
     "ask": []

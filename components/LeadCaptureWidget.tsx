@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { MessageCircle, X, Loader2, CheckCircle2, AlertTriangle } from 'lucide-react';
 
 interface LeadFormData {
@@ -9,6 +9,8 @@ interface LeadFormData {
   phone?: string;
   company?: string;
   message?: string;
+  budget?: string;
+  channel?: string;
 }
 
 type Status = 'idle' | 'loading' | 'success' | 'error';
@@ -23,7 +25,20 @@ export function LeadCaptureWidget() {
     phone: '',
     company: '',
     message: '',
+    budget: '',
+    channel: '',
   });
+
+  useEffect(() => {
+    const handler = () => {
+      setOpen(true);
+      setStatus('idle');
+      setError(null);
+    };
+
+    window.addEventListener('lead-widget:open', handler);
+    return () => window.removeEventListener('lead-widget:open', handler);
+  }, []);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -49,6 +64,8 @@ export function LeadCaptureWidget() {
         phone: '',
         company: '',
         message: '',
+        budget: '',
+        channel: '',
       });
     } catch (err) {
       setStatus('error');
@@ -115,6 +132,36 @@ export function LeadCaptureWidget() {
                   onChange={handleChange('company')}
                   className="mt-1 w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm"
                 />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-medium text-gray-600 dark:text-gray-300">งบประมาณ (ต่อเดือน)</label>
+                <select
+                  value={formData.budget}
+                  onChange={handleChange('budget')}
+                  className="mt-1 w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm"
+                >
+                  <option value="">เลือกช่วงงบประมาณ</option>
+                  <option value="<10k">ต่ำกว่า 10,000฿</option>
+                  <option value="10-50k">10,000 - 50,000฿</option>
+                  <option value="50-100k">50,000 - 100,000฿</option>
+                  <option value=">100k">มากกว่า 100,000฿</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-600 dark:text-gray-300">ช่องทางที่สนใจ</label>
+                <select
+                  value={formData.channel}
+                  onChange={handleChange('channel')}
+                  className="mt-1 w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm"
+                >
+                  <option value="">เลือกช่องทาง</option>
+                  <option value="demo">นัดเดโม</option>
+                  <option value="trial">สมัครทดลองใช้งาน</option>
+                  <option value="sales">พูดคุยกับทีมขาย</option>
+                  <option value="partner">พาร์ทเนอร์/ตัวแทนจำหน่าย</option>
+                </select>
               </div>
             </div>
             <div>

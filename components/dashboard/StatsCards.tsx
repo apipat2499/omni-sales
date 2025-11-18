@@ -5,13 +5,16 @@ import { formatCurrency, formatNumber, formatPercent } from '@/lib/utils';
 import { useDashboardStats } from '@/lib/hooks/useDashboard';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { DemoPill } from '@/components/DemoPill';
+import { useUserPlan } from '@/lib/hooks/useUserPlan';
+import { UpsellBanner } from './UpsellBanner';
 
 export default function StatsCards() {
-  const { stats, loading } = useDashboardStats(30);
+  const { stats, loading, error } = useDashboardStats(30);
   const { supabaseReady } = useAuth();
   const isDemo = !supabaseReady;
+  const { tier, usage } = useUserPlan();
 
-  if (loading || !stats) {
+  if (loading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[...Array(4)].map((_, i) => (
@@ -19,6 +22,16 @@ export default function StatsCards() {
             <div className="h-20"></div>
           </div>
         ))}
+      </div>
+    );
+  }
+
+  if (!stats) {
+    return (
+      <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6">
+        <p className="text-red-700 dark:text-red-300">
+          {error || 'ไม่สามารถโหลดข้อมูลสถิติได้'}
+        </p>
       </div>
     );
   }
@@ -60,6 +73,9 @@ export default function StatsCards() {
           iconColor="text-orange-600"
         />
       </div>
+      {tier === 'free' && usage.orderPercent >= 0.8 && (
+        <UpsellBanner usage={usage} />
+      )}
     </div>
   );
 }
