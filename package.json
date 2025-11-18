@@ -36,7 +36,8 @@
     "ml:train:forecast": "ts-node scripts/ml-train-models.ts forecast",
     "ml:train:churn": "ts-node scripts/ml-train-models.ts churn",
     "deploy:check": "bash scripts/deploy-vercel.sh",
-    "telemetry:test": "node scripts/test-telemetry.mjs"
+    "telemetry:test": "node scripts/test-telemetry.mjs",
+    "seed": "ts-node scripts/seed-data.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
