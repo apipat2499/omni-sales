@@ -39,6 +39,36 @@ export default function OrdersPage() {
   const orders = data?.data || [];
   const pagination = data?.pagination;
 
+  // Handle errors gracefully
+  if (error) {
+    return (
+      <DashboardLayout>
+        <div className="p-6">
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6 text-center">
+            <div className="flex flex-col items-center gap-4">
+              <ShoppingCart className="h-12 w-12 text-red-600 dark:text-red-400" />
+              <div>
+                <h3 className="text-lg font-semibold text-red-900 dark:text-red-200 mb-2">
+                  ไม่สามารถโหลดข้อมูลคำสั่งซื้อได้
+                </h3>
+                <p className="text-red-700 dark:text-red-300 mb-4">
+                  เกิดข้อผิดพลาดในการเชื่อมต่อกับระบบ กรุณาลองใหม่อีกครั้ง
+                </p>
+                <button
+                  onClick={() => refetch()}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  ลองอีกครั้ง
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   const statusCounts = {
     all: pagination?.total || 0,
     pending: orders.filter((o) => o.status === 'pending').length,
@@ -215,7 +245,7 @@ export default function OrdersPage() {
                     <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900 dark:text-white">
-                          #{order.id.toUpperCase().slice(0, 8)}
+                          #{String(order.id || '').toUpperCase().slice(0, 8)}
                         </div>
                         {order.paymentMethod && (
                           <div className="text-xs text-gray-500 dark:text-gray-400">
@@ -266,7 +296,7 @@ export default function OrdersPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
-                        {format(order.createdAt, 'dd MMM yyyy', { locale: th })}
+                        {order.createdAt ? format(new Date(order.createdAt), 'dd MMM yyyy', { locale: th }) : '-'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-1">
