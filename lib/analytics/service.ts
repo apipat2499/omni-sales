@@ -136,6 +136,78 @@ export async function getAnalyticsDashboard(userId: string): Promise<any> {
   return {};
 }
 
-export async function getAnalyticsDashboardData(userId: string): Promise<any> {
-  return {};
+export async function getAnalyticsDashboardData(userId: string, date?: string): Promise<any> {
+  // Return mock data for demo mode
+  return {
+    salesAnalytics: {
+      totalOrders: 342,
+      totalRevenue: 125430.50,
+      averageOrderValue: 366.76,
+      totalItemsSold: 1245,
+      totalDiscountGiven: 5420.00,
+      totalRefunds: 2100.00,
+      netRevenue: 117910.50,
+      ordersByStatus: {
+        pending: 15,
+        processing: 42,
+        shipped: 89,
+        delivered: 186,
+        cancelled: 10
+      },
+      revenueByChannel: {
+        online: 75000,
+        pos: 35000,
+        phone: 10000,
+        other: 5430
+      },
+      revenueByCategory: {
+        'กาแฟพร้อมดื่ม': 52000,
+        'อุปกรณ์': 38000,
+        'เมล็ดกาแฟ': 24000,
+        'อื่น ๆ': 11430
+      },
+      topProducts: []
+    },
+    customerAnalytics: {
+      totalCustomers: 1245,
+      newCustomers: 156,
+      returningCustomers: 1089,
+      activeCustomers: 856,
+      customerRetentionRate: 87.5,
+      averageCustomerLifetimeValue: 2850.75,
+      totalCustomerSpend: 3547683.75,
+      customerAcquisitionCost: 45.20,
+      churnRate: 12.5,
+      repeatPurchaseRate: 68.3
+    },
+    financialAnalytics: {
+      totalRevenue: 125430.50,
+      totalCost: 65220.30,
+      grossProfit: 60210.20,
+      operatingExpenses: 28500.00,
+      netProfit: 31710.20,
+      grossMargin: 48.0,
+      operatingMargin: 25.3,
+      netMargin: 25.3,
+      revenueBySource: {},
+      expenseByCategory: {},
+      cashFlowData: {}
+    },
+    operationalAnalytics: {
+      orderFulfillmentRate: 94.5,
+      averageFulfillmentTime: 2.3,
+      shippingOnTimeRate: 92.1,
+      inventoryAccuracy: 98.7,
+      stockOutIncidents: 3,
+      warehouseUtilization: 78.5,
+      averageComplaintResolutionTime: 4.2,
+      complaintRate: 1.8,
+      returnRate: 2.5,
+      customerSatisfactionScore: 4.6,
+      npsScore: 72
+    },
+    marketingAnalytics: [],
+    topProducts: [],
+    kpiTracking: []
+  };
 }
