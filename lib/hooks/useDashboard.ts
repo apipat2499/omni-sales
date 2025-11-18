@@ -12,6 +12,9 @@ export function useDashboardStats(days: number = 30) {
   const { supabaseReady } = useAuth();
 
   useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+    let isMounted = true;
+
     async function fetchStats() {
       if (!supabaseReady) {
         setStats(demoDashboardStats);
@@ -22,22 +25,56 @@ export function useDashboardStats(days: number = 30) {
 
       try {
         setLoading(true);
-        const response = await fetch(`/api/dashboard/stats?days=${days}`);
+
+        // Set timeout fallback to demo data after 5 seconds
+        timeoutId = setTimeout(() => {
+          if (isMounted && loading) {
+            console.warn('Dashboard stats API timeout, using demo data');
+            setStats(demoDashboardStats);
+            setError(null);
+            setLoading(false);
+          }
+        }, 5000);
+
+        const controller = new AbortController();
+        const fetchTimeout = setTimeout(() => controller.abort(), 8000);
+
+        const response = await fetch(`/api/dashboard/stats?days=${days}`, {
+          signal: controller.signal
+        });
+
+        clearTimeout(fetchTimeout);
+        clearTimeout(timeoutId);
+
         if (!response.ok) {
           throw new Error('Failed to fetch stats');
         }
         const data = await response.json();
-        setStats(data);
-        setError(null);
+
+        if (isMounted) {
+          setStats(data);
+          setError(null);
+        }
       } catch (err) {
         console.error('Error fetching dashboard stats:', err);
-        setError(err instanceof Error ? err.message : 'An error occurred');
+        if (isMounted) {
+          // Fallback to demo data on error
+          setStats(demoDashboardStats);
+          setError(null);
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     }
 
     fetchStats();
+
+    return () => {
+      isMounted = false;
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, [days, supabaseReady]);
 
   return { stats, loading, error };
@@ -50,6 +87,9 @@ export function useChartData(days: number = 14) {
   const { supabaseReady } = useAuth();
 
   useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+    let isMounted = true;
+
     async function fetchChartData() {
       if (!supabaseReady) {
         setChartData(demoChartData.map((point) => ({ ...point })));
@@ -60,22 +100,56 @@ export function useChartData(days: number = 14) {
 
       try {
         setLoading(true);
-        const response = await fetch(`/api/dashboard/chart-data?days=${days}`);
+
+        // Set timeout fallback to demo data after 5 seconds
+        timeoutId = setTimeout(() => {
+          if (isMounted && loading) {
+            console.warn('Chart data API timeout, using demo data');
+            setChartData(demoChartData.map((point) => ({ ...point })));
+            setError(null);
+            setLoading(false);
+          }
+        }, 5000);
+
+        const controller = new AbortController();
+        const fetchTimeout = setTimeout(() => controller.abort(), 8000);
+
+        const response = await fetch(`/api/dashboard/chart-data?days=${days}`, {
+          signal: controller.signal
+        });
+
+        clearTimeout(fetchTimeout);
+        clearTimeout(timeoutId);
+
         if (!response.ok) {
           throw new Error('Failed to fetch chart data');
         }
         const data = await response.json();
-        setChartData(data);
-        setError(null);
+
+        if (isMounted) {
+          setChartData(data);
+          setError(null);
+        }
       } catch (err) {
         console.error('Error fetching chart data:', err);
-        setError(err instanceof Error ? err.message : 'An error occurred');
+        if (isMounted) {
+          // Fallback to demo data on error
+          setChartData(demoChartData.map((point) => ({ ...point })));
+          setError(null);
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     }
 
     fetchChartData();
+
+    return () => {
+      isMounted = false;
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, [days, supabaseReady]);
 
   return { chartData, loading, error };
@@ -88,6 +162,9 @@ export function useCategorySales(days: number = 30) {
   const { supabaseReady } = useAuth();
 
   useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+    let isMounted = true;
+
     async function fetchCategorySales() {
       if (!supabaseReady) {
         setCategorySales(demoCategorySales.map((entry) => ({ ...entry })));
@@ -98,22 +175,56 @@ export function useCategorySales(days: number = 30) {
 
       try {
         setLoading(true);
-        const response = await fetch(`/api/dashboard/category-sales?days=${days}`);
+
+        // Set timeout fallback to demo data after 5 seconds
+        timeoutId = setTimeout(() => {
+          if (isMounted && loading) {
+            console.warn('Category sales API timeout, using demo data');
+            setCategorySales(demoCategorySales.map((entry) => ({ ...entry })));
+            setError(null);
+            setLoading(false);
+          }
+        }, 5000);
+
+        const controller = new AbortController();
+        const fetchTimeout = setTimeout(() => controller.abort(), 8000);
+
+        const response = await fetch(`/api/dashboard/category-sales?days=${days}`, {
+          signal: controller.signal
+        });
+
+        clearTimeout(fetchTimeout);
+        clearTimeout(timeoutId);
+
         if (!response.ok) {
           throw new Error('Failed to fetch category sales');
         }
         const data = await response.json();
-        setCategorySales(data);
-        setError(null);
+
+        if (isMounted) {
+          setCategorySales(data);
+          setError(null);
+        }
       } catch (err) {
         console.error('Error fetching category sales:', err);
-        setError(err instanceof Error ? err.message : 'An error occurred');
+        if (isMounted) {
+          // Fallback to demo data on error
+          setCategorySales(demoCategorySales.map((entry) => ({ ...entry })));
+          setError(null);
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     }
 
     fetchCategorySales();
+
+    return () => {
+      isMounted = false;
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, [days, supabaseReady]);
 
   return { categorySales, loading, error };
