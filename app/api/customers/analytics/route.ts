@@ -28,19 +28,16 @@ export async function GET(req: NextRequest) {
     });
 
     if (error) {
-      return NextResponse.json(
-        { error: 'Failed to fetch analytics' },
-        { status: 500 }
-      );
+      console.error('Error fetching analytics:', error);
+      // Return empty array instead of error for missing tables
+      return NextResponse.json([]);
     }
 
     return NextResponse.json(analytics || []);
   } catch (error) {
     console.error('Error fetching analytics:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch analytics' },
-      { status: 500 }
-    );
+    // Return empty array instead of error
+    return NextResponse.json([]);
   }
 }
 

@@ -10,14 +10,31 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     turbopackUseSystemTlsCerts: true,
-    instrumentationHook: true,
   },
+  // instrumentationHook is now stable in Next.js 15+
+  instrumentationHook: true,
+
   serverComponentsExternalPackages: [
     'firebase-admin',
     'twilio',
     'google-auth-library',
     '@google-cloud/storage',
   ],
+
+  // Image optimization
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**.supabase.co',
+      },
+      {
+        protocol: 'https',
+        hostname: 'ui-avatars.com',
+      },
+    ],
+    formats: ['image/avif', 'image/webp'],
+  },
 
   // Provide fallback environment variables for build time
   env: {

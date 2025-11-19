@@ -122,19 +122,19 @@ export default function OrdersPage() {
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
           {[
-            { label: 'ทั้งหมด', value: statusCounts.all, color: 'blue' },
-            { label: 'รอดำเนินการ', value: statusCounts.pending, color: 'yellow' },
-            { label: 'กำลังดำเนินการ', value: statusCounts.processing, color: 'blue' },
-            { label: 'จัดส่งแล้ว', value: statusCounts.shipped, color: 'purple' },
-            { label: 'สำเร็จ', value: statusCounts.delivered, color: 'green' },
-            { label: 'ยกเลิก', value: statusCounts.cancelled, color: 'red' },
+            { label: 'ทั้งหมด', value: statusCounts.all, textColor: 'text-blue-600 dark:text-blue-400' },
+            { label: 'รอดำเนินการ', value: statusCounts.pending, textColor: 'text-yellow-600 dark:text-yellow-400' },
+            { label: 'กำลังดำเนินการ', value: statusCounts.processing, textColor: 'text-blue-600 dark:text-blue-400' },
+            { label: 'จัดส่งแล้ว', value: statusCounts.shipped, textColor: 'text-purple-600 dark:text-purple-400' },
+            { label: 'สำเร็จ', value: statusCounts.delivered, textColor: 'text-green-600 dark:text-green-400' },
+            { label: 'ยกเลิก', value: statusCounts.cancelled, textColor: 'text-red-600 dark:text-red-400' },
           ].map((stat) => (
             <div
               key={stat.label}
-              className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4"
+              className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 transition-all duration-200 hover:shadow-md hover:scale-[1.02]"
             >
               <p className="text-sm text-gray-600 dark:text-gray-400">{stat.label}</p>
-              <p className={`text-2xl font-bold text-${stat.color}-600 dark:text-${stat.color}-400`}>
+              <p className={`text-2xl font-bold ${stat.textColor}`}>
                 {stat.value}
               </p>
             </div>
@@ -242,7 +242,7 @@ export default function OrdersPage() {
                   </tr>
                 ) : (
                   orders.map((order) => (
-                    <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900 dark:text-white">
                           #{String(order.id || '').toUpperCase().slice(0, 8)}

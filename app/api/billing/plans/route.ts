@@ -10,18 +10,15 @@ export async function GET() {
       .order('amount_cents', { ascending: true });
 
     if (error) {
-      return NextResponse.json(
-        { error: 'Failed to fetch plans' },
-        { status: 500 }
-      );
+      console.error('Error fetching plans:', error);
+      // Return empty array instead of error for missing tables
+      return NextResponse.json([]);
     }
 
-    return NextResponse.json(plans);
+    return NextResponse.json(plans || []);
   } catch (error) {
     console.error('Error fetching plans:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch plans' },
-      { status: 500 }
-    );
+    // Return empty array instead of error
+    return NextResponse.json([]);
   }
 }

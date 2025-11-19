@@ -97,8 +97,11 @@ function StatCard({
 }) {
   const isPositive = change >= 0;
 
+  // Map light colors to dark mode equivalents
+  const darkIconBg = iconBg.replace('100', '900/20');
+
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 transition-all duration-200 hover:shadow-md hover:scale-[1.02]">
       <div className="flex items-center justify-between">
         <div className="flex-1">
           <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{title}</p>
@@ -119,7 +122,7 @@ function StatCard({
             <span className="text-sm text-gray-500 dark:text-gray-400">เทียบเดือนที่แล้ว</span>
           </div>
         </div>
-        <div className={`${iconBg} ${iconColor} p-3 rounded-lg`}>
+        <div className={`${iconBg} dark:${darkIconBg} ${iconColor} p-3 rounded-lg transition-transform duration-200 hover:scale-110`}>
           {icon}
         </div>
       </div>

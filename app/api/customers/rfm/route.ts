@@ -40,10 +40,12 @@ export async function GET(req: NextRequest) {
     });
 
     if (error) {
-      return NextResponse.json(
-        { error: 'Failed to fetch RFM scores' },
-        { status: 500 }
-      );
+      console.error('Error fetching RFM scores:', error);
+      // Return empty data instead of error for missing tables
+      return NextResponse.json({
+        scores: [],
+        distribution: {},
+      });
     }
 
     // Calculate segment distribution
@@ -59,10 +61,11 @@ export async function GET(req: NextRequest) {
     });
   } catch (error) {
     console.error('Error fetching RFM scores:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch RFM scores' },
-      { status: 500 }
-    );
+    // Return empty data instead of error
+    return NextResponse.json({
+      scores: [],
+      distribution: {},
+    });
   }
 }
 

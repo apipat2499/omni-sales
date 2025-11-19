@@ -8,12 +8,17 @@ async function handleGET(req: NextRequest) {
     const status = req.nextUrl.searchParams.get('status');
     const channel = req.nextUrl.searchParams.get('channel');
     const search = req.nextUrl.searchParams.get('search');
-    const limit = parseInt(req.nextUrl.searchParams.get('limit') || '50');
-    const offset = parseInt(req.nextUrl.searchParams.get('offset') || '0');
+    const page = parseInt(req.nextUrl.searchParams.get('page') || '1');
+    const limit = parseInt(req.nextUrl.searchParams.get('limit') || '20');
+    const sortBy = req.nextUrl.searchParams.get('sortBy') || 'created_at';
+    const sortOrder = req.nextUrl.searchParams.get('sortOrder') || 'desc';
+
+    // Calculate offset from page
+    const offset = (page - 1) * limit;
 
     let query = supabase
       .from('orders')
-      .select('*, order_items (*), order_shipping (*)', { count: 'exact' });
+      .select('*, order_items (*), customers (name, email)', { count: 'exact' });
 
     if (customerId) {
       query = query.eq('customer_id', customerId);
@@ -30,7 +35,7 @@ async function handleGET(req: NextRequest) {
     }
 
     const { data: orders, error, count } = await query
-      .order('created_at', { ascending: false })
+      .order(sortBy, { ascending: sortOrder === 'asc' })
       .range(offset, offset + limit - 1);
 
     if (error) {
@@ -42,11 +47,12 @@ async function handleGET(req: NextRequest) {
     const transformedOrders = (orders || []).map((order: any) => ({
       id: order.id,
       customerId: order.customer_id,
-      customerName: order.customer_name || 'Unknown',
+      customerName: order.customers?.name || order.customer_name || 'Unknown',
       subtotal: parseFloat(order.subtotal || 0),
       tax: parseFloat(order.tax || 0),
       shipping: parseFloat(order.shipping || 0),
       total: parseFloat(order.total || 0),
+      discountAmount: parseFloat(order.discount_amount || 0),
       status: order.status || 'pending',
       channel: order.channel || 'online',
       paymentMethod: order.payment_method,
@@ -64,7 +70,18 @@ async function handleGET(req: NextRequest) {
       })),
     }));
 
-    return NextResponse.json(transformedOrders);
+    // Return paginated response
+    const totalPages = Math.ceil((count || 0) / limit);
+
+    return NextResponse.json({
+      data: transformedOrders,
+      pagination: {
+        page,
+        limit,
+        total: count || 0,
+        totalPages,
+      }
+    });
   } catch (error) {
     console.error('Error fetching orders:', error);
     return NextResponse.json({ error: 'Failed to fetch orders' }, { status: 500 });
