@@ -1,27 +1,17 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Discount, OrderItem } from '@/types';
-import { useAuth } from '@/lib/auth/AuthContext';
-import { getDemoDiscounts } from '@/lib/demo/data';
 
 export function useDiscounts(search?: string, activeFilter?: string) {
   const [discounts, setDiscounts] = useState<Discount[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { supabaseReady } = useAuth();
 
   const fetchDiscounts = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      if (!supabaseReady) {
-        const data = filterDemoDiscounts(getDemoDiscounts(), search, activeFilter);
-        setDiscounts(data);
-      setLoading(false);
-      return;
-    }
-
-    const params = new URLSearchParams();
+      const params = new URLSearchParams();
       if (search) params.append('search', search);
       if (activeFilter) params.append('active', activeFilter);
 
@@ -33,12 +23,13 @@ export function useDiscounts(search?: string, activeFilter?: string) {
       const data = await response.json();
       setDiscounts(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err.message : 'Failed to load discounts. Please check your connection and try again.');
       console.error('Error fetching discounts:', err);
+      setDiscounts([]);
     } finally {
       setLoading(false);
     }
-  }, [supabaseReady, search, activeFilter]);
+  }, [search, activeFilter]);
 
   useEffect(() => {
     fetchDiscounts();
@@ -136,20 +127,4 @@ export function useDiscounts(search?: string, activeFilter?: string) {
     deleteDiscount,
     validateDiscount,
   };
-}
-
-function filterDemoDiscounts(discounts: Discount[], search?: string, activeFilter?: string) {
-  return discounts.filter((discount) => {
-    const matchSearch = search
-      ? discount.code.toLowerCase().includes(search.toLowerCase()) ||
-        discount.name.toLowerCase().includes(search.toLowerCase())
-      : true;
-    const matchActive =
-      !activeFilter || activeFilter === 'true'
-        ? discount.active
-        : activeFilter === 'false'
-        ? !discount.active
-        : true;
-    return matchSearch && matchActive;
-  });
 }

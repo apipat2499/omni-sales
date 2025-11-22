@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { getEmailDatabaseService } from '../database';
 
 export interface EmailAnalytics {
   id?: string;
@@ -37,6 +38,7 @@ export interface TrackingEvent {
 
 export class EmailAnalyticsTracker {
   private supabase: any;
+  private dbService = getEmailDatabaseService();
 
   constructor() {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -58,7 +60,7 @@ export class EmailAnalyticsTracker {
       const { data: emailLog } = await this.supabase
         .from('email_logs')
         .select('*')
-        .eq('message_id', event.messageId)
+        .eq('provider_id', event.messageId)
         .single();
 
       if (!emailLog) {
@@ -80,24 +82,20 @@ export class EmailAnalyticsTracker {
         },
       ]);
 
-      // Update email log
-      const updates: any = {};
+      // Update email log using database service
       if (event.event === 'open') {
-        updates.opened_at = event.timestamp;
-        updates.open_count = (emailLog.open_count || 0) + 1;
+        await this.dbService.trackEmailOpen(emailLog.id);
       } else if (event.event === 'click') {
-        updates.clicked_at = event.timestamp;
-        updates.click_count = (emailLog.click_count || 0) + 1;
+        await this.dbService.trackEmailClick(emailLog.id);
       } else if (event.event === 'delivered') {
-        updates.delivered_at = event.timestamp;
-        updates.status = 'delivered';
-      }
-
-      if (Object.keys(updates).length > 0) {
-        await this.supabase
-          .from('email_logs')
-          .update(updates)
-          .eq('id', emailLog.id);
+        await this.dbService.updateEmailLogStatus(emailLog.id, 'sent');
+      } else if (event.event === 'bounce') {
+        await this.dbService.updateEmailLogStatus(
+          emailLog.id,
+          'bounced',
+          undefined,
+          'Email bounced'
+        );
       }
 
       // Update daily analytics
