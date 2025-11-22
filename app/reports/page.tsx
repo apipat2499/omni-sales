@@ -2,54 +2,29 @@
 
 import { useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
-import { mockOrders, mockProducts, mockCustomers, mockChartData } from '@/lib/data/mock-data';
+import { useReports } from '@/lib/hooks/useReports';
 import { formatCurrency, formatNumber } from '@/lib/utils';
 import { Download, FileText, Calendar, TrendingUp, Package, Users, ShoppingCart, BarChart3 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, subMonths } from 'date-fns';
+import { format } from 'date-fns';
 import { th } from 'date-fns/locale';
 
 export default function ReportsPage() {
   const [reportType, setReportType] = useState<'sales' | 'products' | 'customers'>('sales');
   const [dateRange, setDateRange] = useState<'7days' | '30days' | '3months'>('30days');
 
-  // Calculate stats
-  const totalRevenue = mockOrders.reduce((sum, o) => sum + o.total, 0);
-  const totalOrders = mockOrders.length;
-  const totalProducts = mockProducts.length;
-  const totalCustomers = mockCustomers.length;
+  // Fetch reports data
+  const { data: reportsData, isLoading, error } = useReports(dateRange);
 
-  // Top selling products
-  const productSales = mockOrders.flatMap((order) =>
-    order.items.map((item) => ({
-      productId: item.productId,
-      productName: item.productName,
-      quantity: item.quantity,
-      revenue: item.price * item.quantity,
-    }))
-  );
-
-  const topProducts = Object.values(
-    productSales.reduce((acc: any, item) => {
-      if (!acc[item.productId]) {
-        acc[item.productId] = {
-          name: item.productName,
-          quantity: 0,
-          revenue: 0,
-        };
-      }
-      acc[item.productId].quantity += item.quantity;
-      acc[item.productId].revenue += item.revenue;
-      return acc;
-    }, {})
-  )
-    .sort((a: any, b: any) => b.revenue - a.revenue)
-    .slice(0, 5);
-
-  // Top customers
-  const topCustomers = [...mockCustomers]
-    .sort((a, b) => b.totalSpent - a.totalSpent)
-    .slice(0, 5);
+  // Extract data from the hook
+  const totalRevenue = reportsData?.summary.totalRevenue || 0;
+  const totalOrders = reportsData?.summary.totalOrders || 0;
+  const totalProducts = reportsData?.summary.totalProducts || 0;
+  const totalCustomers = reportsData?.summary.totalCustomers || 0;
+  const topProducts = reportsData?.topProducts || [];
+  const topCustomers = reportsData?.topCustomers || [];
+  const chartData = reportsData?.chartData || [];
+  const orders = reportsData?.orders || [];
 
   const handleExportPDF = async () => {
     const jsPDF = (await import('jspdf')).default;
@@ -79,7 +54,7 @@ export default function ReportsPage() {
     const XLSX = await import('xlsx');
 
     // Sales data
-    const salesData = mockOrders.map((order) => ({
+    const salesData = orders.map((order) => ({
       'Order ID': order.id,
       'Customer': order.customerName,
       'Channel': order.channel,
@@ -110,20 +85,29 @@ export default function ReportsPage() {
           <div className="flex gap-2">
             <button
               onClick={handleExportPDF}
-              className="flex items-center gap-2 px-4 py-2 bg-red-600 dark:bg-red-500 text-white rounded-lg hover:bg-red-700 dark:hover:bg-red-600 transition-colors"
+              disabled={isLoading || !reportsData}
+              className="flex items-center gap-2 px-4 py-2 bg-red-600 dark:bg-red-500 text-white rounded-lg hover:bg-red-700 dark:hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <FileText className="h-5 w-5" />
               ส่งออก PDF
             </button>
             <button
               onClick={handleExportExcel}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 dark:bg-green-500 text-white rounded-lg hover:bg-green-700 dark:hover:bg-green-600 transition-colors"
+              disabled={isLoading || !reportsData}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 dark:bg-green-500 text-white rounded-lg hover:bg-green-700 dark:hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Download className="h-5 w-5" />
               ส่งออก Excel
             </button>
           </div>
         </div>
+
+        {/* Error State */}
+        {error && (
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+            <p className="text-red-600 dark:text-red-400">เกิดข้อผิดพลาด: {error}</p>
+          </div>
+        )}
 
         {/* Report Type Selector */}
         <div className="flex gap-4">
@@ -187,9 +171,13 @@ export default function ReportsPage() {
               </div>
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">รายได้รวม</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {formatCurrency(totalRevenue)}
-                </p>
+                {isLoading ? (
+                  <div className="h-8 w-32 bg-gray-200 dark:bg-gray-700 animate-pulse rounded"></div>
+                ) : (
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {formatCurrency(totalRevenue)}
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -200,9 +188,13 @@ export default function ReportsPage() {
               </div>
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">ออเดอร์</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {formatNumber(totalOrders)}
-                </p>
+                {isLoading ? (
+                  <div className="h-8 w-20 bg-gray-200 dark:bg-gray-700 animate-pulse rounded"></div>
+                ) : (
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {formatNumber(totalOrders)}
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -213,9 +205,13 @@ export default function ReportsPage() {
               </div>
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">สินค้า</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {formatNumber(totalProducts)}
-                </p>
+                {isLoading ? (
+                  <div className="h-8 w-20 bg-gray-200 dark:bg-gray-700 animate-pulse rounded"></div>
+                ) : (
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {formatNumber(totalProducts)}
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -226,9 +222,13 @@ export default function ReportsPage() {
               </div>
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">ลูกค้า</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {formatNumber(totalCustomers)}
-                </p>
+                {isLoading ? (
+                  <div className="h-8 w-20 bg-gray-200 dark:bg-gray-700 animate-pulse rounded"></div>
+                ) : (
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {formatNumber(totalCustomers)}
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -240,30 +240,36 @@ export default function ReportsPage() {
             <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
               ยอดขายรายวัน
             </h2>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={mockChartData.slice(-30)}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis
-                    dataKey="date"
-                    stroke="#9ca3af"
-                    fontSize={12}
-                    tickFormatter={(value) => format(new Date(value), 'dd MMM')}
-                  />
-                  <YAxis stroke="#9ca3af" fontSize={12} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: 'white',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '8px',
-                    }}
-                    formatter={(value: number) => formatCurrency(value)}
-                  />
-                  <Legend />
-                  <Bar dataKey="revenue" name="รายได้" fill="#3b82f6" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+            {isLoading ? (
+              <div className="h-80 flex items-center justify-center">
+                <div className="text-gray-500 dark:text-gray-400">กำลังโหลดข้อมูล...</div>
+              </div>
+            ) : (
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis
+                      dataKey="date"
+                      stroke="#9ca3af"
+                      fontSize={12}
+                      tickFormatter={(value) => format(new Date(value), 'dd MMM')}
+                    />
+                    <YAxis stroke="#9ca3af" fontSize={12} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'white',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '8px',
+                      }}
+                      formatter={(value: number) => formatCurrency(value)}
+                    />
+                    <Legend />
+                    <Bar dataKey="revenue" name="รายได้" fill="#3b82f6" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
           </div>
         )}
 
@@ -275,44 +281,54 @@ export default function ReportsPage() {
                 สินค้าขายดี Top 5
               </h2>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-700">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                      อันดับ
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                      ชื่อสินค้า
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                      จำนวนที่ขาย
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                      รายได้
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                  {topProducts.map((product: any, index) => (
-                    <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                        #{index + 1}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
-                        {product.name}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
-                        {product.quantity} ชิ้น
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-green-600 dark:text-green-500">
-                        {formatCurrency(product.revenue)}
-                      </td>
+            {isLoading ? (
+              <div className="p-6 flex items-center justify-center">
+                <div className="text-gray-500 dark:text-gray-400">กำลังโหลดข้อมูล...</div>
+              </div>
+            ) : topProducts.length === 0 ? (
+              <div className="p-6 flex items-center justify-center">
+                <div className="text-gray-500 dark:text-gray-400">ไม่มีข้อมูลสินค้า</div>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-700">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                        อันดับ
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                        ชื่อสินค้า
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                        จำนวนที่ขาย
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                        รายได้
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                    {topProducts.map((product: any, index) => (
+                      <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                          #{index + 1}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
+                          {product.name}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                          {product.quantity} ชิ้น
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-green-600 dark:text-green-500">
+                          {formatCurrency(product.revenue)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
 
@@ -324,44 +340,54 @@ export default function ReportsPage() {
                 ลูกค้าใช้จ่ายสูงสุด Top 5
               </h2>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-700">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                      อันดับ
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                      ชื่อลูกค้า
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                      จำนวนออเดอร์
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                      ยอดรวม
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                  {topCustomers.map((customer, index) => (
-                    <tr key={customer.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                        #{index + 1}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
-                        {customer.name}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
-                        {customer.totalOrders} ออเดอร์
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-green-600 dark:text-green-500">
-                        {formatCurrency(customer.totalSpent)}
-                      </td>
+            {isLoading ? (
+              <div className="p-6 flex items-center justify-center">
+                <div className="text-gray-500 dark:text-gray-400">กำลังโหลดข้อมูล...</div>
+              </div>
+            ) : topCustomers.length === 0 ? (
+              <div className="p-6 flex items-center justify-center">
+                <div className="text-gray-500 dark:text-gray-400">ไม่มีข้อมูลลูกค้า</div>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-700">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                        อันดับ
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                        ชื่อลูกค้า
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                        จำนวนออเดอร์
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                        ยอดรวม
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                    {topCustomers.map((customer, index) => (
+                      <tr key={customer.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                          #{index + 1}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
+                          {customer.name}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                          {customer.totalOrders} ออเดอร์
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-green-600 dark:text-green-500">
+                          {formatCurrency(customer.totalSpent)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
       </div>
