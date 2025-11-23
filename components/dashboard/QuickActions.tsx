@@ -13,11 +13,11 @@ export default function QuickActions() {
       description: 'เพิ่มคำสั่งซื้อใหม่',
     },
     {
-      label: 'ดูสินค้า',
-      href: '/products',
+      label: 'ตรวจสอบสต๊อก',
+      href: '/inventory',
       icon: Package,
       color: 'green',
-      description: 'เรียกดูสินค้าทั้งหมด',
+      description: 'ดูสต๊อกสินค้าและจัดการคลัง',
     },
     {
       label: 'เพิ่มลูกค้า',

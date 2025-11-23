@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import DashboardLayout from '@/components/DashboardLayout';
 import { Package, AlertTriangle, TrendingUp, BarChart3, Plus, RefreshCw } from 'lucide-react';
 import { InventoryLevel, Warehouse, StockMovement } from '@/types';
 
@@ -14,12 +15,7 @@ export default function InventoryPage() {
   const [selectedWarehouse, setSelectedWarehouse] = useState<string | null>(null);
 
   useEffect(() => {
-    const userId = localStorage.getItem('userId');
-    if (!userId) {
-      window.location.href = '/login';
-      return;
-    }
-
+    const userId = localStorage.getItem('userId') || 'demo-user';
     fetchWarehouses(userId);
     fetchInventory(userId);
     fetchLowStockItems(userId);
@@ -94,15 +90,17 @@ export default function InventoryPage() {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="text-gray-600 dark:text-gray-400">Loading inventory...</div>
-      </div>
+      <DashboardLayout>
+        <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
+          <div className="text-gray-600 dark:text-gray-400">Loading inventory...</div>
+        </div>
+      </DashboardLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 dark:bg-gray-900">
-      <div className="mx-auto max-w-7xl">
+    <DashboardLayout>
+      <div className="p-6 space-y-6">
         {/* Header */}
         <div className="mb-8 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -406,6 +404,6 @@ export default function InventoryPage() {
           </div>
         </div>
       </div>
-    </div>
+    </DashboardLayout>
   );
 }
