@@ -4,6 +4,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthProvider } from "@/lib/auth/AuthContext";
 import { ToastProvider } from "@/components/ToastProvider";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { SettingsProvider } from "@/contexts/SettingsContext";
 import Script from "next/script";
 import { AuthStatusBanner } from "@/components/AuthStatusBanner";
 import { LeadCaptureWidget } from "@/components/LeadCaptureWidget";
@@ -62,11 +63,13 @@ export default function RootLayout({
         <ErrorBoundary>
           <ThemeProvider>
             <AuthProvider>
-              <ToastProvider>
-                <AuthStatusBanner />
-                <LeadCaptureWidget />
-                {children}
-              </ToastProvider>
+              <SettingsProvider>
+                <ToastProvider>
+                  <AuthStatusBanner />
+                  <LeadCaptureWidget />
+                  {children}
+                </ToastProvider>
+              </SettingsProvider>
             </AuthProvider>
           </ThemeProvider>
         </ErrorBoundary>
