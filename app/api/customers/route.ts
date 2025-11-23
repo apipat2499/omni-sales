@@ -3,6 +3,9 @@ import { getSupabaseClient } from '@/lib/supabase/client';
 import type { Customer } from '@/types';
 import { withRateLimit, rateLimitPresets } from '@/lib/middleware/rateLimit';
 import { getPaginationParams, createPaginatedResponse, getOffsetLimit } from '@/lib/utils/pagination';
+import { apiRequireAuth } from '@/lib/middleware/authMiddleware';
+import { validateRequestBody, validationErrorResponse } from '@/lib/api/validate-request';
+import { CustomerCreateSchema, type CustomerCreate } from '@/lib/schemas/customer';
 
 async function handleGET(request: NextRequest) {
   try {
@@ -92,59 +95,19 @@ async function handleGET(request: NextRequest) {
 }
 
 async function handlePOST(request: NextRequest) {
+  const { user, error } = apiRequireAuth(request);
+  if (error) return error;
+
+  // Validate request body
+  const validation = await validateRequestBody<CustomerCreate>(request, CustomerCreateSchema);
+  if (!validation.success) {
+    return validationErrorResponse(validation.errors || {});
+  }
+
+  const body = validation.data!;
+
   try {
     const supabase = getSupabaseClient();
-    const body = await request.json();
-
-    // Validate required fields
-    const requiredFields = ['name', 'email', 'phone'];
-    const missingFields = requiredFields.filter((field) => !(field in body));
-
-    if (missingFields.length > 0) {
-      return NextResponse.json(
-        { error: `Missing required fields: ${missingFields.join(', ')}` },
-        { status: 400 }
-      );
-    }
-
-    // Validate data types
-    if (typeof body.name !== 'string' || body.name.trim() === '') {
-      return NextResponse.json(
-        { error: 'Customer name must be a non-empty string' },
-        { status: 400 }
-      );
-    }
-
-    if (typeof body.email !== 'string' || body.email.trim() === '') {
-      return NextResponse.json(
-        { error: 'Email must be a non-empty string' },
-        { status: 400 }
-      );
-    }
-
-    // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(body.email)) {
-      return NextResponse.json(
-        { error: 'Email must be a valid email address' },
-        { status: 400 }
-      );
-    }
-
-    if (typeof body.phone !== 'string' || body.phone.trim() === '') {
-      return NextResponse.json(
-        { error: 'Phone must be a non-empty string' },
-        { status: 400 }
-      );
-    }
-
-    // Validate tags if provided
-    if (body.tags && !Array.isArray(body.tags)) {
-      return NextResponse.json(
-        { error: 'Tags must be an array' },
-        { status: 400 }
-      );
-    }
 
     // Prepare customer data
     const now = new Date().toISOString();

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase/client';
 import { withRateLimit, rateLimitPresets } from '@/lib/middleware/rateLimit';
+import { apiRequireAuth } from '@/lib/middleware/authMiddleware';
+import { validateRequestBody, validationErrorResponse } from '@/lib/api/validate-request';
+import { OrderCreateSchema, type OrderCreate } from '@/lib/schemas/order';
 
 async function handleGET(req: NextRequest) {
   try {
@@ -71,5 +74,72 @@ async function handleGET(req: NextRequest) {
   }
 }
 
-// Apply rate limiting to route handler
+// POST handler for creating orders - requires authentication
+async function handlePOST(req: NextRequest) {
+  const { user, error } = apiRequireAuth(req);
+  if (error) return error;
+
+  // Validate request body
+  const validation = await validateRequestBody<OrderCreate>(req, OrderCreateSchema);
+  if (!validation.success) {
+    return validationErrorResponse(validation.errors || {});
+  }
+
+  const body = validation.data!;
+
+  try {
+    const { items, total, subtotal, tax, shipping, customerName, customerEmail, paymentMethod, status = 'pending' } = body;
+
+    // Create order
+    const { data: order, error: orderError } = await supabase
+      .from('orders')
+      .insert({
+        customer_name: customerName,
+        customer_email: customerEmail,
+        total,
+        subtotal,
+        tax,
+        shipping,
+        payment_method: paymentMethod,
+        status,
+        channel: 'online',
+        created_by: user?.id,
+      })
+      .select()
+      .single();
+
+    if (orderError) {
+      console.error('Error creating order:', orderError);
+      return NextResponse.json({ error: 'Failed to create order' }, { status: 500 });
+    }
+
+    // Create order items
+    if (items && items.length > 0) {
+      const itemsToInsert = items.map((item: any) => ({
+        order_id: order.id,
+        product_id: item.productId,
+        product_name: item.productName,
+        quantity: item.quantity,
+        price: item.price,
+      }));
+
+      const { error: itemsError } = await supabase
+        .from('order_items')
+        .insert(itemsToInsert);
+
+      if (itemsError) {
+        console.error('Error creating order items:', itemsError);
+        // Order was created but items failed - this is a partial failure
+      }
+    }
+
+    return NextResponse.json(order, { status: 201 });
+  } catch (error) {
+    console.error('Error in POST /api/orders:', error);
+    return NextResponse.json({ error: 'Failed to create order' }, { status: 500 });
+  }
+}
+
+// Apply rate limiting to route handlers
 export const GET = withRateLimit(rateLimitPresets.read, handleGET);
+export const POST = withRateLimit(rateLimitPresets.write, handlePOST);
