@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase/client';
 import { withRateLimit, rateLimitPresets } from '@/lib/middleware/rateLimit';
 import { apiRequireAuth } from '@/lib/middleware/authMiddleware';
+import { validateRequestBody, validationErrorResponse } from '@/lib/api/validate-request';
+import { OrderCreateSchema, type OrderCreate } from '@/lib/schemas/order';
 
 async function handleGET(req: NextRequest) {
   try {
@@ -77,17 +79,16 @@ async function handlePOST(req: NextRequest) {
   const { user, error } = apiRequireAuth(req);
   if (error) return error;
 
+  // Validate request body
+  const validation = await validateRequestBody<OrderCreate>(req, OrderCreateSchema);
+  if (!validation.success) {
+    return validationErrorResponse(validation.errors || {});
+  }
+
+  const body = validation.data!;
+
   try {
-    const body = await req.json();
     const { items, total, subtotal, tax, shipping, customerName, customerEmail, paymentMethod, status = 'pending' } = body;
-
-    if (!items || items.length === 0) {
-      return NextResponse.json({ error: 'Order must contain at least one item' }, { status: 400 });
-    }
-
-    if (!customerName || !customerEmail) {
-      return NextResponse.json({ error: 'Customer name and email required' }, { status: 400 });
-    }
 
     // Create order
     const { data: order, error: orderError } = await supabase
