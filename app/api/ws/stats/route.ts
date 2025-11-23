@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { wsManager } from '@/lib/websocket/server';
+import { apiRequireRoles } from '@/lib/middleware/authMiddleware';
 
 /**
  * WebSocket Statistics API
@@ -8,12 +9,11 @@ import { wsManager } from '@/lib/websocket/server';
  */
 
 export async function GET(request: NextRequest) {
+  // Require admin role
+  const { user, error } = apiRequireRoles(request, ['admin', 'super_admin']);
+  if (error) return error;
+
   try {
-    // TODO: Add admin authentication check here
-    // const session = await getSession(request);
-    // if (!session || session.role !== 'admin') {
-    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    // }
 
     const stats = wsManager.getStats();
 

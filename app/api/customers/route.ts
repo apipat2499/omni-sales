@@ -3,6 +3,7 @@ import { getSupabaseClient } from '@/lib/supabase/client';
 import type { Customer } from '@/types';
 import { withRateLimit, rateLimitPresets } from '@/lib/middleware/rateLimit';
 import { getPaginationParams, createPaginatedResponse, getOffsetLimit } from '@/lib/utils/pagination';
+import { apiRequireAuth } from '@/lib/middleware/authMiddleware';
 
 async function handleGET(request: NextRequest) {
   try {
@@ -92,6 +93,9 @@ async function handleGET(request: NextRequest) {
 }
 
 async function handlePOST(request: NextRequest) {
+  const { user, error } = apiRequireAuth(request);
+  if (error) return error;
+
   try {
     const supabase = getSupabaseClient();
     const body = await request.json();

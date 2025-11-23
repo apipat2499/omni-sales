@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase/client';
 import type { Discount } from '@/types';
 import { getPaginationParams, createPaginatedResponse, getOffsetLimit } from '@/lib/utils/pagination';
+import { apiRequireAuth } from '@/lib/middleware/authMiddleware';
 
 export async function GET(request: NextRequest) {
   try {
@@ -88,6 +89,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const { user, error } = apiRequireAuth(request);
+  if (error) return error;
+
   try {
     const body = await request.json();
 

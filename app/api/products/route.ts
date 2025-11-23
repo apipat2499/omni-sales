@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase/client';
 import type { Product } from '@/types';
 import { withRateLimit, rateLimitPresets } from '@/lib/middleware/rateLimit';
 import { getCachedProducts, invalidateProductCache } from '@/lib/cache/strategies/products-cache';
+import { apiRequireAuth } from '@/lib/middleware/authMiddleware';
 
 async function handleGET(request: NextRequest) {
   try {
@@ -46,6 +47,9 @@ async function handleGET(request: NextRequest) {
 }
 
 async function handlePOST(request: NextRequest) {
+  const { user, error } = apiRequireAuth(request);
+  if (error) return error;
+
   try {
     const body = await request.json();
 
