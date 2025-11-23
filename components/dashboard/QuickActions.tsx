@@ -14,7 +14,7 @@ export default function QuickActions() {
     },
     {
       label: 'เพิ่มสินค้า',
-      href: '/products',
+      href: '/admin/products',
       icon: Package,
       color: 'green',
       description: 'เพิ่มสินค้าใหม่เข้าสต็อก',
@@ -28,7 +28,7 @@ export default function QuickActions() {
     },
     {
       label: 'สร้างส่วนลด',
-      href: '/discounts',
+      href: '/admin/settings',
       icon: Tag,
       color: 'pink',
       description: 'สร้างโค้ดส่วนลด',
