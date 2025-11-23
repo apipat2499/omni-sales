@@ -21,7 +21,7 @@ async function handleGET(req: NextRequest) {
 
     let query = supabase
       .from('orders')
-      .select('*, order_items (*), customers (name, email)', { count: 'exact' });
+      .select('*, order_items (*)', { count: 'exact' });
 
     if (customerId) {
       query = query.eq('customer_id', customerId);
@@ -50,7 +50,7 @@ async function handleGET(req: NextRequest) {
     const transformedOrders = (orders || []).map((order: any) => ({
       id: order.id,
       customerId: order.customer_id,
-      customerName: order.customers?.name || order.customer_name || 'Unknown',
+      customerName: order.customer_name || order.customer_email || 'Guest',
       subtotal: parseFloat(order.subtotal || 0),
       tax: parseFloat(order.tax || 0),
       shipping: parseFloat(order.shipping || 0),
@@ -67,7 +67,7 @@ async function handleGET(req: NextRequest) {
       items: (order.order_items || []).map((item: any) => ({
         id: item.id,
         productId: item.product_id,
-        productName: item.product_name || 'Unknown',
+        productName: item.product_name || 'Product',
         quantity: item.quantity,
         price: parseFloat(item.price || 0),
       })),

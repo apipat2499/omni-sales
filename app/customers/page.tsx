@@ -39,25 +39,32 @@ export default function CustomersPage() {
       const data = await response.json();
 
       // Transform customers data to match CustomerProfile type
-      const transformedCustomers: CustomerProfile[] = (data.data || []).map((customer: any) => ({
-        id: customer.id,
-        userId: userId,
-        customerId: customer.id,
-        firstName: customer.name?.split(' ')[0] || '',
-        lastName: customer.name?.split(' ').slice(1).join(' ') || '',
-        email: customer.email,
-        phone: customer.phone,
-        companyName: '',
-        industry: '',
-        customerType: 'individual',
-        source: 'direct',
-        status: 'active',
-        lifetimeValue: customer.totalSpent || 0,
-        totalOrders: customer.totalOrders || 0,
-        totalSpent: customer.totalSpent || 0,
-        createdAt: customer.createdAt,
-        updatedAt: customer.updatedAt,
-      }));
+      const transformedCustomers: CustomerProfile[] = (data.data || []).map((customer: any) => {
+        // Determine status from tags
+        let status = 'active';
+        if (customer.tags?.includes('vip')) status = 'vip';
+        else if (customer.tags?.includes('at_risk')) status = 'at_risk';
+
+        return {
+          id: customer.id,
+          userId: userId,
+          customerId: customer.id,
+          firstName: customer.name?.split(' ')[0] || '',
+          lastName: customer.name?.split(' ').slice(1).join(' ') || '',
+          email: customer.email,
+          phone: customer.phone,
+          companyName: '',
+          industry: '',
+          customerType: customer.tags?.includes('wholesale') ? 'wholesale' : 'individual',
+          source: 'direct',
+          status: status,
+          lifetimeValue: customer.totalSpent || 0,
+          totalOrders: customer.totalOrders || 0,
+          totalSpent: customer.totalSpent || 0,
+          createdAt: customer.createdAt,
+          updatedAt: customer.updatedAt,
+        };
+      });
 
       setCustomers(transformedCustomers);
 
