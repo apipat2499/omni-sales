@@ -3,6 +3,9 @@ import { supabase } from '@/lib/supabase/client';
 import type { Product } from '@/types';
 import { withRateLimit, rateLimitPresets } from '@/lib/middleware/rateLimit';
 import { getCachedProducts, invalidateProductCache } from '@/lib/cache/strategies/products-cache';
+import { apiRequireAuth } from '@/lib/middleware/authMiddleware';
+import { validateRequestBody, validationErrorResponse } from '@/lib/api/validate-request';
+import { ProductCreateSchema, type ProductCreate } from '@/lib/schemas/product';
 
 async function handleGET(request: NextRequest) {
   try {
@@ -46,55 +49,18 @@ async function handleGET(request: NextRequest) {
 }
 
 async function handlePOST(request: NextRequest) {
+  const { user, error } = apiRequireAuth(request);
+  if (error) return error;
+
+  // Validate request body
+  const validation = await validateRequestBody<ProductCreate>(request, ProductCreateSchema);
+  if (!validation.success) {
+    return validationErrorResponse(validation.errors || {});
+  }
+
+  const body = validation.data!;
+
   try {
-    const body = await request.json();
-
-    // Validate required fields
-    const requiredFields = ['name', 'category', 'price', 'cost', 'stock', 'sku'];
-    const missingFields = requiredFields.filter((field) => !(field in body));
-
-    if (missingFields.length > 0) {
-      return NextResponse.json(
-        { error: `Missing required fields: ${missingFields.join(', ')}` },
-        { status: 400 }
-      );
-    }
-
-    // Validate data types
-    if (typeof body.name !== 'string' || body.name.trim() === '') {
-      return NextResponse.json(
-        { error: 'Product name must be a non-empty string' },
-        { status: 400 }
-      );
-    }
-
-    if (typeof body.sku !== 'string' || body.sku.trim() === '') {
-      return NextResponse.json(
-        { error: 'SKU must be a non-empty string' },
-        { status: 400 }
-      );
-    }
-
-    if (typeof body.price !== 'number' || body.price < 0) {
-      return NextResponse.json(
-        { error: 'Price must be a positive number' },
-        { status: 400 }
-      );
-    }
-
-    if (typeof body.cost !== 'number' || body.cost < 0) {
-      return NextResponse.json(
-        { error: 'Cost must be a positive number' },
-        { status: 400 }
-      );
-    }
-
-    if (typeof body.stock !== 'number' || body.stock < 0) {
-      return NextResponse.json(
-        { error: 'Stock must be a positive number' },
-        { status: 400 }
-      );
-    }
 
     // Prepare product data
     const now = new Date().toISOString();

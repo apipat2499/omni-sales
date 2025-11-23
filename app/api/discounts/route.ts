@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase/client';
 import type { Discount } from '@/types';
 import { getPaginationParams, createPaginatedResponse, getOffsetLimit } from '@/lib/utils/pagination';
+import { apiRequireAuth } from '@/lib/middleware/authMiddleware';
+import { validateRequestBody, validationErrorResponse } from '@/lib/api/validate-request';
+import { DiscountCreateSchema, type DiscountCreate } from '@/lib/schemas/discount';
 
 export async function GET(request: NextRequest) {
   try {
@@ -95,22 +98,23 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const { user, error } = apiRequireAuth(request);
+  if (error) return error;
+
+  // Validate request body
+  const validation = await validateRequestBody<DiscountCreate>(request, DiscountCreateSchema);
+  if (!validation.success) {
+    return validationErrorResponse(validation.errors || {});
+  }
+
+  const body = validation.data!;
+
   try {
-    const body = await request.json();
-
-    // Validate required fields
-    if (!body.code || !body.name || !body.type || body.value === undefined) {
-      return NextResponse.json(
-        { error: 'Missing required fields: code, name, type, value' },
-        { status: 400 }
-      );
-    }
-
     // Check if code already exists
     const { data: existing } = await supabase
       .from('discounts')
       .select('id')
-      .eq('code', body.code.toUpperCase())
+      .eq('code', body.code)
       .single();
 
     if (existing) {

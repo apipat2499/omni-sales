@@ -3,12 +3,16 @@ import { getEmailProviderManager } from '@/lib/email/providers/provider-manager'
 import { getEmailTemplateManager } from '@/lib/email/templates/template-manager';
 import { getEmailRateLimiter } from '@/lib/email/deliverability/rate-limiter';
 import { getBounceHandler } from '@/lib/email/deliverability/bounce-handler';
+import { getEmailDatabaseService } from '@/lib/email/database';
 
 /**
  * POST /api/email/send
- * Send a single email with multi-provider support
+ * Send a single email with multi-provider support and database logging
  */
 export async function POST(request: NextRequest) {
+  const dbService = getEmailDatabaseService();
+  let logId: string | null = null;
+
   try {
     const body = await request.json();
 
@@ -23,6 +27,11 @@ export async function POST(request: NextRequest) {
       attachments,
       tags,
       metadata,
+      userId,
+      campaignId,
+      relatedOrderId,
+      relatedCustomerId,
+      useQueue = false, // Option to queue instead of sending immediately
     } = body;
 
     // Validate required fields
@@ -77,6 +86,52 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // If useQueue is true, add to queue instead of sending immediately
+    if (useQueue && userId) {
+      const queueId = await dbService.createEmailQueue({
+        user_id: userId,
+        recipient_email: to,
+        subject: emailContent.subject,
+        html_content: emailContent.html,
+        text_content: emailContent.text || '',
+        template_id: templateId,
+        campaign_id: campaignId,
+        related_order_id: relatedOrderId,
+        related_customer_id: relatedCustomerId,
+        metadata: { ...metadata, tags },
+      });
+
+      if (!queueId) {
+        return NextResponse.json(
+          { error: 'Failed to queue email' },
+          { status: 500 }
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        queued: true,
+        queueId,
+      });
+    }
+
+    // Create email log entry for tracking
+    if (userId) {
+      logId = await dbService.createEmailLog({
+        user_id: userId,
+        recipient_email: to,
+        subject: emailContent.subject,
+        template_id: templateId,
+        campaign_id: campaignId,
+        status: 'pending',
+        related_order_id: relatedOrderId,
+        related_customer_id: relatedCustomerId,
+        metadata: { ...metadata, tags },
+        html_content: emailContent.html,
+        text_content: emailContent.text || '',
+      });
+    }
+
     // Send email
     const providerManager = getEmailProviderManager();
     const result = await providerManager.send({
@@ -91,12 +146,23 @@ export async function POST(request: NextRequest) {
     });
 
     if (result.success) {
+      // Update email log to 'sent' status
+      if (logId) {
+        await dbService.updateEmailLogStatus(logId, 'sent');
+      }
+
       return NextResponse.json({
         success: true,
         messageId: result.messageId,
         provider: result.provider,
+        logId,
       });
     } else {
+      // Update email log to 'failed' status
+      if (logId) {
+        await dbService.updateEmailLogStatus(logId, 'failed', result.error);
+      }
+
       return NextResponse.json(
         { error: result.error || 'Failed to send email' },
         { status: 500 }
@@ -104,6 +170,12 @@ export async function POST(request: NextRequest) {
     }
   } catch (error: any) {
     console.error('Error in /api/email/send:', error);
+
+    // Update email log to 'failed' status
+    if (logId) {
+      await dbService.updateEmailLogStatus(logId, 'failed', error.message);
+    }
+
     return NextResponse.json(
       { error: error.message || 'Internal server error' },
       { status: 500 }
