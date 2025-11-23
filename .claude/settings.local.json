@@ -48,7 +48,16 @@
       "Bash(xargs kill:*)",
       "Bash(pkill:*)",
       "WebFetch(domain:omni-sales-df7pkmcsx-flog2499s-projects.vercel.app)",
-      "Bash(npm run seed:*)"
+      "Bash(npm run seed:*)",
+      "Bash(git stash pop:*)",
+      "Bash(git pull:*)",
+      "Bash(git config:*)",
+      "Bash(ssh:*)",
+      "Bash(echo $GH_TOKEN)",
+      "Bash(git remote set-url:*)",
+      "Bash(vercel whoami:*)",
+      "Bash(ls:*)",
+      "Bash(head:*)"
     ],
     "deny": [],
     "ask": []
