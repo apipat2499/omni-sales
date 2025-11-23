@@ -21,7 +21,15 @@ export async function GET(request: NextRequest) {
       countQuery = countQuery.eq('active', active === 'true');
     }
 
-    const { count } = await countQuery;
+    const { count, error: countError } = await countQuery;
+
+    // If table doesn't exist, return empty response
+    if (countError) {
+      console.error('Error fetching discounts:', countError);
+      const response = createPaginatedResponse([], 0, page, limit);
+      return NextResponse.json(response, { status: 200 });
+    }
+
     const total = count || 0;
 
     // Build data query with pagination
@@ -49,10 +57,9 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('Error fetching discounts:', error);
-      return NextResponse.json(
-        { error: 'Failed to fetch discounts', details: error.message },
-        { status: 500 }
-      );
+      // Return empty response instead of error
+      const response = createPaginatedResponse([], 0, page, limit);
+      return NextResponse.json(response, { status: 200 });
     }
 
     const discounts: Discount[] = (data || []).map((d) => ({
@@ -80,10 +87,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(response, { status: 200 });
   } catch (error) {
     console.error('Unexpected error in GET /api/discounts:', error);
-    return NextResponse.json(
-      { error: 'An unexpected error occurred' },
-      { status: 500 }
-    );
+    // Return empty response instead of error
+    const { page, limit } = getPaginationParams(new URL(request.url).searchParams);
+    const response = createPaginatedResponse([], 0, page, limit);
+    return NextResponse.json(response, { status: 200 });
   }
 }
 

@@ -30,7 +30,9 @@ export function useDiscounts(search?: string, activeFilter?: string) {
         throw new Error('Failed to fetch discounts');
       }
 
-      const data = await response.json();
+      const result = await response.json();
+      // Handle paginated response
+      const data = Array.isArray(result) ? result : (result.data || []);
       setDiscounts(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');

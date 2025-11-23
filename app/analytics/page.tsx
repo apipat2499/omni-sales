@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import DashboardLayout from "@/components/DashboardLayout";
 import {
   TrendingUp,
   DollarSign,
@@ -150,14 +151,16 @@ export default function AnalyticsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
-        <div className="text-center">
-          <BarChart3 className="w-12 h-12 text-blue-500 mx-auto mb-4 animate-spin" />
-          <p className="text-gray-600 dark:text-gray-400">
-            Loading analytics...
-          </p>
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[calc(100vh-4rem)] bg-gray-50 dark:bg-gray-900">
+          <div className="text-center">
+            <BarChart3 className="w-12 h-12 text-blue-500 mx-auto mb-4 animate-spin" />
+            <p className="text-gray-600 dark:text-gray-400">
+              Loading analytics...
+            </p>
+          </div>
         </div>
-      </div>
+      </DashboardLayout>
     );
   }
 
@@ -195,8 +198,8 @@ export default function AnalyticsPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-8">
-      <div className="max-w-7xl mx-auto">
+    <DashboardLayout>
+      <div className="p-6 space-y-6">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
           <div>
@@ -664,6 +667,6 @@ export default function AnalyticsPage() {
           </div>
         </div>
       </div>
-    </div>
+    </DashboardLayout>
   );
 }

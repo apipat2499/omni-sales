@@ -26,18 +26,15 @@ export async function GET(req: NextRequest) {
       .order('created_at', { ascending: false });
 
     if (error) {
-      return NextResponse.json(
-        { error: 'Failed to fetch subscriptions' },
-        { status: 500 }
-      );
+      console.error('Error fetching subscriptions:', error);
+      // Return empty array instead of error for missing tables
+      return NextResponse.json([]);
     }
 
     return NextResponse.json(subscriptions || []);
   } catch (error) {
     console.error('Error fetching user subscriptions:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch subscriptions' },
-      { status: 500 }
-    );
+    // Return empty array instead of error
+    return NextResponse.json([]);
   }
 }

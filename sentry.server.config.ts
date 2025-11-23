@@ -19,8 +19,8 @@ if (typeof process !== 'undefined' && process.versions?.node) {
       // HTTP integration for Node.js
       Sentry.httpIntegration(),
 
-      // Node profiling
-      Sentry.nodeProfilingIntegration(),
+      // Node profiling (disabled - requires specific Sentry plan)
+      // Sentry.nodeProfilingIntegration(),
     ],
 
     // Server-specific options

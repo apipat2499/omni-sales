@@ -53,7 +53,7 @@ export default function HelpArticlePage() {
     if (!article || feedbackSubmitted) return;
 
     try {
-      await fetch(`/api/help/articles/${article.id}/feedback`, {
+      await fetch(`/api/help/feedback/${article.id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

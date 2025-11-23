@@ -21,7 +21,7 @@ export default function FeedbackForm({
 
   const handleFeedbackSubmit = async (isHelpful: boolean) => {
     try {
-      const response = await fetch(`/api/help/articles/${articleId}/feedback`, {
+      const response = await fetch(`/api/help/feedback/${articleId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

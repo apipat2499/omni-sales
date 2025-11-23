@@ -46,7 +46,10 @@ export function useCustomers(options: UseCustomersOptions = {}): UseCustomersRet
         throw new Error(data.error || 'Failed to fetch customers');
       }
 
-      const data = await response.json();
+      const result = await response.json();
+
+      // Handle paginated response
+      const data = Array.isArray(result) ? result : (result.data || []);
 
       // Transform date strings to Date objects
       const customersWithDates = data.map((customer: any) => ({

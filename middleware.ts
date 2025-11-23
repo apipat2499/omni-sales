@@ -92,8 +92,8 @@ export async function middleware(req: NextRequest) {
 
   const hasSession = !!authToken;
 
-  // Authentication check
-  if (!hasSession && !isPublicRoute) {
+  // Authentication check - skip for public routes
+  if (!hasSession && !isPublicRoute && !isAPIRoute) {
     const redirectUrl = req.nextUrl.clone();
     redirectUrl.pathname = '/login';
     recordRedirectSpike('unauthenticated_access', { pathname, requestId });

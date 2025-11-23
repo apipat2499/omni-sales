@@ -1,43 +1,50 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { SalesStats, ChartDataPoint, CategorySales } from '@/types';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { demoDashboardStats, demoChartData, demoCategorySales } from '@/lib/demo/data';
 
 export function useDashboardStats(days: number = 30) {
-  const [stats, setStats] = useState<SalesStats | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<SalesStats | null>(demoDashboardStats);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { supabaseReady } = useAuth();
+  const { supabaseReady, loading: authLoading } = useAuth();
+  const loadingRef = useRef(false);
 
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
+    let fetchTimeout: NodeJS.Timeout;
     let isMounted = true;
 
     async function fetchStats() {
+      // Wait for auth to finish loading
+      if (authLoading) {
+        return;
+      }
+
       if (!supabaseReady) {
-        setStats(demoDashboardStats);
-        setError(null);
-        setLoading(false);
+        // Already showing demo data, no need to update
         return;
       }
 
       try {
         setLoading(true);
+        loadingRef.current = true;
 
-        // Set timeout fallback to demo data after 5 seconds
+        // Set timeout fallback to demo data after 3 seconds
         timeoutId = setTimeout(() => {
-          if (isMounted && loading) {
+          if (isMounted && loadingRef.current) {
             console.warn('Dashboard stats API timeout, using demo data');
             setStats(demoDashboardStats);
             setError(null);
             setLoading(false);
+            loadingRef.current = false;
           }
-        }, 5000);
+        }, 3000);
 
         const controller = new AbortController();
-        const fetchTimeout = setTimeout(() => controller.abort(), 8000);
+        fetchTimeout = setTimeout(() => controller.abort(), 5000);
 
         const response = await fetch(`/api/dashboard/stats?days=${days}`, {
           signal: controller.signal
@@ -65,6 +72,7 @@ export function useDashboardStats(days: number = 30) {
       } finally {
         if (isMounted) {
           setLoading(false);
+          loadingRef.current = false;
         }
       }
     }
@@ -74,45 +82,52 @@ export function useDashboardStats(days: number = 30) {
     return () => {
       isMounted = false;
       if (timeoutId) clearTimeout(timeoutId);
+      if (fetchTimeout) clearTimeout(fetchTimeout);
     };
-  }, [days, supabaseReady]);
+  }, [days, supabaseReady, authLoading]);
 
   return { stats, loading, error };
 }
 
 export function useChartData(days: number = 14) {
-  const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [chartData, setChartData] = useState<ChartDataPoint[]>(demoChartData);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { supabaseReady } = useAuth();
+  const { supabaseReady, loading: authLoading } = useAuth();
+  const loadingRef = useRef(false);
 
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
+    let fetchTimeout: NodeJS.Timeout;
     let isMounted = true;
 
     async function fetchChartData() {
+      if (authLoading) {
+        return;
+      }
+
       if (!supabaseReady) {
-        setChartData(demoChartData.map((point) => ({ ...point })));
-        setError(null);
-        setLoading(false);
+        // Already showing demo data
         return;
       }
 
       try {
         setLoading(true);
+        loadingRef.current = true;
 
-        // Set timeout fallback to demo data after 5 seconds
+        // Set timeout fallback to demo data after 3 seconds
         timeoutId = setTimeout(() => {
-          if (isMounted && loading) {
+          if (isMounted && loadingRef.current) {
             console.warn('Chart data API timeout, using demo data');
             setChartData(demoChartData.map((point) => ({ ...point })));
             setError(null);
             setLoading(false);
+            loadingRef.current = false;
           }
-        }, 5000);
+        }, 3000);
 
         const controller = new AbortController();
-        const fetchTimeout = setTimeout(() => controller.abort(), 8000);
+        fetchTimeout = setTimeout(() => controller.abort(), 5000);
 
         const response = await fetch(`/api/dashboard/chart-data?days=${days}`, {
           signal: controller.signal
@@ -140,6 +155,7 @@ export function useChartData(days: number = 14) {
       } finally {
         if (isMounted) {
           setLoading(false);
+          loadingRef.current = false;
         }
       }
     }
@@ -149,45 +165,52 @@ export function useChartData(days: number = 14) {
     return () => {
       isMounted = false;
       if (timeoutId) clearTimeout(timeoutId);
+      if (fetchTimeout) clearTimeout(fetchTimeout);
     };
-  }, [days, supabaseReady]);
+  }, [days, supabaseReady, authLoading]);
 
   return { chartData, loading, error };
 }
 
 export function useCategorySales(days: number = 30) {
-  const [categorySales, setCategorySales] = useState<CategorySales[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [categorySales, setCategorySales] = useState<CategorySales[]>(demoCategorySales);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { supabaseReady } = useAuth();
+  const { supabaseReady, loading: authLoading } = useAuth();
+  const loadingRef = useRef(false);
 
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
+    let fetchTimeout: NodeJS.Timeout;
     let isMounted = true;
 
     async function fetchCategorySales() {
+      if (authLoading) {
+        return;
+      }
+
       if (!supabaseReady) {
-        setCategorySales(demoCategorySales.map((entry) => ({ ...entry })));
-        setError(null);
-        setLoading(false);
+        // Already showing demo data
         return;
       }
 
       try {
         setLoading(true);
+        loadingRef.current = true;
 
-        // Set timeout fallback to demo data after 5 seconds
+        // Set timeout fallback to demo data after 3 seconds
         timeoutId = setTimeout(() => {
-          if (isMounted && loading) {
+          if (isMounted && loadingRef.current) {
             console.warn('Category sales API timeout, using demo data');
             setCategorySales(demoCategorySales.map((entry) => ({ ...entry })));
             setError(null);
             setLoading(false);
+            loadingRef.current = false;
           }
-        }, 5000);
+        }, 3000);
 
         const controller = new AbortController();
-        const fetchTimeout = setTimeout(() => controller.abort(), 8000);
+        fetchTimeout = setTimeout(() => controller.abort(), 5000);
 
         const response = await fetch(`/api/dashboard/category-sales?days=${days}`, {
           signal: controller.signal
@@ -215,6 +238,7 @@ export function useCategorySales(days: number = 30) {
       } finally {
         if (isMounted) {
           setLoading(false);
+          loadingRef.current = false;
         }
       }
     }
@@ -224,8 +248,9 @@ export function useCategorySales(days: number = 30) {
     return () => {
       isMounted = false;
       if (timeoutId) clearTimeout(timeoutId);
+      if (fetchTimeout) clearTimeout(fetchTimeout);
     };
-  }, [days, supabaseReady]);
+  }, [days, supabaseReady, authLoading]);
 
   return { categorySales, loading, error };
 }
