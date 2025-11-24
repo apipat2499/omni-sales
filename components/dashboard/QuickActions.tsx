@@ -14,10 +14,10 @@ export default function QuickActions() {
     },
     {
       label: 'ตรวจสอบสต๊อก',
-      href: '/inventory',
+      href: '/low-stock',
       icon: Package,
       color: 'green',
-      description: 'ดูสต๊อกสินค้าและจัดการคลัง',
+      description: 'ดูสินค้าสต็อกเหลือน้อย',
     },
     {
       label: 'เพิ่มลูกค้า',
