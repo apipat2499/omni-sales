@@ -1,6 +1,7 @@
 'use client';
 
 import DashboardLayout from '@/components/DashboardLayout';
+import { AdminGuard } from '@/components/RouteGuard';
 import {
   Megaphone,
   Mail,
@@ -196,8 +197,9 @@ export default function MarketingPage() {
   };
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6">
+    <AdminGuard>
+      <DashboardLayout>
+        <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -537,6 +539,7 @@ export default function MarketingPage() {
           </div>
         )}
       </div>
-    </DashboardLayout>
+      </DashboardLayout>
+    </AdminGuard>
   );
 }

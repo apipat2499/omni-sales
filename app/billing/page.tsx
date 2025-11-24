@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
+import { AdminGuard } from '@/components/RouteGuard';
 import { Subscription, Invoice } from '@/types';
 import { AlertCircle } from 'lucide-react';
 
@@ -67,30 +68,35 @@ export default function BillingPage() {
 
   if (isLoading) {
     return (
-      <DashboardLayout>
-        <div className="flex h-screen items-center justify-center">
-          <div className="text-gray-600 dark:text-gray-400">Loading...</div>
-        </div>
-      </DashboardLayout>
+      <AdminGuard>
+        <DashboardLayout>
+          <div className="flex h-screen items-center justify-center">
+            <div className="text-gray-600 dark:text-gray-400">Loading...</div>
+          </div>
+        </DashboardLayout>
+      </AdminGuard>
     );
   }
 
   if (error) {
     return (
-      <DashboardLayout>
-        <div className="flex h-screen items-center justify-center">
-          <div className="flex items-center gap-3 rounded-lg bg-red-50 p-4 text-red-800 dark:bg-red-950 dark:text-red-200">
-            <AlertCircle className="h-5 w-5" />
-            <div>{error}</div>
+      <AdminGuard>
+        <DashboardLayout>
+          <div className="flex h-screen items-center justify-center">
+            <div className="flex items-center gap-3 rounded-lg bg-red-50 p-4 text-red-800 dark:bg-red-950 dark:text-red-200">
+              <AlertCircle className="h-5 w-5" />
+              <div>{error}</div>
+            </div>
           </div>
-        </div>
-      </DashboardLayout>
+        </DashboardLayout>
+      </AdminGuard>
     );
   }
 
   return (
-    <DashboardLayout>
-      <div className="min-h-screen bg-gray-50 p-4 dark:bg-gray-900">
+    <AdminGuard>
+      <DashboardLayout>
+        <div className="min-h-screen bg-gray-50 p-4 dark:bg-gray-900">
         <div className="mx-auto max-w-4xl">
           <h1 className="mb-8 text-4xl font-bold dark:text-white">Billing</h1>
 
@@ -209,6 +215,7 @@ export default function BillingPage() {
           )}
         </div>
       </div>
-    </DashboardLayout>
+      </DashboardLayout>
+    </AdminGuard>
   );
 }

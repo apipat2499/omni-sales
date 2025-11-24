@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
+import { AdminGuard } from '@/components/RouteGuard';
 import {
   TrendingUp,
   DollarSign,
@@ -198,8 +199,9 @@ export default function AnalyticsPage() {
   ];
 
   return (
-    <DashboardLayout>
-      <div className="p-6 space-y-6">
+    <AdminGuard>
+      <DashboardLayout>
+        <div className="p-6 space-y-6">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
           <div>
@@ -667,6 +669,7 @@ export default function AnalyticsPage() {
           </div>
         </div>
       </div>
-    </DashboardLayout>
+      </DashboardLayout>
+    </AdminGuard>
   );
 }

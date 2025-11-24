@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
+import { AdminGuard } from '@/components/RouteGuard';
 import { useReports } from '@/lib/hooks/useReports';
 import { formatCurrency, formatNumber } from '@/lib/utils';
 import { Download, FileText, Calendar, TrendingUp, Package, Users, ShoppingCart, BarChart3 } from 'lucide-react';
@@ -74,8 +75,9 @@ export default function ReportsPage() {
   };
 
   return (
-    <DashboardLayout>
-      <div className="p-6 space-y-6">
+    <AdminGuard>
+      <DashboardLayout>
+        <div className="p-6 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -391,6 +393,7 @@ export default function ReportsPage() {
           </div>
         )}
       </div>
-    </DashboardLayout>
+      </DashboardLayout>
+    </AdminGuard>
   );
 }
