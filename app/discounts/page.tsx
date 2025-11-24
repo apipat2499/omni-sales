@@ -45,9 +45,11 @@ export default function DiscountsPage() {
 
       const codesData = await codesRes.json();
       const campaignsData = await campaignsRes.json();
+      const redemptionsData = await redemptionsRes.json();
 
       setDiscountCodes(codesData.data || []);
       setCampaigns(campaignsData.data || []);
+      setRedemptions(redemptionsData.data || []);
     } catch (error) {
       console.error('Error fetching discount data:', error);
     } finally {
@@ -283,13 +285,137 @@ export default function DiscountsPage() {
 
             {activeTab === 'campaigns' && (
               <div>
-                <p className="text-gray-600 dark:text-gray-400">Campaigns feature coming soon</p>
+                <div className="mb-6 flex justify-between items-center">
+                  <h3 className="text-lg font-semibold dark:text-white">Promotional Campaigns</h3>
+                  <button
+                    onClick={() => alert('Create Campaign feature coming soon!')}
+                    className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+                  >
+                    <Plus className="h-5 w-5" />
+                    New Campaign
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  {campaigns.length > 0 ? (
+                    campaigns.map((campaign) => (
+                      <div
+                        key={campaign.id}
+                        className="flex items-center justify-between rounded-lg border border-gray-200 p-4 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                      >
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <p className="font-semibold text-lg dark:text-white">{campaign.campaign_name}</p>
+                            <span
+                              className={`inline-block rounded-full px-3 py-1 text-xs font-medium ${getStatusColor(
+                                campaign.status
+                              )}`}
+                            >
+                              {campaign.status}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                            {campaign.description || 'No description'}
+                          </p>
+                          <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+                            <span>Type: {campaign.campaign_type}</span>
+                            {campaign.start_date && (
+                              <span>
+                                Start: {new Date(campaign.start_date).toLocaleDateString('th-TH')}
+                              </span>
+                            )}
+                            {campaign.end_date && (
+                              <span>
+                                End: {new Date(campaign.end_date).toLocaleDateString('th-TH')}
+                              </span>
+                            )}
+                            {campaign.budget_limit && (
+                              <span>Budget: ฿{campaign.budget_limit.toLocaleString()}</span>
+                            )}
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={() => alert(`Campaign details: ${campaign.campaign_name}`)}
+                          className="text-purple-600 hover:text-purple-700 dark:text-purple-400"
+                        >
+                          <Eye className="h-5 w-5" />
+                        </button>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-12">
+                      <Gift className="h-12 w-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+                      <p className="text-gray-600 dark:text-gray-400">No campaigns found</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">
+                        Create your first campaign to start promoting your products
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
             {activeTab === 'redemptions' && (
               <div>
-                <p className="text-gray-600 dark:text-gray-400">Redemptions history coming soon</p>
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold dark:text-white">Redemption History</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    Track how customers are using discount codes
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  {redemptions.length > 0 ? (
+                    redemptions.map((redemption) => (
+                      <div
+                        key={redemption.id}
+                        className="flex items-center justify-between rounded-lg border border-gray-200 p-4 dark:border-gray-700"
+                      >
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <Tag className="h-5 w-5 text-blue-500" />
+                            <p className="font-semibold dark:text-white">{redemption.code}</p>
+                          </div>
+                          <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                            {redemption.customer_id && (
+                              <p>Customer ID: {redemption.customer_id}</p>
+                            )}
+                            {redemption.order_id && (
+                              <p>Order ID: #{redemption.order_id.slice(0, 8).toUpperCase()}</p>
+                            )}
+                            {redemption.discount_amount && (
+                              <p className="text-green-600 dark:text-green-400 font-medium">
+                                Saved: ฿{redemption.discount_amount.toLocaleString()}
+                              </p>
+                            )}
+                            <p className="text-xs text-gray-500">
+                              Redeemed: {new Date(redemption.redeemed_at).toLocaleString('th-TH')}
+                            </p>
+                          </div>
+                        </div>
+
+                        <span
+                          className={`px-3 py-1 text-xs font-medium rounded-full ${
+                            redemption.status === 'success'
+                              ? 'bg-green-100 text-green-700 dark:bg-green-900'
+                              : 'bg-red-100 text-red-700 dark:bg-red-900'
+                          }`}
+                        >
+                          {redemption.status}
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-12">
+                      <RefreshCw className="h-12 w-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+                      <p className="text-gray-600 dark:text-gray-400">No redemptions yet</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">
+                        Redemption history will appear here when customers use discount codes
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
