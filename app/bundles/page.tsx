@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
+import { AdminGuard } from '@/components/RouteGuard';
 import {
   Package,
   Plus,
@@ -170,7 +171,8 @@ export default function BundlesPage() {
   }
 
   return (
-    <DashboardLayout>
+    <AdminGuard>
+      <DashboardLayout>
       <div className="p-6 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -495,5 +497,6 @@ export default function BundlesPage() {
         )}
       </div>
     </DashboardLayout>
+    </AdminGuard>
   );
 }
