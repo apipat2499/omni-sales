@@ -28,7 +28,7 @@ export default function QuickActions() {
     },
     {
       label: 'สร้างส่วนลด',
-      href: '/admin/settings',
+      href: '/discounts',
       icon: Tag,
       color: 'pink',
       description: 'สร้างโค้ดส่วนลด',
