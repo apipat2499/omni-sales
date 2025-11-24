@@ -5,9 +5,12 @@ import { User } from '@supabase/supabase-js';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { trackClientTelemetry } from '@/lib/telemetry';
+import { UserRole, getRoleFromSession } from './getRoleFromSession';
 
 interface AuthContextType {
   user: User | null;
+  userRole: UserRole;
+  isAdmin: boolean;
   loading: boolean;
   supabaseReady: boolean;
   authError: string | null;
@@ -19,6 +22,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [userRole, setUserRole] = useState<UserRole>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [supabaseReady, setSupabaseReady] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
@@ -41,7 +46,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const checkSession = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        setUser(session?.user ?? null);
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
+
+        // Get user role
+        if (currentUser) {
+          const roleInfo = await getRoleFromSession(supabase, currentUser);
+          const role = roleInfo?.role ?? null;
+          setUserRole(role);
+          setIsAdmin(role === 'owner' || role === 'manager');
+        } else {
+          setUserRole(null);
+          setIsAdmin(false);
+        }
       } catch (error) {
         console.error('Error checking session:', error);
         setAuthError('ไม่สามารถเชื่อมต่อ Supabase ได้ ตรวจสอบค่า Environment');
@@ -55,7 +72,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
-        setUser(session?.user ?? null);
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
+
+        // Get user role
+        if (currentUser) {
+          const roleInfo = await getRoleFromSession(supabase, currentUser);
+          const role = roleInfo?.role ?? null;
+          setUserRole(role);
+          setIsAdmin(role === 'owner' || role === 'manager');
+        } else {
+          setUserRole(null);
+          setIsAdmin(false);
+        }
+
         setLoading(false);
       }
     );
@@ -128,6 +158,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const value = {
     user,
+    userRole,
+    isAdmin,
     loading,
     supabaseReady,
     authError,

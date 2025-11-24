@@ -29,7 +29,8 @@ import NotificationsCenter from './NotificationsCenter';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { useLowStock } from '@/lib/hooks/useLowStock';
 
-const navigation = [
+// Admin navigation - for owner & manager
+const adminNavigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Analytics', href: '/analytics', icon: TrendingUp },
   { name: 'Products', href: '/admin/products', icon: Package },
@@ -46,12 +47,27 @@ const navigation = [
   { name: 'Telemetry', href: '/admin/telemetry', icon: Satellite },
 ];
 
+// User navigation - for staff & viewer
+const userNavigation = [
+  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Scanner', href: '/scanner', icon: Camera },
+  { name: 'Orders', href: '/orders', icon: ShoppingCart },
+  { name: 'Products', href: '/admin/products', icon: Package },
+  { name: 'Low Stock', href: '/low-stock', icon: AlertTriangle },
+  { name: 'Customers', href: '/customers', icon: Users },
+  { name: 'Invoices', href: '/invoices', icon: FileText },
+  { name: 'Settings', href: '/settings', icon: Settings },
+];
+
 export default function Sidebar() {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const { user, logout } = useAuth();
+  const { user, userRole, isAdmin, logout } = useAuth();
   const { count: lowStockCount } = useLowStock(10);
+
+  // Select navigation based on user role
+  const navigation = isAdmin ? adminNavigation : userNavigation;
 
   const handleLogout = async () => {
     if (confirm('คุณต้องการออกจากระบบหรือไม่?')) {
@@ -113,7 +129,14 @@ export default function Sidebar() {
           <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-2">
               <Store className="h-8 w-8 text-blue-600 dark:text-blue-400" />
-              <span className="text-2xl font-bold text-gray-900 dark:text-white">Omni Sales</span>
+              <div className="flex flex-col">
+                <span className="text-2xl font-bold text-gray-900 dark:text-white">Omni Sales</span>
+                {isAdmin && (
+                  <span className="text-xs text-purple-600 dark:text-purple-400 font-medium">
+                    Admin Panel
+                  </span>
+                )}
+              </div>
             </div>
             <div className="hidden lg:flex items-center gap-2">
               <NotificationsCenter />
@@ -162,17 +185,34 @@ export default function Sidebar() {
           <div className="px-4 py-4 border-t border-gray-200 dark:border-gray-700 space-y-3">
             {/* User Info */}
             <div className="flex items-center gap-3 px-2">
-              <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center flex-shrink-0">
-                <span className="text-sm font-semibold text-blue-700 dark:text-blue-400">
+              <div className={cn(
+                "w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0",
+                isAdmin
+                  ? "bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900 dark:to-blue-900"
+                  : "bg-blue-100 dark:bg-blue-900"
+              )}>
+                <span className={cn(
+                  "text-sm font-semibold",
+                  isAdmin
+                    ? "text-purple-700 dark:text-purple-400"
+                    : "text-blue-700 dark:text-blue-400"
+                )}>
                   {getUserInitials()}
                 </span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                  {user?.email?.split('@')[0] || 'User'}
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                    {user?.email?.split('@')[0] || 'User'}
+                  </p>
+                  {isAdmin && (
+                    <span className="px-2 py-0.5 text-xs font-semibold bg-gradient-to-r from-purple-100 to-blue-100 dark:from-purple-900/50 dark:to-blue-900/50 text-purple-700 dark:text-purple-400 rounded-full border border-purple-200 dark:border-purple-800">
+                      Admin
+                    </span>
+                  )}
+                </div>
                 <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                  {user?.email || 'user@example.com'}
+                  {userRole ? userRole.charAt(0).toUpperCase() + userRole.slice(1) : user?.email || 'user@example.com'}
                 </p>
               </div>
             </div>
