@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
+import { AdminGuard } from '@/components/RouteGuard';
 import { AlertTriangle, CheckCircle2, Loader2, Satellite } from "lucide-react";
 
 type TelemetryLevel = "info" | "warning" | "error";
@@ -45,8 +46,9 @@ export default function TelemetryPage() {
   };
 
   return (
-    <DashboardLayout>
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-6">
+    <AdminGuard>
+      <DashboardLayout>
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-6">
         <div className="max-w-3xl mx-auto space-y-6">
           <div className="bg-white dark:bg-gray-900 rounded-2xl shadow border border-gray-200 dark:border-gray-800 p-6">
             <div className="flex items-center gap-3 mb-4">
@@ -135,6 +137,7 @@ export default function TelemetryPage() {
           </div>
         </div>
       </div>
-    </DashboardLayout>
+      </DashboardLayout>
+    </AdminGuard>
   );
 }

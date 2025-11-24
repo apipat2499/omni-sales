@@ -144,6 +144,15 @@ const coupons = [
 
 export default function MarketingPage() {
   const [selectedTab, setSelectedTab] = useState<'campaigns' | 'coupons' | 'segments'>('campaigns');
+  const [campaigns, setCampaigns] = useState<Campaign[]>(mockCampaigns);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+  // Form state for create campaign
+  const [newCampaignName, setNewCampaignName] = useState('');
+  const [newCampaignType, setNewCampaignType] = useState<'email' | 'sms' | 'notification'>('email');
+  const [newCampaignStartDate, setNewCampaignStartDate] = useState('');
+  const [newCampaignEndDate, setNewCampaignEndDate] = useState('');
+  const [newCampaignStatus, setNewCampaignStatus] = useState<'active' | 'draft'>('draft');
 
   const getCampaignTypeBadge = (type: string) => {
     const styles = {
@@ -172,6 +181,37 @@ export default function MarketingPage() {
         {labels[type as keyof typeof labels]}
       </span>
     );
+  };
+
+  const handleCreateCampaign = () => {
+    if (!newCampaignName || !newCampaignStartDate) {
+      alert('กรุณากรอกชื่อแคมเปญและวันที่เริ่มต้น');
+      return;
+    }
+
+    const newCampaign: Campaign = {
+      id: `${Date.now()}`,
+      name: newCampaignName,
+      type: newCampaignType,
+      status: newCampaignStatus,
+      sent: 0,
+      opened: 0,
+      clicked: 0,
+      converted: 0,
+      revenue: 0,
+      startDate: newCampaignStartDate,
+      endDate: newCampaignEndDate || undefined,
+    };
+
+    setCampaigns([newCampaign, ...campaigns]);
+
+    // Reset form
+    setNewCampaignName('');
+    setNewCampaignType('email');
+    setNewCampaignStartDate('');
+    setNewCampaignEndDate('');
+    setNewCampaignStatus('draft');
+    setIsCreateModalOpen(false);
   };
 
   const getStatusBadge = (status: string) => {
@@ -209,7 +249,10 @@ export default function MarketingPage() {
             </p>
           </div>
           <div className="flex gap-3">
-            <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+            <button
+              onClick={() => setIsCreateModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
               <Plus className="h-4 w-4" />
               สร้างแคมเปญ
             </button>
@@ -315,7 +358,7 @@ export default function MarketingPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                    {mockCampaigns.map((campaign) => {
+                    {campaigns.map((campaign) => {
                       const openRate = ((campaign.opened / campaign.sent) * 100).toFixed(1);
                       const clickRate = ((campaign.clicked / campaign.opened) * 100).toFixed(1);
                       const conversionRate = ((campaign.converted / campaign.clicked) * 100).toFixed(1);
@@ -534,6 +577,116 @@ export default function MarketingPage() {
                     </button>
                   </div>
                 ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Create Campaign Modal */}
+        {isCreateModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-hidden">
+              <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                  สร้างแคมเปญใหม่
+                </h2>
+                <button
+                  onClick={() => setIsCreateModalOpen(false)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)] space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    ชื่อแคมเปญ *
+                  </label>
+                  <input
+                    type="text"
+                    value={newCampaignName}
+                    onChange={(e) => setNewCampaignName(e.target.value)}
+                    placeholder="เช่น โปรโมชั่นปีใหม่"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    ช่องทาง *
+                  </label>
+                  <select
+                    value={newCampaignType}
+                    onChange={(e) => setNewCampaignType(e.target.value as 'email' | 'sms' | 'notification')}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="email">Email</option>
+                    <option value="sms">SMS</option>
+                    <option value="notification">Push Notification</option>
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      วันที่เริ่มต้น *
+                    </label>
+                    <input
+                      type="date"
+                      value={newCampaignStartDate}
+                      onChange={(e) => setNewCampaignStartDate(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      วันที่สิ้นสุด
+                    </label>
+                    <input
+                      type="date"
+                      value={newCampaignEndDate}
+                      onChange={(e) => setNewCampaignEndDate(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    สถานะ
+                  </label>
+                  <select
+                    value={newCampaignStatus}
+                    onChange={(e) => setNewCampaignStatus(e.target.value as 'active' | 'draft')}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="draft">แบบร่าง (Draft)</option>
+                    <option value="active">เปิดใช้งาน (Active)</option>
+                  </select>
+                </div>
+
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                  <p className="text-sm text-blue-800 dark:text-blue-300">
+                    💡 <strong>Tip:</strong> สร้างแคมเปญเป็น Draft ก่อน แล้วค่อยเปิดเป็น Active เมื่อพร้อมส่ง
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 p-6 border-t border-gray-200 dark:border-gray-700">
+                <button
+                  onClick={() => setIsCreateModalOpen(false)}
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  onClick={handleCreateCampaign}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+                >
+                  สร้างแคมเปญ
+                </button>
               </div>
             </div>
           </div>

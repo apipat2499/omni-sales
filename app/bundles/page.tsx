@@ -45,9 +45,53 @@ export default function BundlesPage() {
   const [selectedBundle, setSelectedBundle] = useState<ProductBundle | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
+  // Form state for create modal
+  const [newBundleName, setNewBundleName] = useState('');
+  const [newBundleDesc, setNewBundleDesc] = useState('');
+  const [newBundlePrice, setNewBundlePrice] = useState('');
+  const [newBundleDiscount, setNewBundleDiscount] = useState('10');
+  const [newBundleStatus, setNewBundleStatus] = useState<'active' | 'inactive'>('active');
+
   useEffect(() => {
     fetchBundles();
   }, []);
+
+  const handleCreateBundle = () => {
+    if (!newBundleName || !newBundleDesc || !newBundlePrice) {
+      alert('กรุณากรอกข้อมูลให้ครบถ้วน');
+      return;
+    }
+
+    const bundlePrice = parseFloat(newBundlePrice);
+    const discount = parseFloat(newBundleDiscount);
+    const originalPrice = bundlePrice / (1 - discount / 100);
+
+    const newBundle: ProductBundle = {
+      id: `bundle-${Date.now()}`,
+      name: newBundleName,
+      description: newBundleDesc,
+      items: [
+        { productId: 'prod-demo', productName: 'Sample Product', quantity: 1, price: bundlePrice }
+      ],
+      originalPrice: Math.round(originalPrice),
+      bundlePrice: Math.round(bundlePrice),
+      discount: discount,
+      status: newBundleStatus,
+      soldCount: 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    setBundles([newBundle, ...bundles]);
+
+    // Reset form
+    setNewBundleName('');
+    setNewBundleDesc('');
+    setNewBundlePrice('');
+    setNewBundleDiscount('10');
+    setNewBundleStatus('active');
+    setIsCreateModalOpen(false);
+  };
 
   const fetchBundles = async () => {
     try {
@@ -470,28 +514,121 @@ export default function BundlesPage() {
           </div>
         )}
 
-        {/* Create Bundle Modal Placeholder */}
+        {/* Create Bundle Modal */}
         {isCreateModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-                Create Bundle
-              </h2>
-              <p className="text-gray-600 dark:text-gray-400 mb-6">
-                Bundle creation form coming soon! This will allow you to:
-              </p>
-              <ul className="list-disc list-inside text-sm text-gray-600 dark:text-gray-400 space-y-2 mb-6">
-                <li>Select multiple products</li>
-                <li>Set bundle pricing</li>
-                <li>Configure discounts</li>
-                <li>Add descriptions and images</li>
-              </ul>
-              <button
-                onClick={() => setIsCreateModalOpen(false)}
-                className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg"
-              >
-                Got it
-              </button>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-hidden">
+              <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                  สร้าง Bundle ใหม่
+                </h2>
+                <button
+                  onClick={() => setIsCreateModalOpen(false)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)] space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    ชื่อ Bundle *
+                  </label>
+                  <input
+                    type="text"
+                    value={newBundleName}
+                    onChange={(e) => setNewBundleName(e.target.value)}
+                    placeholder="เช่น Starter Package"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    คำอธิบาย *
+                  </label>
+                  <textarea
+                    value={newBundleDesc}
+                    onChange={(e) => setNewBundleDesc(e.target.value)}
+                    placeholder="อธิบายรายละเอียด bundle"
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      ราคา Bundle (฿) *
+                    </label>
+                    <input
+                      type="number"
+                      value={newBundlePrice}
+                      onChange={(e) => setNewBundlePrice(e.target.value)}
+                      placeholder="2400"
+                      min="0"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      ส่วนลด (%)
+                    </label>
+                    <input
+                      type="number"
+                      value={newBundleDiscount}
+                      onChange={(e) => setNewBundleDiscount(e.target.value)}
+                      placeholder="10"
+                      min="0"
+                      max="100"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    สถานะ
+                  </label>
+                  <select
+                    value={newBundleStatus}
+                    onChange={(e) => setNewBundleStatus(e.target.value as 'active' | 'inactive')}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                </div>
+
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                  <p className="text-sm text-blue-800 dark:text-blue-300">
+                    <strong>ราคาเต็ม:</strong> ฿{newBundlePrice ? Math.round(parseFloat(newBundlePrice) / (1 - parseFloat(newBundleDiscount || '0') / 100)).toLocaleString() : '0'}
+                  </p>
+                  <p className="text-sm text-blue-800 dark:text-blue-300">
+                    <strong>ราคา Bundle:</strong> ฿{newBundlePrice ? parseFloat(newBundlePrice).toLocaleString() : '0'}
+                  </p>
+                  <p className="text-sm text-green-600 dark:text-green-400 mt-1">
+                    <strong>ประหยัด:</strong> {newBundleDiscount}%
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 p-6 border-t border-gray-200 dark:border-gray-700">
+                <button
+                  onClick={() => setIsCreateModalOpen(false)}
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  onClick={handleCreateBundle}
+                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg"
+                >
+                  สร้าง Bundle
+                </button>
+              </div>
             </div>
           </div>
         )}
