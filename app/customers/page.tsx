@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
+import CustomerModal from '@/components/customers/CustomerModal';
 import {
   Users,
   User,
@@ -25,6 +26,7 @@ export default function CustomersPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [rfmSegmentFilter, setRfmSegmentFilter] = useState('all');
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   useEffect(() => {
     const userId = localStorage.getItem('userId') || 'demo-user';
@@ -131,7 +133,7 @@ export default function CustomersPage() {
             <h1 className="text-4xl font-bold dark:text-white">Customers</h1>
           </div>
           <button
-            onClick={() => alert('Add Customer feature coming soon!')}
+            onClick={() => setIsAddModalOpen(true)}
             className="flex items-center gap-2 rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600 transition-colors"
           >
             <Plus className="h-5 w-5" />
@@ -303,6 +305,16 @@ export default function CustomersPage() {
             </div>
           </div>
         )}
+
+        {/* Add Customer Modal */}
+        <CustomerModal
+          isOpen={isAddModalOpen}
+          onClose={() => setIsAddModalOpen(false)}
+          onSuccess={() => {
+            const userId = localStorage.getItem('userId') || 'demo-user';
+            fetchCustomers(userId);
+          }}
+        />
       </div>
     </DashboardLayout>
   );
