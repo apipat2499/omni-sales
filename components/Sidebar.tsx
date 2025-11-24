@@ -32,7 +32,7 @@ import { useLowStock } from '@/lib/hooks/useLowStock';
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Analytics', href: '/analytics', icon: TrendingUp },
-  { name: 'Products', href: '/products', icon: Package },
+  { name: 'Products', href: '/admin/products', icon: Package },
   { name: 'Bundles', href: '/bundles', icon: Package },
   { name: 'Low Stock', href: '/low-stock', icon: AlertTriangle },
   { name: 'Scanner', href: '/scanner', icon: Camera },
