@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
-import { mockProducts, getProductStats, addProduct, type MockProduct } from '@/lib/admin/mockData';
+import { useProducts } from '@/lib/hooks/useProducts';
 import { formatCurrency } from '@/lib/utils';
+import type { Product } from '@/types';
 import {
   Search,
   Edit,
@@ -12,6 +13,7 @@ import {
   Package,
   DollarSign,
   TrendingDown,
+  Loader2,
 } from 'lucide-react';
 import Link from 'next/link';
 import StatCard from '@/components/admin/StatCard';
@@ -19,45 +21,69 @@ import StatCard from '@/components/admin/StatCard';
 export default function AdminProductsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
-  const [products, setProducts] = useState<MockProduct[]>(mockProducts);
+  const { products, loading, error, refresh } = useProducts();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Form state for add product modal
   const [newProductName, setNewProductName] = useState('');
   const [newProductPrice, setNewProductPrice] = useState('');
+  const [newProductCost, setNewProductCost] = useState('');
   const [newProductStock, setNewProductStock] = useState('');
   const [newProductCategory, setNewProductCategory] = useState('');
   const [newProductSKU, setNewProductSKU] = useState('');
-  const [newProductStatus, setNewProductStatus] = useState<'active' | 'inactive'>('active');
 
-  const handleAddProduct = () => {
-    if (!newProductName || !newProductPrice || !newProductStock || !newProductCategory || !newProductSKU) {
+  const handleAddProduct = async () => {
+    if (!newProductName || !newProductPrice || !newProductCost || !newProductStock || !newProductCategory || !newProductSKU) {
       alert('กรุณากรอกข้อมูลให้ครบถ้วน');
       return;
     }
 
-    const newProduct = addProduct({
-      name: newProductName,
-      price: parseFloat(newProductPrice),
-      stock: parseInt(newProductStock),
-      category: newProductCategory,
-      sku: newProductSKU,
-      status: newProductStatus,
-    });
+    setIsSubmitting(true);
+    try {
+      const response = await fetch('/api/products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newProductName,
+          price: parseFloat(newProductPrice),
+          cost: parseFloat(newProductCost),
+          stock: parseInt(newProductStock),
+          category: newProductCategory,
+          sku: newProductSKU,
+        }),
+      });
 
-    setProducts([...mockProducts]); // Re-render with updated mockProducts
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'ไม่สามารถเพิ่มสินค้าได้');
+      }
 
-    // Reset form
-    setNewProductName('');
-    setNewProductPrice('');
-    setNewProductStock('');
-    setNewProductCategory('');
-    setNewProductSKU('');
-    setNewProductStatus('active');
-    setIsAddModalOpen(false);
+      // Reset form
+      setNewProductName('');
+      setNewProductPrice('');
+      setNewProductCost('');
+      setNewProductStock('');
+      setNewProductCategory('');
+      setNewProductSKU('');
+      setIsAddModalOpen(false);
+
+      // Refresh products list
+      await refresh();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'เกิดข้อผิดพลาด');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const stats = getProductStats();
+  // Calculate stats from products
+  const stats = {
+    total: products.length,
+    lowStock: products.filter(p => p.stock < 10).length,
+    outOfStock: products.filter(p => p.stock === 0).length,
+    totalValue: products.reduce((sum, p) => sum + (p.price * p.stock), 0),
+  };
 
   // Get unique categories
   const categories = ['all', ...new Set(products.map((p) => p.category))];
@@ -74,6 +100,41 @@ export default function AdminProductsPage() {
 
     return matchesSearch && matchesCategory;
   });
+
+  if (loading) {
+    return (
+      <AdminLayout>
+        <div className="p-6 flex items-center justify-center min-h-screen">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="h-12 w-12 text-blue-600 animate-spin" />
+            <p className="text-gray-600 dark:text-gray-400">กำลังโหลดข้อมูล...</p>
+          </div>
+        </div>
+      </AdminLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <AdminLayout>
+        <div className="p-6 flex items-center justify-center min-h-screen">
+          <div className="flex flex-col items-center gap-4 text-center">
+            <AlertTriangle className="h-12 w-12 text-red-600" />
+            <div>
+              <p className="text-red-600 font-semibold">เกิดข้อผิดพลาด</p>
+              <p className="text-gray-600 dark:text-gray-400 mt-1">{error}</p>
+            </div>
+            <button
+              onClick={() => refresh()}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+            >
+              ลองอีกครั้ง
+            </button>
+          </div>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>
@@ -174,9 +235,6 @@ export default function AdminProductsPage() {
                     Stock
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
@@ -184,7 +242,7 @@ export default function AdminProductsPage() {
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                 {filteredProducts.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center">
+                    <td colSpan={6} className="px-6 py-12 text-center">
                       <div className="flex flex-col items-center gap-2">
                         <Package className="h-12 w-12 text-gray-400 dark:text-gray-500" />
                         <p className="text-gray-600 dark:text-gray-400">
@@ -250,17 +308,6 @@ export default function AdminProductsPage() {
                               <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
                             )}
                           </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span
-                            className={`px-2 py-1 text-xs font-medium rounded-md ${
-                              product.status === 'active'
-                                ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
-                                : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300'
-                            }`}
-                          >
-                            {product.status}
-                          </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <Link
@@ -346,13 +393,28 @@ export default function AdminProductsPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      ราคา (฿) *
+                      ราคาขาย (฿) *
                     </label>
                     <input
                       type="number"
                       value={newProductPrice}
                       onChange={(e) => setNewProductPrice(e.target.value)}
                       placeholder="299"
+                      min="0"
+                      step="0.01"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      ราคาทุน (฿) *
+                    </label>
+                    <input
+                      type="number"
+                      value={newProductCost}
+                      onChange={(e) => setNewProductCost(e.target.value)}
+                      placeholder="200"
                       min="0"
                       step="0.01"
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
@@ -372,20 +434,6 @@ export default function AdminProductsPage() {
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                     />
                   </div>
-
-                  <div className="col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      สถานะ
-                    </label>
-                    <select
-                      value={newProductStatus}
-                      onChange={(e) => setNewProductStatus(e.target.value as 'active' | 'inactive')}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                    >
-                      <option value="active">Active</option>
-                      <option value="inactive">Inactive</option>
-                    </select>
-                  </div>
                 </div>
 
                 {newProductPrice && newProductStock && (
@@ -400,15 +448,18 @@ export default function AdminProductsPage() {
               <div className="flex justify-end gap-3 p-6 border-t border-gray-200 dark:border-gray-700">
                 <button
                   onClick={() => setIsAddModalOpen(false)}
-                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+                  disabled={isSubmitting}
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   ยกเลิก
                 </button>
                 <button
                   onClick={handleAddProduct}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+                  disabled={isSubmitting}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  เพิ่มสินค้า
+                  {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {isSubmitting ? 'กำลังเพิ่ม...' : 'เพิ่มสินค้า'}
                 </button>
               </div>
             </div>
