@@ -563,22 +563,89 @@ export function AdvancedSettingsProvider({ children }: { children: ReactNode }) 
   const [settings, setSettings] = useState<AdvancedSettingsState>(defaultSettings);
   const [loading, setLoading] = useState(true);
 
-  // Load settings from localStorage or API
+  // Load settings from API
   useEffect(() => {
     const loadSettings = async () => {
       try {
-        // Try to load from localStorage first
-        const stored = localStorage.getItem('omni-sales-advanced-settings');
-        if (stored) {
-          setSettings(JSON.parse(stored));
-        }
+        // Load all settings from API in parallel
+        const [
+          storefrontRes,
+          taxRulesRes,
+          ordersRes,
+          invoiceRes,
+          shippingZonesRes,
+          shippingProvidersRes,
+          productRes,
+          emailTemplatesRes,
+          languagesRes,
+          currenciesRes,
+          automationRes,
+          aiAgentRes,
+        ] = await Promise.all([
+          fetch('/api/settings/storefront'),
+          fetch('/api/settings/tax-rules'),
+          fetch('/api/settings/orders'),
+          fetch('/api/settings/invoice'),
+          fetch('/api/settings/shipping/zones'),
+          fetch('/api/settings/shipping/providers'),
+          fetch('/api/settings/products'),
+          fetch('/api/settings/email-templates'),
+          fetch('/api/settings/localization/languages'),
+          fetch('/api/settings/localization/currencies'),
+          fetch('/api/settings/automation'),
+          fetch('/api/settings/ai-agent'),
+        ]);
 
-        // TODO: Load from API
-        // const response = await fetch('/api/admin/settings/advanced');
-        // const data = await response.json();
-        // setSettings(data);
+        const [
+          storefront,
+          taxRules,
+          orders,
+          invoice,
+          shippingZones,
+          shippingProviders,
+          productSettings,
+          emailTemplates,
+          languages,
+          currencies,
+          automation,
+          aiAgent,
+        ] = await Promise.all([
+          storefrontRes.json(),
+          taxRulesRes.json(),
+          ordersRes.json(),
+          invoiceRes.json(),
+          shippingZonesRes.json(),
+          shippingProvidersRes.json(),
+          productRes.json(),
+          emailTemplatesRes.json(),
+          languagesRes.json(),
+          currenciesRes.json(),
+          automationRes.json(),
+          aiAgentRes.json(),
+        ]);
+
+        setSettings({
+          storefront: storefront.id ? storefront : defaultSettings.storefront,
+          taxRules: taxRules || defaultSettings.taxRules,
+          orderNumberSettings: orders.numberSettings?.id
+            ? orders.numberSettings
+            : defaultSettings.orderNumberSettings,
+          orderStatuses: orders.statuses || defaultSettings.orderStatuses,
+          invoiceSettings: invoice.id ? invoice : defaultSettings.invoiceSettings,
+          shippingZones: shippingZones || defaultSettings.shippingZones,
+          shippingProviders: shippingProviders || defaultSettings.shippingProviders,
+          productSettings: productSettings.id ? productSettings : defaultSettings.productSettings,
+          emailTemplates: emailTemplates || defaultSettings.emailTemplates,
+          languages: languages?.length > 0 ? languages : defaultSettings.languages,
+          currencies: currencies?.length > 0 ? currencies : defaultSettings.currencies,
+          automation: automation.id ? automation : defaultSettings.automation,
+          integrations: [],
+          aiAgent: aiAgent.id ? aiAgent : defaultSettings.aiAgent,
+        });
       } catch (error) {
         console.error('Error loading advanced settings:', error);
+        // Fall back to default settings
+        setSettings(defaultSettings);
       } finally {
         setLoading(false);
       }
@@ -587,292 +654,556 @@ export function AdvancedSettingsProvider({ children }: { children: ReactNode }) 
     loadSettings();
   }, []);
 
-  // Save settings helper
-  const saveSettings = (newSettings: AdvancedSettingsState) => {
+  // Storefront
+  const updateStorefront = async (data: Partial<StorefrontCustomization>) => {
     try {
-      localStorage.setItem('omni-sales-advanced-settings', JSON.stringify(newSettings));
-      setSettings(newSettings);
+      const response = await fetch('/api/settings/storefront', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) throw new Error('Failed to update storefront');
+
+      const updated = await response.json();
+      setSettings({
+        ...settings,
+        storefront: updated,
+      });
     } catch (error) {
-      console.error('Error saving settings:', error);
+      console.error('Error updating storefront:', error);
       throw error;
     }
   };
 
-  // Storefront
-  const updateStorefront = async (data: Partial<StorefrontCustomization>) => {
-    const newSettings = {
-      ...settings,
-      storefront: { ...settings.storefront, ...data },
-    };
-    saveSettings(newSettings);
-  };
-
   // Tax Rules
   const addTaxRule = async (rule: Omit<TaxRule, 'id'>) => {
-    const newRule: TaxRule = { ...rule, id: Date.now().toString() };
-    const newSettings = {
-      ...settings,
-      taxRules: [...settings.taxRules, newRule],
-    };
-    saveSettings(newSettings);
+    try {
+      const response = await fetch('/api/settings/tax-rules', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(rule),
+      });
+
+      if (!response.ok) throw new Error('Failed to add tax rule');
+
+      const newRule = await response.json();
+      setSettings({
+        ...settings,
+        taxRules: [...settings.taxRules, newRule],
+      });
+    } catch (error) {
+      console.error('Error adding tax rule:', error);
+      throw error;
+    }
   };
 
   const updateTaxRule = async (id: string, data: Partial<TaxRule>) => {
-    const newSettings = {
-      ...settings,
-      taxRules: settings.taxRules.map((rule) =>
-        rule.id === id ? { ...rule, ...data } : rule
-      ),
-    };
-    saveSettings(newSettings);
+    try {
+      const response = await fetch(`/api/settings/tax-rules/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) throw new Error('Failed to update tax rule');
+
+      const updated = await response.json();
+      setSettings({
+        ...settings,
+        taxRules: settings.taxRules.map((rule) => (rule.id === id ? updated : rule)),
+      });
+    } catch (error) {
+      console.error('Error updating tax rule:', error);
+      throw error;
+    }
   };
 
   const deleteTaxRule = async (id: string) => {
-    const newSettings = {
-      ...settings,
-      taxRules: settings.taxRules.filter((rule) => rule.id !== id),
-    };
-    saveSettings(newSettings);
+    try {
+      const response = await fetch(`/api/settings/tax-rules/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) throw new Error('Failed to delete tax rule');
+
+      setSettings({
+        ...settings,
+        taxRules: settings.taxRules.filter((rule) => rule.id !== id),
+      });
+    } catch (error) {
+      console.error('Error deleting tax rule:', error);
+      throw error;
+    }
   };
 
   // Order Settings
   const updateOrderNumberSettings = async (data: Partial<OrderNumberSettings>) => {
-    const newSettings = {
-      ...settings,
-      orderNumberSettings: { ...settings.orderNumberSettings, ...data },
-    };
-    saveSettings(newSettings);
+    try {
+      const response = await fetch('/api/settings/orders', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) throw new Error('Failed to update order number settings');
+
+      const updated = await response.json();
+      setSettings({
+        ...settings,
+        orderNumberSettings: updated,
+      });
+    } catch (error) {
+      console.error('Error updating order number settings:', error);
+      throw error;
+    }
   };
 
   const addOrderStatus = async (status: Omit<OrderStatusCustom, 'id'>) => {
+    // This would need a separate API endpoint for order statuses
     const newStatus: OrderStatusCustom = { ...status, id: Date.now().toString() };
-    const newSettings = {
+    setSettings({
       ...settings,
       orderStatuses: [...settings.orderStatuses, newStatus],
-    };
-    saveSettings(newSettings);
+    });
   };
 
   const updateOrderStatus = async (id: string, data: Partial<OrderStatusCustom>) => {
-    const newSettings = {
+    setSettings({
       ...settings,
       orderStatuses: settings.orderStatuses.map((status) =>
         status.id === id ? { ...status, ...data } : status
       ),
-    };
-    saveSettings(newSettings);
+    });
   };
 
   const deleteOrderStatus = async (id: string) => {
-    const newSettings = {
+    setSettings({
       ...settings,
       orderStatuses: settings.orderStatuses.filter((status) => status.id !== id),
-    };
-    saveSettings(newSettings);
+    });
   };
 
   // Invoice Settings
   const updateInvoiceSettings = async (data: Partial<InvoiceSettings>) => {
-    const newSettings = {
-      ...settings,
-      invoiceSettings: { ...settings.invoiceSettings, ...data },
-    };
-    saveSettings(newSettings);
+    try {
+      const response = await fetch('/api/settings/invoice', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) throw new Error('Failed to update invoice settings');
+
+      const updated = await response.json();
+      setSettings({
+        ...settings,
+        invoiceSettings: updated,
+      });
+    } catch (error) {
+      console.error('Error updating invoice settings:', error);
+      throw error;
+    }
   };
 
   // Shipping Zones
   const addShippingZone = async (zone: Omit<ShippingZone, 'id'>) => {
-    const newZone: ShippingZone = { ...zone, id: Date.now().toString() };
-    const newSettings = {
-      ...settings,
-      shippingZones: [...settings.shippingZones, newZone],
-    };
-    saveSettings(newSettings);
+    try {
+      const response = await fetch('/api/settings/shipping/zones', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(zone),
+      });
+
+      if (!response.ok) throw new Error('Failed to add shipping zone');
+
+      const newZone = await response.json();
+      setSettings({
+        ...settings,
+        shippingZones: [...settings.shippingZones, newZone],
+      });
+    } catch (error) {
+      console.error('Error adding shipping zone:', error);
+      throw error;
+    }
   };
 
   const updateShippingZone = async (id: string, data: Partial<ShippingZone>) => {
-    const newSettings = {
-      ...settings,
-      shippingZones: settings.shippingZones.map((zone) =>
-        zone.id === id ? { ...zone, ...data } : zone
-      ),
-    };
-    saveSettings(newSettings);
+    try {
+      const response = await fetch(`/api/settings/shipping/zones/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) throw new Error('Failed to update shipping zone');
+
+      const updated = await response.json();
+      setSettings({
+        ...settings,
+        shippingZones: settings.shippingZones.map((zone) => (zone.id === id ? updated : zone)),
+      });
+    } catch (error) {
+      console.error('Error updating shipping zone:', error);
+      throw error;
+    }
   };
 
   const deleteShippingZone = async (id: string) => {
-    const newSettings = {
-      ...settings,
-      shippingZones: settings.shippingZones.filter((zone) => zone.id !== id),
-    };
-    saveSettings(newSettings);
+    try {
+      const response = await fetch(`/api/settings/shipping/zones/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) throw new Error('Failed to delete shipping zone');
+
+      setSettings({
+        ...settings,
+        shippingZones: settings.shippingZones.filter((zone) => zone.id !== id),
+      });
+    } catch (error) {
+      console.error('Error deleting shipping zone:', error);
+      throw error;
+    }
   };
 
   // Shipping Providers
   const addShippingProvider = async (provider: Omit<ShippingProvider, 'id'>) => {
-    const newProvider: ShippingProvider = { ...provider, id: Date.now().toString() };
-    const newSettings = {
-      ...settings,
-      shippingProviders: [...settings.shippingProviders, newProvider],
-    };
-    saveSettings(newSettings);
+    try {
+      const response = await fetch('/api/settings/shipping/providers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(provider),
+      });
+
+      if (!response.ok) throw new Error('Failed to add shipping provider');
+
+      const newProvider = await response.json();
+      setSettings({
+        ...settings,
+        shippingProviders: [...settings.shippingProviders, newProvider],
+      });
+    } catch (error) {
+      console.error('Error adding shipping provider:', error);
+      throw error;
+    }
   };
 
   const updateShippingProvider = async (id: string, data: Partial<ShippingProvider>) => {
-    const newSettings = {
-      ...settings,
-      shippingProviders: settings.shippingProviders.map((provider) =>
-        provider.id === id ? { ...provider, ...data } : provider
-      ),
-    };
-    saveSettings(newSettings);
+    try {
+      const response = await fetch(`/api/settings/shipping/providers/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) throw new Error('Failed to update shipping provider');
+
+      const updated = await response.json();
+      setSettings({
+        ...settings,
+        shippingProviders: settings.shippingProviders.map((provider) =>
+          provider.id === id ? updated : provider
+        ),
+      });
+    } catch (error) {
+      console.error('Error updating shipping provider:', error);
+      throw error;
+    }
   };
 
   const deleteShippingProvider = async (id: string) => {
-    const newSettings = {
-      ...settings,
-      shippingProviders: settings.shippingProviders.filter((provider) => provider.id !== id),
-    };
-    saveSettings(newSettings);
+    try {
+      const response = await fetch(`/api/settings/shipping/providers/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) throw new Error('Failed to delete shipping provider');
+
+      setSettings({
+        ...settings,
+        shippingProviders: settings.shippingProviders.filter((provider) => provider.id !== id),
+      });
+    } catch (error) {
+      console.error('Error deleting shipping provider:', error);
+      throw error;
+    }
   };
 
   // Product Settings
   const updateProductSettings = async (data: Partial<ProductDisplaySettings>) => {
-    const newSettings = {
-      ...settings,
-      productSettings: { ...settings.productSettings, ...data },
-    };
-    saveSettings(newSettings);
+    try {
+      const response = await fetch('/api/settings/products', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) throw new Error('Failed to update product settings');
+
+      const updated = await response.json();
+      setSettings({
+        ...settings,
+        productSettings: updated,
+      });
+    } catch (error) {
+      console.error('Error updating product settings:', error);
+      throw error;
+    }
   };
 
   // Email Templates
   const addEmailTemplate = async (template: Omit<EmailTemplateCustomization, 'id'>) => {
-    const newTemplate: EmailTemplateCustomization = { ...template, id: Date.now().toString() };
-    const newSettings = {
-      ...settings,
-      emailTemplates: [...settings.emailTemplates, newTemplate],
-    };
-    saveSettings(newSettings);
+    try {
+      const response = await fetch('/api/settings/email-templates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(template),
+      });
+
+      if (!response.ok) throw new Error('Failed to add email template');
+
+      const newTemplate = await response.json();
+      setSettings({
+        ...settings,
+        emailTemplates: [...settings.emailTemplates, newTemplate],
+      });
+    } catch (error) {
+      console.error('Error adding email template:', error);
+      throw error;
+    }
   };
 
   const updateEmailTemplate = async (id: string, data: Partial<EmailTemplateCustomization>) => {
-    const newSettings = {
-      ...settings,
-      emailTemplates: settings.emailTemplates.map((template) =>
-        template.id === id ? { ...template, ...data } : template
-      ),
-    };
-    saveSettings(newSettings);
+    try {
+      const response = await fetch(`/api/settings/email-templates/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) throw new Error('Failed to update email template');
+
+      const updated = await response.json();
+      setSettings({
+        ...settings,
+        emailTemplates: settings.emailTemplates.map((template) =>
+          template.id === id ? updated : template
+        ),
+      });
+    } catch (error) {
+      console.error('Error updating email template:', error);
+      throw error;
+    }
   };
 
   const deleteEmailTemplate = async (id: string) => {
-    const newSettings = {
-      ...settings,
-      emailTemplates: settings.emailTemplates.filter((template) => template.id !== id),
-    };
-    saveSettings(newSettings);
+    try {
+      const response = await fetch(`/api/settings/email-templates/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) throw new Error('Failed to delete email template');
+
+      setSettings({
+        ...settings,
+        emailTemplates: settings.emailTemplates.filter((template) => template.id !== id),
+      });
+    } catch (error) {
+      console.error('Error deleting email template:', error);
+      throw error;
+    }
   };
 
   // Languages
   const addLanguage = async (language: Omit<LanguageSetting, 'id'>) => {
-    const newLanguage: LanguageSetting = { ...language, id: Date.now().toString() };
-    const newSettings = {
-      ...settings,
-      languages: [...settings.languages, newLanguage],
-    };
-    saveSettings(newSettings);
+    try {
+      const response = await fetch('/api/settings/localization/languages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(language),
+      });
+
+      if (!response.ok) throw new Error('Failed to add language');
+
+      const newLanguage = await response.json();
+      setSettings({
+        ...settings,
+        languages: [...settings.languages, newLanguage],
+      });
+    } catch (error) {
+      console.error('Error adding language:', error);
+      throw error;
+    }
   };
 
   const updateLanguage = async (id: string, data: Partial<LanguageSetting>) => {
-    const newSettings = {
-      ...settings,
-      languages: settings.languages.map((lang) =>
-        lang.id === id ? { ...lang, ...data } : lang
-      ),
-    };
-    saveSettings(newSettings);
+    try {
+      const response = await fetch(`/api/settings/localization/languages/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) throw new Error('Failed to update language');
+
+      const updated = await response.json();
+      setSettings({
+        ...settings,
+        languages: settings.languages.map((lang) => (lang.id === id ? updated : lang)),
+      });
+    } catch (error) {
+      console.error('Error updating language:', error);
+      throw error;
+    }
   };
 
   const deleteLanguage = async (id: string) => {
-    const newSettings = {
-      ...settings,
-      languages: settings.languages.filter((lang) => lang.id !== id),
-    };
-    saveSettings(newSettings);
+    try {
+      const response = await fetch(`/api/settings/localization/languages/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) throw new Error('Failed to delete language');
+
+      setSettings({
+        ...settings,
+        languages: settings.languages.filter((lang) => lang.id !== id),
+      });
+    } catch (error) {
+      console.error('Error deleting language:', error);
+      throw error;
+    }
   };
 
   // Currencies
   const addCurrency = async (currency: Omit<CurrencySetting, 'id'>) => {
-    const newCurrency: CurrencySetting = { ...currency, id: Date.now().toString() };
-    const newSettings = {
-      ...settings,
-      currencies: [...settings.currencies, newCurrency],
-    };
-    saveSettings(newSettings);
+    try {
+      const response = await fetch('/api/settings/localization/currencies', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(currency),
+      });
+
+      if (!response.ok) throw new Error('Failed to add currency');
+
+      const newCurrency = await response.json();
+      setSettings({
+        ...settings,
+        currencies: [...settings.currencies, newCurrency],
+      });
+    } catch (error) {
+      console.error('Error adding currency:', error);
+      throw error;
+    }
   };
 
   const updateCurrency = async (id: string, data: Partial<CurrencySetting>) => {
-    const newSettings = {
-      ...settings,
-      currencies: settings.currencies.map((curr) =>
-        curr.id === id ? { ...curr, ...data } : curr
-      ),
-    };
-    saveSettings(newSettings);
+    try {
+      const response = await fetch(`/api/settings/localization/currencies/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) throw new Error('Failed to update currency');
+
+      const updated = await response.json();
+      setSettings({
+        ...settings,
+        currencies: settings.currencies.map((curr) => (curr.id === id ? updated : curr)),
+      });
+    } catch (error) {
+      console.error('Error updating currency:', error);
+      throw error;
+    }
   };
 
   const deleteCurrency = async (id: string) => {
-    const newSettings = {
-      ...settings,
-      currencies: settings.currencies.filter((curr) => curr.id !== id),
-    };
-    saveSettings(newSettings);
+    try {
+      const response = await fetch(`/api/settings/localization/currencies/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) throw new Error('Failed to delete currency');
+
+      setSettings({
+        ...settings,
+        currencies: settings.currencies.filter((curr) => curr.id !== id),
+      });
+    } catch (error) {
+      console.error('Error deleting currency:', error);
+      throw error;
+    }
   };
 
   // Automation
   const updateAutomationSettings = async (data: Partial<AutomationSettings>) => {
-    const newSettings = {
-      ...settings,
-      automation: { ...settings.automation, ...data },
-    };
-    saveSettings(newSettings);
+    try {
+      const response = await fetch('/api/settings/automation', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) throw new Error('Failed to update automation settings');
+
+      const updated = await response.json();
+      setSettings({
+        ...settings,
+        automation: updated,
+      });
+    } catch (error) {
+      console.error('Error updating automation settings:', error);
+      throw error;
+    }
   };
 
   // Integrations
   const addIntegration = async (integration: Omit<IntegrationConfig, 'id'>) => {
     const newIntegration: IntegrationConfig = { ...integration, id: Date.now().toString() };
-    const newSettings = {
+    setSettings({
       ...settings,
       integrations: [...settings.integrations, newIntegration],
-    };
-    saveSettings(newSettings);
+    });
   };
 
   const updateIntegration = async (id: string, data: Partial<IntegrationConfig>) => {
-    const newSettings = {
+    setSettings({
       ...settings,
       integrations: settings.integrations.map((integration) =>
         integration.id === id ? { ...integration, ...data } : integration
       ),
-    };
-    saveSettings(newSettings);
+    });
   };
 
   const deleteIntegration = async (id: string) => {
-    const newSettings = {
+    setSettings({
       ...settings,
       integrations: settings.integrations.filter((integration) => integration.id !== id),
-    };
-    saveSettings(newSettings);
+    });
   };
 
   // AI Agent
   const updateAIAgentSettings = async (data: Partial<AIAgentSettings>) => {
-    const newSettings = {
-      ...settings,
-      aiAgent: { ...settings.aiAgent, ...data },
-    };
-    saveSettings(newSettings);
+    try {
+      const response = await fetch('/api/settings/ai-agent', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) throw new Error('Failed to update AI agent settings');
+
+      const updated = await response.json();
+      setSettings({
+        ...settings,
+        aiAgent: updated,
+      });
+    } catch (error) {
+      console.error('Error updating AI agent settings:', error);
+      throw error;
+    }
   };
 
   return (
