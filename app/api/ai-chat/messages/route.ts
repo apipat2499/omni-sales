@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { callAI, buildSystemPrompt, prepareMessages } from '@/lib/ai/providers';
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,19 +33,51 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // For now, we'll use a simple keyword-based response
-    // This will be replaced with actual AI API calls in Phase 3
-    let aiResponse = 'ขอบคุณสำหรับข้อความคุณครับ ทีมงานจะติดต่อกลับในเร็วๆ นี้';
+    // Get conversation history if exists
+    let conversationHistory: any[] = [];
+    if (conversationId) {
+      const { data: existingConv } = await supabase
+        .from('ai_agent_conversations')
+        .select('messages')
+        .eq('id', conversationId)
+        .single();
 
-    const messageLower = message.toLowerCase();
-    if (messageLower.includes('สินค้า') || messageLower.includes('product')) {
-      aiResponse = 'สามารถดูรายการสินค้าทั้งหมดได้ที่หน้า Products ครับ หรือต้องการความช่วยเหลืออะไรเพิ่มเติมไหมครับ?';
-    } else if (messageLower.includes('คำสั่งซื้อ') || messageLower.includes('order')) {
-      aiResponse = 'คุณสามารถดูประวัติคำสั่งซื้อได้ที่หน้า Orders หรือต้องการให้ช่วยตรวจสอบคำสั่งซื้อไหนโดยเฉพาะไหมครับ?';
-    } else if (messageLower.includes('ราคา') || messageLower.includes('price')) {
-      aiResponse = 'ราคาสินค้าของเราแข่งขันได้มากครับ คุณสามารถเปรียบเทียบราคาได้ที่หน้าสินค้าแต่ละรายการเลยครับ';
-    } else if (messageLower.includes('จัดส่ง') || messageLower.includes('shipping')) {
-      aiResponse = 'เรามีบริการจัดส่งทั่วประเทศไทยครับ ใช้เวลาประมาณ 2-3 วันทำการ ต้องการทราบค่าจัดส่งไปยังที่ใดเป็นพิเศษไหมครับ?';
+      if (existingConv?.messages) {
+        conversationHistory = existingConv.messages;
+      }
+    }
+
+    // Check if AI provider is configured
+    let aiResponse: string;
+    let usage: any = undefined;
+
+    if (aiSettings.api_key && aiSettings.ai_provider) {
+      try {
+        // Build system prompt with knowledge base
+        const systemPrompt = buildSystemPrompt(aiSettings.knowledge_sources || []);
+
+        // Prepare messages with conversation context
+        const messages = prepareMessages(conversationHistory, message, systemPrompt);
+
+        // Call AI provider
+        const result = await callAI(messages, {
+          provider: aiSettings.ai_provider,
+          apiKey: aiSettings.api_key,
+          model: aiSettings.ai_model || 'gpt-4',
+          maxTokens: aiSettings.max_tokens || 1000,
+          temperature: aiSettings.temperature || 0.7,
+        });
+
+        aiResponse = result.content;
+        usage = result.usage;
+      } catch (error: any) {
+        console.error('AI Provider Error:', error);
+        // Fallback to keyword-based response if AI fails
+        aiResponse = getFallbackResponse(message);
+      }
+    } else {
+      // Use keyword-based response if no AI provider configured
+      aiResponse = getFallbackResponse(message);
     }
 
     // Update or create conversation
@@ -90,6 +123,7 @@ export async function POST(request: NextRequest) {
           metadata: {
             ai_provider: aiSettings.ai_provider,
             ai_model: aiSettings.ai_model,
+            usage,
           },
         })
         .select()
@@ -101,9 +135,31 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       message: aiResponse,
       conversation,
+      usage,
     });
   } catch (error: any) {
     console.error('AI Chat error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+}
+
+// Fallback keyword-based response when AI is not available
+function getFallbackResponse(message: string): string {
+  const messageLower = message.toLowerCase();
+
+  if (messageLower.includes('สินค้า') || messageLower.includes('product')) {
+    return 'สามารถดูรายการสินค้าทั้งหมดได้ที่หน้า Products ครับ หรือต้องการความช่วยเหลืออะไรเพิ่มเติมไหมครับ?';
+  } else if (messageLower.includes('คำสั่งซื้อ') || messageLower.includes('order')) {
+    return 'คุณสามารถดูประวัติคำสั่งซื้อได้ที่หน้า Orders หรือต้องการให้ช่วยตรวจสอบคำสั่งซื้อไหนโดยเฉพาะไหมครับ?';
+  } else if (messageLower.includes('ราคา') || messageLower.includes('price')) {
+    return 'ราคาสินค้าของเราแข่งขันได้มากครับ คุณสามารถเปรียบเทียบราคาได้ที่หน้าสินค้าแต่ละรายการเลยครับ';
+  } else if (messageLower.includes('จัดส่ง') || messageLower.includes('shipping')) {
+    return 'เรามีบริการจัดส่งทั่วประเทศไทยครับ ใช้เวลาประมาณ 2-3 วันทำการ ต้องการทราบค่าจัดส่งไปยังที่ใดเป็นพิเศษไหมครับ?';
+  } else if (messageLower.includes('สวัสดี') || messageLower.includes('hello') || messageLower.includes('hi')) {
+    return 'สวัสดีครับ! ยินดีต้อนรับสู่ Omni Sales มีอะไรให้ช่วยไหมครับ?';
+  } else if (messageLower.includes('ขอบคุณ') || messageLower.includes('thank')) {
+    return 'ยินดีครับ! มีอะไรให้ช่วยเพิ่มเติมไหมครับ?';
+  }
+
+  return 'ขอบคุณสำหรับข้อความคุณครับ มีอะไรให้ช่วยไหมครับ? สามารถถามเกี่ยวกับสินค้า คำสั่งซื้อ การจัดส่ง หรือเรื่องอื่นๆ ได้เลยครับ';
 }
