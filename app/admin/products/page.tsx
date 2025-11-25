@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
-import { mockProducts, getProductStats } from '@/lib/admin/mockData';
+import { mockProducts, getProductStats, addProduct, type MockProduct } from '@/lib/admin/mockData';
 import { formatCurrency } from '@/lib/utils';
 import {
   Search,
@@ -19,14 +19,51 @@ import StatCard from '@/components/admin/StatCard';
 export default function AdminProductsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [products, setProducts] = useState<MockProduct[]>(mockProducts);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+  // Form state for add product modal
+  const [newProductName, setNewProductName] = useState('');
+  const [newProductPrice, setNewProductPrice] = useState('');
+  const [newProductStock, setNewProductStock] = useState('');
+  const [newProductCategory, setNewProductCategory] = useState('');
+  const [newProductSKU, setNewProductSKU] = useState('');
+  const [newProductStatus, setNewProductStatus] = useState<'active' | 'inactive'>('active');
+
+  const handleAddProduct = () => {
+    if (!newProductName || !newProductPrice || !newProductStock || !newProductCategory || !newProductSKU) {
+      alert('กรุณากรอกข้อมูลให้ครบถ้วน');
+      return;
+    }
+
+    const newProduct = addProduct({
+      name: newProductName,
+      price: parseFloat(newProductPrice),
+      stock: parseInt(newProductStock),
+      category: newProductCategory,
+      sku: newProductSKU,
+      status: newProductStatus,
+    });
+
+    setProducts([...mockProducts]); // Re-render with updated mockProducts
+
+    // Reset form
+    setNewProductName('');
+    setNewProductPrice('');
+    setNewProductStock('');
+    setNewProductCategory('');
+    setNewProductSKU('');
+    setNewProductStatus('active');
+    setIsAddModalOpen(false);
+  };
 
   const stats = getProductStats();
 
   // Get unique categories
-  const categories = ['all', ...new Set(mockProducts.map((p) => p.category))];
+  const categories = ['all', ...new Set(products.map((p) => p.category))];
 
   // Filter products
-  const filteredProducts = mockProducts.filter((product) => {
+  const filteredProducts = products.filter((product) => {
     const matchesSearch =
       !searchTerm ||
       product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -51,7 +88,10 @@ export default function AdminProductsPage() {
               จัดการสินค้าและสต็อกสินค้า
             </p>
           </div>
-          <button className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2">
+          <button
+            onClick={() => setIsAddModalOpen(true)}
+            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+          >
             <Plus className="h-5 w-5" />
             Add New Product
           </button>
@@ -242,10 +282,138 @@ export default function AdminProductsPage() {
           {/* Results Summary */}
           {filteredProducts.length > 0 && (
             <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-400">
-              Showing {filteredProducts.length} of {mockProducts.length} products
+              Showing {filteredProducts.length} of {products.length} products
             </div>
           )}
         </div>
+
+        {/* Add Product Modal */}
+        {isAddModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
+              <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                  เพิ่มสินค้าใหม่
+                </h2>
+                <button
+                  onClick={() => setIsAddModalOpen(false)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)] space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      ชื่อสินค้า *
+                    </label>
+                    <input
+                      type="text"
+                      value={newProductName}
+                      onChange={(e) => setNewProductName(e.target.value)}
+                      placeholder="เช่น เสื้อยืดสีขาว"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      รหัสสินค้า (SKU) *
+                    </label>
+                    <input
+                      type="text"
+                      value={newProductSKU}
+                      onChange={(e) => setNewProductSKU(e.target.value)}
+                      placeholder="เช่น TEE-WHT-001"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      หมวดหมู่ *
+                    </label>
+                    <input
+                      type="text"
+                      value={newProductCategory}
+                      onChange={(e) => setNewProductCategory(e.target.value)}
+                      placeholder="เช่น เสื้อผ้า"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      ราคา (฿) *
+                    </label>
+                    <input
+                      type="number"
+                      value={newProductPrice}
+                      onChange={(e) => setNewProductPrice(e.target.value)}
+                      placeholder="299"
+                      min="0"
+                      step="0.01"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      จำนวนสต็อก *
+                    </label>
+                    <input
+                      type="number"
+                      value={newProductStock}
+                      onChange={(e) => setNewProductStock(e.target.value)}
+                      placeholder="100"
+                      min="0"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                    />
+                  </div>
+
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      สถานะ
+                    </label>
+                    <select
+                      value={newProductStatus}
+                      onChange={(e) => setNewProductStatus(e.target.value as 'active' | 'inactive')}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                    >
+                      <option value="active">Active</option>
+                      <option value="inactive">Inactive</option>
+                    </select>
+                  </div>
+                </div>
+
+                {newProductPrice && newProductStock && (
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                    <p className="text-sm text-blue-800 dark:text-blue-300">
+                      <strong>มูลค่ารวม:</strong> ฿{(parseFloat(newProductPrice) * parseInt(newProductStock || '0')).toLocaleString()}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-3 p-6 border-t border-gray-200 dark:border-gray-700">
+                <button
+                  onClick={() => setIsAddModalOpen(false)}
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  onClick={handleAddProduct}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+                >
+                  เพิ่มสินค้า
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </AdminLayout>
   );

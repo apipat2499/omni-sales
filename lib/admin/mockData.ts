@@ -333,3 +333,13 @@ export function updateProduct(productId: string, updates: Partial<MockProduct>):
   }
   return false;
 }
+
+export function addProduct(product: Omit<MockProduct, 'id'>): MockProduct {
+  const newId = `PROD-${String(mockProducts.length + 1).padStart(3, '0')}`;
+  const newProduct: MockProduct = {
+    id: newId,
+    ...product,
+  };
+  mockProducts.push(newProduct);
+  return newProduct;
+}
