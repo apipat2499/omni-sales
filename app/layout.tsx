@@ -6,9 +6,11 @@ import { ToastProvider } from "@/components/ToastProvider";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import QueryProvider from "@/lib/providers/QueryProvider";
 import { SettingsProvider } from "@/contexts/SettingsContext";
+import { AdvancedSettingsProvider } from "@/contexts/AdvancedSettingsContext";
 import Script from "next/script";
 import { AuthStatusBanner } from "@/components/AuthStatusBanner";
 import { LeadCaptureWidget } from "@/components/LeadCaptureWidget";
+import AIChatWidget from "@/components/AIChatWidget";
 
 // Use system fonts as fallback
 const geistSans = {
@@ -66,11 +68,14 @@ export default function RootLayout({
             <AuthProvider>
               <QueryProvider>
                 <SettingsProvider>
-                  <ToastProvider>
-                    <AuthStatusBanner />
-                    <LeadCaptureWidget />
-                    {children}
-                  </ToastProvider>
+                  <AdvancedSettingsProvider>
+                    <ToastProvider>
+                      <AuthStatusBanner />
+                      <LeadCaptureWidget />
+                      <AIChatWidget />
+                      {children}
+                    </ToastProvider>
+                  </AdvancedSettingsProvider>
                 </SettingsProvider>
               </QueryProvider>
             </AuthProvider>
