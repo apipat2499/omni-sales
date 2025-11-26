@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   TrendingUp,
   TrendingDown,
@@ -10,6 +11,7 @@ import {
   Package,
   MessageSquare,
   Activity,
+  ArrowRight,
 } from 'lucide-react';
 
 interface AnalyticsData {
@@ -66,15 +68,15 @@ function MetricCard({ title, value, change, trend, icon, format = 'number' }: Me
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+    <div className="bg-gray-800 rounded-lg shadow-sm p-6 border border-gray-700 hover:border-blue-500 transition-all">
       <div className="flex items-center justify-between mb-4">
-        <p className="text-sm font-medium text-gray-600">{title}</p>
-        <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600">
+        <p className="text-sm font-medium text-gray-400">{title}</p>
+        <div className="w-10 h-10 bg-blue-500 bg-opacity-20 rounded-lg flex items-center justify-center text-blue-400">
           {icon}
         </div>
       </div>
       <div className="space-y-2">
-        <p className="text-3xl font-bold text-gray-900">{formatValue(value)}</p>
+        <p className="text-3xl font-bold text-white">{formatValue(value)}</p>
         <div className="flex items-center gap-2">
           {trend === 'up' ? (
             <TrendingUp className="w-4 h-4 text-green-500" />
@@ -88,7 +90,7 @@ function MetricCard({ title, value, change, trend, icon, format = 'number' }: Me
           >
             {Math.abs(change)}%
           </span>
-          <span className="text-sm text-gray-500">จากเดือนที่แล้ว</span>
+          <span className="text-sm text-gray-400">จากเดือนที่แล้ว</span>
         </div>
       </div>
     </div>
@@ -96,6 +98,7 @@ function MetricCard({ title, value, change, trend, icon, format = 'number' }: Me
 }
 
 export default function AnalyticsDashboard() {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d' | '1y'>('30d');
   const [analytics, setAnalytics] = useState<AnalyticsData>({
@@ -148,7 +151,7 @@ export default function AnalyticsDashboard() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
       </div>
     );
   }
@@ -158,12 +161,12 @@ export default function AnalyticsDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Analytics Dashboard</h1>
-          <p className="text-gray-600 mt-1">ภาพรวมประสิทธิภาพของร้านค้า</p>
+          <h1 className="text-3xl font-bold text-white">Analytics Dashboard</h1>
+          <p className="text-gray-400 mt-1">ภาพรวมประสิทธิภาพของร้านค้า</p>
         </div>
 
         {/* Time Range Selector */}
-        <div className="flex gap-2 bg-gray-100 rounded-lg p-1">
+        <div className="flex gap-2 bg-gray-800 rounded-lg p-1 border border-gray-700">
           {[
             { value: '7d', label: '7 วัน' },
             { value: '30d', label: '30 วัน' },
@@ -175,8 +178,8 @@ export default function AnalyticsDashboard() {
               onClick={() => setTimeRange(option.value as any)}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                 timeRange === option.value
-                  ? 'bg-white text-blue-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-gray-400 hover:text-white hover:bg-gray-700'
               }`}
             >
               {option.label}
@@ -239,7 +242,7 @@ export default function AnalyticsDashboard() {
       </div>
 
       {/* AI Satisfaction Score */}
-      <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg shadow-sm p-6 text-white">
+      <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg shadow-lg p-6 text-white">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-blue-100">AI Agent Satisfaction Score</p>
@@ -254,29 +257,50 @@ export default function AnalyticsDashboard() {
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <a
-          href="/admin/analytics/sales"
-          className="p-4 bg-white border border-gray-200 rounded-lg hover:border-blue-500 hover:shadow-md transition-all"
+        <button
+          onClick={() => router.push('/admin/analytics/sales')}
+          className="p-4 bg-gray-800 border border-gray-700 rounded-lg hover:border-blue-500 hover:shadow-md transition-all text-left group"
         >
-          <h3 className="font-semibold text-gray-900">รายงานการขาย</h3>
-          <p className="text-sm text-gray-600 mt-1">ดูรายละเอียดยอดขายและรายได้</p>
-        </a>
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold text-white group-hover:text-blue-400 transition-colors">
+                รายงานการขาย
+              </h3>
+              <p className="text-sm text-gray-400 mt-1">ดูรายละเอียดยอดขายและรายได้</p>
+            </div>
+            <ArrowRight className="w-5 h-5 text-gray-600 group-hover:text-blue-400 transition-colors" />
+          </div>
+        </button>
 
-        <a
-          href="/admin/analytics/products"
-          className="p-4 bg-white border border-gray-200 rounded-lg hover:border-blue-500 hover:shadow-md transition-all"
+        <button
+          onClick={() => router.push('/admin/analytics/products')}
+          className="p-4 bg-gray-800 border border-gray-700 rounded-lg hover:border-blue-500 hover:shadow-md transition-all text-left group"
         >
-          <h3 className="font-semibold text-gray-900">สินค้ายอดนิยม</h3>
-          <p className="text-sm text-gray-600 mt-1">สินค้าที่ขายดีที่สุด</p>
-        </a>
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold text-white group-hover:text-blue-400 transition-colors">
+                สินค้ายอดนิยม
+              </h3>
+              <p className="text-sm text-gray-400 mt-1">สินค้าที่ขายดีที่สุด</p>
+            </div>
+            <ArrowRight className="w-5 h-5 text-gray-600 group-hover:text-blue-400 transition-colors" />
+          </div>
+        </button>
 
-        <a
-          href="/admin/analytics/ai-conversations"
-          className="p-4 bg-white border border-gray-200 rounded-lg hover:border-blue-500 hover:shadow-md transition-all"
+        <button
+          onClick={() => router.push('/admin/analytics/ai-conversations')}
+          className="p-4 bg-gray-800 border border-gray-700 rounded-lg hover:border-blue-500 hover:shadow-md transition-all text-left group"
         >
-          <h3 className="font-semibold text-gray-900">AI Conversations</h3>
-          <p className="text-sm text-gray-600 mt-1">วิเคราะห์บทสนทนาและ feedback</p>
-        </a>
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold text-white group-hover:text-blue-400 transition-colors">
+                AI Conversations
+              </h3>
+              <p className="text-sm text-gray-400 mt-1">วิเคราะห์บทสนทนาและ feedback</p>
+            </div>
+            <ArrowRight className="w-5 h-5 text-gray-600 group-hover:text-blue-400 transition-colors" />
+          </div>
+        </button>
       </div>
     </div>
   );
