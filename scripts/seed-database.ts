@@ -1,18 +1,20 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from '@supabase/supabase-js';
 
-export async function POST(request: NextRequest) {
+// Initialize Supabase client
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+
+if (!supabaseUrl || !supabaseServiceKey) {
+  console.error('Missing Supabase credentials');
+  process.exit(1);
+}
+
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+async function seedDatabase() {
+  console.log('🌱 Starting database seeding...\n');
+
   try {
-    const supabase = await createClient();
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-
-    // Check if user is authenticated
-    if (userError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    console.log('🌱 Starting database seeding...');
-
     // 1. Insert Customers
     console.log('📝 Inserting customers...');
     const { data: customers, error: customersError } = await supabase
@@ -51,10 +53,8 @@ export async function POST(request: NextRequest) {
       ])
       .select();
 
-    if (customersError) {
-      console.error('Customers error:', customersError);
-      return NextResponse.json({ error: 'Failed to insert customers', details: customersError }, { status: 500 });
-    }
+    if (customersError) throw customersError;
+    console.log(`✅ Inserted ${customers?.length} customers\n`);
 
     // 2. Insert Products
     console.log('📦 Inserting products...');
@@ -109,13 +109,11 @@ export async function POST(request: NextRequest) {
       ])
       .select();
 
-    if (productsError) {
-      console.error('Products error:', productsError);
-      return NextResponse.json({ error: 'Failed to insert products', details: productsError }, { status: 500 });
-    }
+    if (productsError) throw productsError;
+    console.log(`✅ Inserted ${products?.length} products\n`);
 
     if (!customers || !products || customers.length === 0 || products.length === 0) {
-      return NextResponse.json({ error: 'Failed to insert customers or products' }, { status: 500 });
+      throw new Error('Failed to insert customers or products');
     }
 
     // 3. Insert Orders
@@ -239,29 +237,101 @@ export async function POST(request: NextRequest) {
       .insert(orders)
       .select();
 
-    if (ordersError) {
-      console.error('Orders error:', ordersError);
-      return NextResponse.json({ error: 'Failed to insert orders', details: ordersError }, { status: 500 });
-    }
+    if (ordersError) throw ordersError;
+    console.log(`✅ Inserted ${insertedOrders?.length} orders\n`);
 
     if (!insertedOrders || insertedOrders.length === 0) {
-      return NextResponse.json({ error: 'Failed to insert orders' }, { status: 500 });
+      throw new Error('Failed to insert orders');
     }
 
     // 4. Insert Order Items
     console.log('📋 Inserting order items...');
     const orderItems = [
-      { order_id: insertedOrders[0].id, product_id: products[0].id, product_name: products[0].name, quantity: 2, price: products[0].price },
-      { order_id: insertedOrders[0].id, product_id: products[1].id, product_name: products[1].name, quantity: 1, price: products[1].price },
-      { order_id: insertedOrders[1].id, product_id: products[1].id, product_name: products[1].name, quantity: 1, price: products[1].price },
-      { order_id: insertedOrders[2].id, product_id: products[2].id, product_name: products[2].name, quantity: 1, price: products[2].price },
-      { order_id: insertedOrders[3].id, product_id: products[3].id, product_name: products[3].name, quantity: 1, price: products[3].price },
-      { order_id: insertedOrders[4].id, product_id: products[4].id, product_name: products[4].name, quantity: 1, price: products[4].price },
-      { order_id: insertedOrders[5].id, product_id: products[2].id, product_name: products[2].name, quantity: 1, price: products[2].price },
-      { order_id: insertedOrders[5].id, product_id: products[4].id, product_name: products[4].name, quantity: 1, price: products[4].price },
-      { order_id: insertedOrders[6].id, product_id: products[0].id, product_name: products[0].name, quantity: 2, price: products[0].price },
-      { order_id: insertedOrders[7].id, product_id: products[0].id, product_name: products[0].name, quantity: 2, price: products[0].price },
-      { order_id: insertedOrders[7].id, product_id: products[1].id, product_name: products[1].name, quantity: 1, price: products[1].price },
+      // Order 1: เสื้อยืด 2 ชิ้น + กางเกงยีนส์ 1 ชิ้น
+      {
+        order_id: insertedOrders[0].id,
+        product_id: products[0].id,
+        product_name: products[0].name,
+        quantity: 2,
+        price: products[0].price,
+      },
+      {
+        order_id: insertedOrders[0].id,
+        product_id: products[1].id,
+        product_name: products[1].name,
+        quantity: 1,
+        price: products[1].price,
+      },
+      // Order 2: กางเกงยีนส์ 1 ชิ้น
+      {
+        order_id: insertedOrders[1].id,
+        product_id: products[1].id,
+        product_name: products[1].name,
+        quantity: 1,
+        price: products[1].price,
+      },
+      // Order 3: รองเท้าผ้าใบ 1 ชิ้น
+      {
+        order_id: insertedOrders[2].id,
+        product_id: products[2].id,
+        product_name: products[2].name,
+        quantity: 1,
+        price: products[2].price,
+      },
+      // Order 4: กระเป๋าสะพาย 1 ชิ้น
+      {
+        order_id: insertedOrders[3].id,
+        product_id: products[3].id,
+        product_name: products[3].name,
+        quantity: 1,
+        price: products[3].price,
+      },
+      // Order 5: หมวกแก๊ป 1 ชิ้น
+      {
+        order_id: insertedOrders[4].id,
+        product_id: products[4].id,
+        product_name: products[4].name,
+        quantity: 1,
+        price: products[4].price,
+      },
+      // Order 6: รองเท้าผ้าใบ 1 + หมวกแก๊ป 1
+      {
+        order_id: insertedOrders[5].id,
+        product_id: products[2].id,
+        product_name: products[2].name,
+        quantity: 1,
+        price: products[2].price,
+      },
+      {
+        order_id: insertedOrders[5].id,
+        product_id: products[4].id,
+        product_name: products[4].name,
+        quantity: 1,
+        price: products[4].price,
+      },
+      // Order 7: เสื้อยืด 2 ชิ้น
+      {
+        order_id: insertedOrders[6].id,
+        product_id: products[0].id,
+        product_name: products[0].name,
+        quantity: 2,
+        price: products[0].price,
+      },
+      // Order 8: เสื้อยืด 2 + กางเกงยีนส์ 1
+      {
+        order_id: insertedOrders[7].id,
+        product_id: products[0].id,
+        product_name: products[0].name,
+        quantity: 2,
+        price: products[0].price,
+      },
+      {
+        order_id: insertedOrders[7].id,
+        product_id: products[1].id,
+        product_name: products[1].name,
+        quantity: 1,
+        price: products[1].price,
+      },
     ];
 
     const { data: insertedItems, error: itemsError } = await supabase
@@ -269,25 +339,20 @@ export async function POST(request: NextRequest) {
       .insert(orderItems)
       .select();
 
-    if (itemsError) {
-      console.error('Order items error:', itemsError);
-      return NextResponse.json({ error: 'Failed to insert order items', details: itemsError }, { status: 500 });
-    }
+    if (itemsError) throw itemsError;
+    console.log(`✅ Inserted ${insertedItems?.length} order items\n`);
 
-    console.log('✨ Database seeding completed successfully!');
-
-    return NextResponse.json({
-      success: true,
-      message: 'Database seeded successfully',
-      summary: {
-        customers: customers.length,
-        products: products.length,
-        orders: insertedOrders.length,
-        orderItems: insertedItems?.length || 0,
-      },
-    });
-  } catch (error: any) {
+    console.log('✨ Database seeding completed successfully!\n');
+    console.log('Summary:');
+    console.log(`- Customers: ${customers.length}`);
+    console.log(`- Products: ${products.length}`);
+    console.log(`- Orders: ${insertedOrders.length}`);
+    console.log(`- Order Items: ${insertedItems?.length}`);
+  } catch (error) {
     console.error('❌ Error seeding database:', error);
-    return NextResponse.json({ error: 'Failed to seed database', details: error.message }, { status: 500 });
+    process.exit(1);
   }
 }
+
+// Run the seed function
+seedDatabase();
