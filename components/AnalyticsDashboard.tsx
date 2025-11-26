@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
   TrendingUp,
   TrendingDown,
@@ -11,7 +12,10 @@ import {
   Package,
   MessageSquare,
   Activity,
-  ArrowRight,
+  Home,
+  Settings,
+  ChevronLeft,
+  BarChart3,
 } from 'lucide-react';
 
 interface AnalyticsData {
@@ -158,11 +162,39 @@ export default function AnalyticsDashboard() {
 
   return (
     <div className="space-y-6">
+      {/* Navigation Bar */}
+      <div className="flex items-center gap-4 mb-6">
+        <Link
+          href="/admin"
+          className="flex items-center gap-2 px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg hover:border-blue-500 transition-colors text-gray-300 hover:text-white"
+        >
+          <ChevronLeft className="w-4 h-4" />
+          <span className="text-sm font-medium">กลับไปหน้าหลัก</span>
+        </Link>
+
+        <Link
+          href="/admin/products"
+          className="flex items-center gap-2 px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg hover:border-blue-500 transition-colors text-gray-300 hover:text-white"
+        >
+          <Package className="w-4 h-4" />
+          <span className="text-sm font-medium">สินค้า</span>
+        </Link>
+
+        <Link
+          href="/admin/settings/advanced"
+          className="flex items-center gap-2 px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg hover:border-blue-500 transition-colors text-gray-300 hover:text-white"
+        >
+          <Settings className="w-4 h-4" />
+          <span className="text-sm font-medium">ตั้งค่า</span>
+        </Link>
+      </div>
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-white">Analytics Dashboard</h1>
           <p className="text-gray-400 mt-1">ภาพรวมประสิทธิภาพของร้านค้า</p>
+          <p className="text-xs text-yellow-500 mt-2">⚠️ ข้อมูลนี้เป็น Mock Data สำหรับทดสอบ (ยังไม่ได้เชื่อมกับฐานข้อมูลจริง)</p>
         </div>
 
         {/* Time Range Selector */}
@@ -255,52 +287,39 @@ export default function AnalyticsDashboard() {
         </div>
       </div>
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <button
-          onClick={() => router.push('/admin/analytics/sales')}
-          className="p-4 bg-gray-800 border border-gray-700 rounded-lg hover:border-blue-500 hover:shadow-md transition-all text-left group"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-semibold text-white group-hover:text-blue-400 transition-colors">
-                รายงานการขาย
-              </h3>
-              <p className="text-sm text-gray-400 mt-1">ดูรายละเอียดยอดขายและรายได้</p>
-            </div>
-            <ArrowRight className="w-5 h-5 text-gray-600 group-hover:text-blue-400 transition-colors" />
-          </div>
-        </button>
+      {/* Coming Soon Section */}
+      <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <BarChart3 className="w-6 h-6 text-blue-500" />
+          <h2 className="text-xl font-bold text-white">รายงานเพิ่มเติม</h2>
+          <span className="px-3 py-1 bg-yellow-500 bg-opacity-20 text-yellow-500 text-xs font-medium rounded-full">
+            Coming Soon
+          </span>
+        </div>
 
-        <button
-          onClick={() => router.push('/admin/analytics/products')}
-          className="p-4 bg-gray-800 border border-gray-700 rounded-lg hover:border-blue-500 hover:shadow-md transition-all text-left group"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-semibold text-white group-hover:text-blue-400 transition-colors">
-                สินค้ายอดนิยม
-              </h3>
-              <p className="text-sm text-gray-400 mt-1">สินค้าที่ขายดีที่สุด</p>
-            </div>
-            <ArrowRight className="w-5 h-5 text-gray-600 group-hover:text-blue-400 transition-colors" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="p-4 bg-gray-700 bg-opacity-50 border border-gray-600 rounded-lg cursor-not-allowed opacity-60">
+            <h3 className="font-semibold text-gray-300">รายงานการขาย</h3>
+            <p className="text-sm text-gray-500 mt-1">ดูรายละเอียดยอดขายและรายได้</p>
+            <p className="text-xs text-yellow-500 mt-2">🚧 กำลังพัฒนา...</p>
           </div>
-        </button>
 
-        <button
-          onClick={() => router.push('/admin/analytics/ai-conversations')}
-          className="p-4 bg-gray-800 border border-gray-700 rounded-lg hover:border-blue-500 hover:shadow-md transition-all text-left group"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-semibold text-white group-hover:text-blue-400 transition-colors">
-                AI Conversations
-              </h3>
-              <p className="text-sm text-gray-400 mt-1">วิเคราะห์บทสนทนาและ feedback</p>
-            </div>
-            <ArrowRight className="w-5 h-5 text-gray-600 group-hover:text-blue-400 transition-colors" />
+          <div className="p-4 bg-gray-700 bg-opacity-50 border border-gray-600 rounded-lg cursor-not-allowed opacity-60">
+            <h3 className="font-semibold text-gray-300">สินค้ายอดนิยม</h3>
+            <p className="text-sm text-gray-500 mt-1">สินค้าที่ขายดีที่สุด</p>
+            <p className="text-xs text-yellow-500 mt-2">🚧 กำลังพัฒนา...</p>
           </div>
-        </button>
+
+          <div className="p-4 bg-gray-700 bg-opacity-50 border border-gray-600 rounded-lg cursor-not-allowed opacity-60">
+            <h3 className="font-semibold text-gray-300">AI Conversations</h3>
+            <p className="text-sm text-gray-500 mt-1">วิเคราะห์บทสนทนาและ feedback</p>
+            <p className="text-xs text-yellow-500 mt-2">🚧 กำลังพัฒนา...</p>
+          </div>
+        </div>
+
+        <p className="text-sm text-gray-400 mt-4 text-center">
+          💡 รายงานเหล่านี้จะพร้อมใช้งานในเวอร์ชันถัดไป
+        </p>
       </div>
     </div>
   );
