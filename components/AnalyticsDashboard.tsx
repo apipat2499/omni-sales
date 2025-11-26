@@ -162,33 +162,6 @@ export default function AnalyticsDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Navigation Bar */}
-      <div className="flex items-center gap-4 mb-6">
-        <Link
-          href="/admin"
-          className="flex items-center gap-2 px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg hover:border-blue-500 transition-colors text-gray-300 hover:text-white"
-        >
-          <ChevronLeft className="w-4 h-4" />
-          <span className="text-sm font-medium">กลับไปหน้าหลัก</span>
-        </Link>
-
-        <Link
-          href="/admin/products"
-          className="flex items-center gap-2 px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg hover:border-blue-500 transition-colors text-gray-300 hover:text-white"
-        >
-          <Package className="w-4 h-4" />
-          <span className="text-sm font-medium">สินค้า</span>
-        </Link>
-
-        <Link
-          href="/admin/settings/advanced"
-          className="flex items-center gap-2 px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg hover:border-blue-500 transition-colors text-gray-300 hover:text-white"
-        >
-          <Settings className="w-4 h-4" />
-          <span className="text-sm font-medium">ตั้งค่า</span>
-        </Link>
-      </div>
-
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
