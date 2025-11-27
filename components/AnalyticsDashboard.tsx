@@ -123,9 +123,14 @@ export default function AnalyticsDashboard() {
       if (response.ok) {
         const data = await response.json();
         setAnalytics(data);
+      } else if (response.status === 401) {
+        // Unauthorized - redirect to login
+        window.location.href = '/login';
+        return;
       }
     } catch (error) {
       console.error('Failed to load analytics:', error);
+      // On error, show empty state instead of breaking
     } finally {
       setLoading(false);
     }
@@ -138,9 +143,14 @@ export default function AnalyticsDashboard() {
       if (response.ok) {
         const result = await response.json();
         setRecentOrders(result.data || []);
+      } else if (response.status === 401) {
+        // Unauthorized - redirect to login
+        window.location.href = '/login';
+        return;
       }
     } catch (error) {
       console.error('Failed to load recent orders:', error);
+      // On error, show empty state instead of breaking
     } finally {
       setOrdersLoading(false);
     }

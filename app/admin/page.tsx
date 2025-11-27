@@ -66,11 +66,13 @@ export default function AdminDashboardPage() {
         const data = await response.json();
         setAnalytics(data);
       } else if (response.status === 401) {
-        // Unauthorized - redirect to login or show error
-        console.error('Authentication required');
+        // Unauthorized - redirect to login
+        window.location.href = '/login';
+        return;
       }
     } catch (error) {
       console.error('Failed to load analytics:', error);
+      // On error, show empty state instead of breaking
     } finally {
       setLoading(false);
     }
@@ -84,11 +86,13 @@ export default function AdminDashboardPage() {
         const result = await response.json();
         setRecentOrders(result.data || []);
       } else if (response.status === 401) {
-        // Unauthorized - keep empty state
-        console.error('Authentication required for orders');
+        // Unauthorized - redirect to login
+        window.location.href = '/login';
+        return;
       }
     } catch (error) {
       console.error('Failed to load recent orders:', error);
+      // On error, show empty state instead of breaking
     } finally {
       setOrdersLoading(false);
     }
