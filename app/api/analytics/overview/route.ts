@@ -1,104 +1,153 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/server';
 
 export async function GET(request: NextRequest) {
   try {
+    const supabase = await createClient();
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
-    const period = searchParams.get('period') || '30'; // days
-    const days = parseInt(period);
+    const range = searchParams.get('range') || '30d';
 
-    // Calculate date range
-    const endDate = new Date();
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
+    // Calculate date ranges
+    const now = new Date();
+    const currentPeriodStart = new Date();
+    const previousPeriodStart = new Date();
+    const previousPeriodEnd = new Date();
 
-    // Fetch orders in date range
-    const { data: orders, error } = await supabase
+    switch (range) {
+      case '7d':
+        currentPeriodStart.setDate(now.getDate() - 7);
+        previousPeriodStart.setDate(now.getDate() - 14);
+        previousPeriodEnd.setDate(now.getDate() - 7);
+        break;
+      case '90d':
+        currentPeriodStart.setDate(now.getDate() - 90);
+        previousPeriodStart.setDate(now.getDate() - 180);
+        previousPeriodEnd.setDate(now.getDate() - 90);
+        break;
+      case '1y':
+        currentPeriodStart.setDate(now.getDate() - 365);
+        previousPeriodStart.setDate(now.getDate() - 730);
+        previousPeriodEnd.setDate(now.getDate() - 365);
+        break;
+      default: // 30d
+        currentPeriodStart.setDate(now.getDate() - 30);
+        previousPeriodStart.setDate(now.getDate() - 60);
+        previousPeriodEnd.setDate(now.getDate() - 30);
+    }
+
+    // Query orders for current period
+    const { data: currentOrders, error: currentOrdersError } = await supabase
       .from('orders')
-      .select('*')
-      .gte('created_at', startDate.toISOString())
-      .lte('created_at', endDate.toISOString());
+      .select('total, status, created_at')
+      .gte('created_at', currentPeriodStart.toISOString());
 
-    if (error) throw error;
+    if (currentOrdersError) {
+      console.error('Current orders error:', currentOrdersError);
+    }
 
-    // Calculate metrics
-    const totalRevenue = orders?.reduce((sum, order) => sum + parseFloat(order.total), 0) || 0;
-    const totalOrders = orders?.length || 0;
-    const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
-
-    // Calculate previous period for comparison
-    const prevEndDate = new Date(startDate);
-    const prevStartDate = new Date(startDate);
-    prevStartDate.setDate(prevStartDate.getDate() - days);
-
-    const { data: prevOrders } = await supabase
+    // Query orders for previous period
+    const { data: previousOrders, error: previousOrdersError } = await supabase
       .from('orders')
-      .select('*')
-      .gte('created_at', prevStartDate.toISOString())
-      .lt('created_at', prevEndDate.toISOString());
+      .select('total, status')
+      .gte('created_at', previousPeriodStart.toISOString())
+      .lt('created_at', previousPeriodEnd.toISOString());
 
-    const prevRevenue = prevOrders?.reduce((sum, order) => sum + parseFloat(order.total), 0) || 0;
-    const prevOrderCount = prevOrders?.length || 0;
+    if (previousOrdersError) {
+      console.error('Previous orders error:', previousOrdersError);
+    }
 
-    const revenueGrowth = prevRevenue > 0 ? ((totalRevenue - prevRevenue) / prevRevenue) * 100 : 0;
-    const orderGrowth = prevOrderCount > 0 ? ((totalOrders - prevOrderCount) / prevOrderCount) * 100 : 0;
-
-    // Group by date for chart
-    const revenueByDate: Record<string, number> = {};
-    const ordersByDate: Record<string, number> = {};
-
-    orders?.forEach((order) => {
-      const date = new Date(order.created_at).toISOString().split('T')[0];
-      revenueByDate[date] = (revenueByDate[date] || 0) + parseFloat(order.total);
-      ordersByDate[date] = (ordersByDate[date] || 0) + 1;
-    });
-
-    // Convert to array format
-    const chartData = Object.keys(revenueByDate)
-      .sort()
-      .map((date) => ({
-        date,
-        revenue: revenueByDate[date],
-        orders: ordersByDate[date],
-      }));
-
-    // Get product count
-    const { count: productCount } = await supabase
-      .from('products')
-      .select('*', { count: 'exact', head: true });
-
-    // Get customer count
-    const { count: customerCount } = await supabase
+    // Query all customers
+    const { count: customersCount } = await supabase
       .from('customers')
       .select('*', { count: 'exact', head: true });
 
-    // Get low stock products
-    const { data: lowStockProducts } = await supabase
-      .from('products')
-      .select('*')
-      .lt('stock', 10)
-      .gt('stock', 0)
-      .order('stock', { ascending: true })
-      .limit(5);
+    // Query previous period customers for comparison
+    const { count: previousCustomersCount } = await supabase
+      .from('customers')
+      .select('*', { count: 'exact', head: true })
+      .lt('created_at', previousPeriodEnd.toISOString());
 
+    // Query all products
+    const { count: productsCount } = await supabase
+      .from('products')
+      .select('*', { count: 'exact', head: true });
+
+    // Query previous period products for comparison
+    const { count: previousProductsCount } = await supabase
+      .from('products')
+      .select('*', { count: 'exact', head: true })
+      .lt('created_at', previousPeriodEnd.toISOString());
+
+    // Calculate metrics
+    const totalOrders = currentOrders?.length || 0;
+    const previousTotalOrders = previousOrders?.length || 0;
+    const ordersChange = previousTotalOrders > 0
+      ? ((totalOrders - previousTotalOrders) / previousTotalOrders) * 100
+      : 0;
+
+    const totalRevenue = currentOrders?.reduce((sum, order) => sum + (Number(order.total) || 0), 0) || 0;
+    const previousRevenue = previousOrders?.reduce((sum, order) => sum + (Number(order.total) || 0), 0) || 0;
+    const revenueChange = previousRevenue > 0
+      ? ((totalRevenue - previousRevenue) / previousRevenue) * 100
+      : 0;
+
+    const newOrders = currentOrders?.filter(o => o.status === 'new' || o.status === 'pending').length || 0;
+    const deliveredOrders = currentOrders?.filter(o => o.status === 'delivered').length || 0;
+
+    const totalCustomers = customersCount || 0;
+    const customersChange = (previousCustomersCount || 0) > 0
+      ? ((totalCustomers - (previousCustomersCount || 0)) / (previousCustomersCount || 0)) * 100
+      : 0;
+
+    const totalProducts = productsCount || 0;
+    const productsChange = (previousProductsCount || 0) > 0
+      ? ((totalProducts - (previousProductsCount || 0)) / (previousProductsCount || 0)) * 100
+      : 0;
+
+    // Return real data
     return NextResponse.json({
-      overview: {
-        totalRevenue,
-        totalOrders,
-        averageOrderValue,
-        productCount: productCount || 0,
-        customerCount: customerCount || 0,
-        revenueGrowth,
-        orderGrowth,
+      revenue: {
+        total: totalRevenue,
+        change: Math.abs(revenueChange),
+        trend: revenueChange >= 0 ? 'up' : 'down'
       },
-      chartData,
-      lowStockProducts: lowStockProducts || [],
+      orders: {
+        total: totalOrders,
+        change: Math.abs(ordersChange),
+        trend: ordersChange >= 0 ? 'up' : 'down'
+      },
+      newOrders: newOrders,
+      delivered: deliveredOrders,
+      customers: {
+        total: totalCustomers,
+        change: Math.abs(customersChange),
+        trend: customersChange >= 0 ? 'up' : 'down'
+      },
+      products: {
+        total: totalProducts,
+        change: Math.abs(productsChange),
+        trend: productsChange >= 0 ? 'up' : 'down'
+      },
+      aiConversations: {
+        total: 0,
+        change: 0,
+        trend: 'up',
+        satisfaction: 0
+      },
+      conversionRate: {
+        rate: totalOrders > 0 ? ((deliveredOrders / totalOrders) * 100).toFixed(1) : 0,
+        change: 0,
+        trend: 'up'
+      },
     });
-  } catch (error) {
-    console.error('Error fetching analytics overview:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch analytics overview' },
-      { status: 500 }
-    );
+  } catch (error: any) {
+    console.error('Analytics error:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
