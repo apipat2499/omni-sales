@@ -65,6 +65,9 @@ export default function AdminDashboardPage() {
       if (response.ok) {
         const data = await response.json();
         setAnalytics(data);
+      } else if (response.status === 401) {
+        // Unauthorized - redirect to login or show error
+        console.error('Authentication required');
       }
     } catch (error) {
       console.error('Failed to load analytics:', error);
@@ -80,6 +83,9 @@ export default function AdminDashboardPage() {
       if (response.ok) {
         const result = await response.json();
         setRecentOrders(result.data || []);
+      } else if (response.status === 401) {
+        // Unauthorized - keep empty state
+        console.error('Authentication required for orders');
       }
     } catch (error) {
       console.error('Failed to load recent orders:', error);
