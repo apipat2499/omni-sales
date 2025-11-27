@@ -101,6 +101,7 @@ function MetricCard({ title, value, change, trend, icon, color }: MetricCardProp
 export default function AnalyticsDashboard() {
   const [loading, setLoading] = useState(true);
   const [ordersLoading, setOrdersLoading] = useState(true);
+  const [redirecting, setRedirecting] = useState(false); // Prevent multiple redirects
   const [analytics, setAnalytics] = useState<AnalyticsData>({
     revenue: { total: 0, change: 0, trend: 'up' },
     orders: { total: 0, change: 0, trend: 'up' },
@@ -124,8 +125,11 @@ export default function AnalyticsDashboard() {
         const data = await response.json();
         setAnalytics(data);
       } else if (response.status === 401) {
-        // Unauthorized - redirect to login
-        window.location.href = '/login';
+        // Unauthorized - redirect to login (only once)
+        if (!redirecting) {
+          setRedirecting(true);
+          window.location.href = '/login';
+        }
         return;
       }
     } catch (error) {
@@ -144,8 +148,11 @@ export default function AnalyticsDashboard() {
         const result = await response.json();
         setRecentOrders(result.data || []);
       } else if (response.status === 401) {
-        // Unauthorized - redirect to login
-        window.location.href = '/login';
+        // Unauthorized - redirect to login (only once)
+        if (!redirecting) {
+          setRedirecting(true);
+          window.location.href = '/login';
+        }
         return;
       }
     } catch (error) {
