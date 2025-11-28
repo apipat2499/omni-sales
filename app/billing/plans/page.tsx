@@ -128,7 +128,8 @@ export default function PlansPage() {
             </div>
           </div>
         </div>
+        </div>
       </div>
-    </AdminGuard>
+      </AdminGuard>
   );
 }

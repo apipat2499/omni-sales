@@ -133,6 +133,7 @@ export default function AdvancedAnalyticsPage() {
         </div>
       </div>
     </div>
+    </AdminGuard>
   );
 }
 
