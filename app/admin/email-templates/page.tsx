@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { AdminGuard } from '@/components/RouteGuard';
 import { DEFAULT_EMAIL_TEMPLATES } from '@/lib/email/templates/defaults';
 
 interface EmailTemplate {
@@ -196,15 +197,18 @@ export default function EmailTemplatesPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <AdminGuard>
+        <div className="flex items-center justify-center min-h-screen">
         <div className="text-xl">Loading templates...</div>
       </div>
+      </AdminGuard>
     );
   }
 
   if (isEditing) {
     return (
-      <div className="container mx-auto p-6">
+      <AdminGuard>
+        <div className="container mx-auto p-6">
         <div className="bg-white rounded-lg shadow-lg p-6">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-3xl font-bold">
@@ -332,11 +336,13 @@ export default function EmailTemplatesPage() {
 
         {isPreview && renderPreview()}
       </div>
+      </AdminGuard>
     );
   }
 
   return (
-    <div className="container mx-auto p-6">
+    <AdminGuard>
+      <div className="container mx-auto p-6">
       <div className="bg-white rounded-lg shadow-lg p-6">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold">Email Templates</h1>
@@ -392,5 +398,6 @@ export default function EmailTemplatesPage() {
         )}
       </div>
     </div>
+    </AdminGuard>
   );
 }

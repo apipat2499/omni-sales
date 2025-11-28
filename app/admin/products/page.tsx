@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
+import { AdminGuard } from '@/components/RouteGuard';
 import { useProducts } from '@/lib/hooks/useProducts';
 import { formatCurrency } from '@/lib/utils';
 import type { Product } from '@/types';
@@ -103,21 +104,24 @@ export default function AdminProductsPage() {
 
   if (loading) {
     return (
-      <AdminLayout>
-        <div className="p-6 flex items-center justify-center min-h-screen">
+      <AdminGuard>
+        <AdminLayout>
+          <div className="p-6 flex items-center justify-center min-h-screen">
           <div className="flex flex-col items-center gap-4">
             <Loader2 className="h-12 w-12 text-blue-600 animate-spin" />
             <p className="text-gray-600 dark:text-gray-400">กำลังโหลดข้อมูล...</p>
           </div>
         </div>
-      </AdminLayout>
+        </AdminLayout>
+      </AdminGuard>
     );
   }
 
   if (error) {
     return (
-      <AdminLayout>
-        <div className="p-6 flex items-center justify-center min-h-screen">
+      <AdminGuard>
+        <AdminLayout>
+          <div className="p-6 flex items-center justify-center min-h-screen">
           <div className="flex flex-col items-center gap-4 text-center">
             <AlertTriangle className="h-12 w-12 text-red-600" />
             <div>
@@ -132,13 +136,15 @@ export default function AdminProductsPage() {
             </button>
           </div>
         </div>
-      </AdminLayout>
+        </AdminLayout>
+      </AdminGuard>
     );
   }
 
   return (
-    <AdminLayout>
-      <div className="p-6 space-y-6">
+    <AdminGuard>
+      <AdminLayout>
+        <div className="p-6 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -466,6 +472,7 @@ export default function AdminProductsPage() {
           </div>
         )}
       </div>
-    </AdminLayout>
+      </AdminLayout>
+    </AdminGuard>
   );
 }

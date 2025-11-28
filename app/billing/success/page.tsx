@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Check } from 'lucide-react';
+import { AdminGuard } from '@/components/RouteGuard';
 
 export default function SuccessPage() {
   const searchParams = useSearchParams();
@@ -24,8 +25,9 @@ export default function SuccessPage() {
   }
 
   return (
-    <div className="flex h-screen items-center justify-center bg-gray-50 p-4 dark:bg-gray-900">
-      <div className="max-w-md rounded-lg bg-white p-8 text-center dark:bg-gray-800">
+    <AdminGuard>
+      <div className="flex h-screen items-center justify-center bg-gray-50 p-4 dark:bg-gray-900">
+        <div className="max-w-md rounded-lg bg-white p-8 text-center dark:bg-gray-800">
         <div className="mb-4 flex justify-center">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900">
             <Check className="h-8 w-8 text-green-600 dark:text-green-400" />
@@ -64,7 +66,8 @@ export default function SuccessPage() {
         <p className="mt-8 text-xs text-gray-500 dark:text-gray-500">
           A confirmation email has been sent to your inbox with details about your subscription.
         </p>
+        </div>
       </div>
-    </div>
+    </AdminGuard>
   );
 }

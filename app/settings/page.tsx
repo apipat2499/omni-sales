@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
+import { AuthGuard } from '@/components/RouteGuard';
 import { useNotificationPreferences } from '@/lib/hooks/useNotifications';
 import { useToast } from '@/lib/hooks/useToast';
 import { User, Building, Bell, Lock, Palette, CreditCard, Save } from 'lucide-react';
@@ -10,7 +11,8 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<'profile' | 'business' | 'billing' | 'notifications' | 'security' | 'appearance'>('profile');
 
   return (
-    <DashboardLayout>
+    <AuthGuard>
+      <DashboardLayout>
       <div className="p-6 space-y-6">
         {/* Header */}
         <div>
@@ -105,6 +107,7 @@ export default function SettingsPage() {
         </div>
       </div>
     </DashboardLayout>
+    </AuthGuard>
   );
 }
 

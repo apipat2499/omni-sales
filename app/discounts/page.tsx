@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { AuthGuard } from '@/components/RouteGuard';
 import {
   Tag,
   Plus,
@@ -90,14 +91,17 @@ export default function DiscountsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="text-gray-600 dark:text-gray-400">Loading...</div>
-      </div>
+      <AuthGuard>
+        <div className="flex h-screen items-center justify-center">
+          <div className="text-gray-600 dark:text-gray-400">Loading...</div>
+        </div>
+      </AuthGuard>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 dark:bg-gray-900">
+    <AuthGuard>
+      <div className="min-h-screen bg-gray-50 p-4 dark:bg-gray-900">
       <div className="mx-auto max-w-7xl">
         <div className="mb-8 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -473,5 +477,6 @@ export default function DiscountsPage() {
         )}
       </div>
     </div>
+    </AuthGuard>
   );
 }

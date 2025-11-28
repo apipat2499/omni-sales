@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { AdminGuard } from '@/components/RouteGuard';
 import { useSettings } from '@/contexts/SettingsContext';
 
 const THAI_BANKS = [
@@ -49,7 +50,8 @@ export default function PaymentSettingsPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
+    <AdminGuard>
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Payment Settings</h1>
         <p className="text-gray-600">Configure bank account for customer payments</p>
@@ -190,5 +192,6 @@ export default function PaymentSettingsPage() {
         </form>
       </div>
     </div>
+    </AdminGuard>
   );
 }

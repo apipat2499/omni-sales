@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { SubscriptionPlan } from '@/types';
 import { PricingCard } from '@/components/billing/PricingCard';
+import { AdminGuard } from '@/components/RouteGuard';
 
 export default function PlansPage() {
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
@@ -50,8 +51,9 @@ export default function PlansPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4">
-      <div className="mx-auto max-w-6xl">
+    <AdminGuard>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4">
+        <div className="mx-auto max-w-6xl">
         <div className="mb-12 text-center">
           <h1 className="text-5xl font-bold dark:text-white">
             Simple, Transparent Pricing
@@ -127,6 +129,6 @@ export default function PlansPage() {
           </div>
         </div>
       </div>
-    </div>
+    </AdminGuard>
   );
 }

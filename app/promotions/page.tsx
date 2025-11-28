@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
+import { AuthGuard } from '@/components/RouteGuard';
 import PromotionModal from '@/components/promotions/PromotionModal';
 import { usePromotions } from '@/lib/hooks/usePromotions';
 import { useToast } from '@/lib/hooks/useToast';
@@ -128,7 +129,8 @@ export default function PromotionsPage() {
   };
 
   return (
-    <DashboardLayout>
+    <AuthGuard>
+      <DashboardLayout>
       <div className="p-6 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -325,5 +327,6 @@ export default function PromotionsPage() {
         />
       </div>
     </DashboardLayout>
+    </AuthGuard>
   );
 }

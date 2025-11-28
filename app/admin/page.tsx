@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
+import { AdminGuard } from '@/components/RouteGuard';
 import StatCard from '@/components/admin/StatCard';
 import StatusBadge from '@/components/admin/StatusBadge';
 import { formatCurrency } from '@/lib/utils';
@@ -116,8 +117,9 @@ export default function AdminDashboardPage() {
   }
 
   return (
-    <AdminLayout>
-      <div className="p-6 space-y-6">
+    <AdminGuard>
+      <AdminLayout>
+        <div className="p-6 space-y-6">
         {/* Header */}
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
@@ -314,6 +316,7 @@ export default function AdminDashboardPage() {
           </div>
         </div>
       </div>
-    </AdminLayout>
+      </AdminLayout>
+    </AdminGuard>
   );
 }

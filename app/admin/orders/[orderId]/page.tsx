@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import AdminLayout from '@/components/admin/AdminLayout';
+import { AdminGuard } from '@/components/RouteGuard';
 import StatusBadge from '@/components/admin/StatusBadge';
 import { getOrderById, updateOrderStatus, type MockOrder } from '@/lib/admin/mockData';
 import { formatCurrency } from '@/lib/utils';
@@ -36,8 +37,9 @@ export default function OrderDetailsPage() {
 
   if (!order) {
     return (
-      <AdminLayout>
-        <div className="p-6">
+      <AdminGuard>
+        <AdminLayout>
+          <div className="p-6">
           <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6 text-center">
             <XCircle className="h-12 w-12 text-red-600 dark:text-red-400 mx-auto mb-4" />
             <h2 className="text-xl font-semibold text-red-900 dark:text-red-200 mb-2">
@@ -55,7 +57,8 @@ export default function OrderDetailsPage() {
             </Link>
           </div>
         </div>
-      </AdminLayout>
+        </AdminLayout>
+      </AdminGuard>
     );
   }
 
@@ -108,8 +111,9 @@ export default function OrderDetailsPage() {
   ];
 
   return (
-    <AdminLayout>
-      <div className="p-6 space-y-6">
+    <AdminGuard>
+      <AdminLayout>
+        <div className="p-6 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -356,6 +360,7 @@ export default function OrderDetailsPage() {
           </div>
         </div>
       </div>
-    </AdminLayout>
+      </AdminLayout>
+    </AdminGuard>
   );
 }

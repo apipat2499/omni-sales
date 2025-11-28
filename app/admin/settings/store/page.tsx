@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { AdminGuard } from '@/components/RouteGuard';
 import { useSettings } from '@/contexts/SettingsContext';
 
 export default function StoreSettingsPage() {
@@ -35,7 +36,8 @@ export default function StoreSettingsPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
+    <AdminGuard>
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Store Settings</h1>
         <p className="text-gray-600">Manage your store information and branding</p>
@@ -134,5 +136,6 @@ export default function StoreSettingsPage() {
         </form>
       </div>
     </div>
+    </AdminGuard>
   );
 }

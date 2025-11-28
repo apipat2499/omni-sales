@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
+import { AuthGuard } from '@/components/RouteGuard';
 import ExportButton from '@/components/ExportButton';
 import { formatCurrency, getStatusColor, getChannelColor } from '@/lib/utils';
 import { Search, Eye, RefreshCw, Edit, Plus, ArrowUpDown, ShoppingCart } from 'lucide-react';
@@ -42,7 +43,8 @@ export default function OrdersPage() {
   // Handle errors gracefully
   if (error) {
     return (
-      <DashboardLayout>
+      <AuthGuard>
+        <DashboardLayout>
         <div className="p-6">
           <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6 text-center">
             <div className="flex flex-col items-center gap-4">
@@ -66,6 +68,7 @@ export default function OrdersPage() {
           </div>
         </div>
       </DashboardLayout>
+      </AuthGuard>
     );
   }
 
@@ -102,7 +105,8 @@ export default function OrdersPage() {
   };
 
   return (
-    <DashboardLayout>
+    <AuthGuard>
+      <DashboardLayout>
       <div className="p-6 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -355,5 +359,6 @@ export default function OrdersPage() {
         />
       </div>
     </DashboardLayout>
+    </AuthGuard>
   );
 }

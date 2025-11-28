@@ -2,6 +2,7 @@
 
 import useSWR from "swr";
 import { useState } from "react";
+import { AdminGuard } from '@/components/RouteGuard';
 import { BadgeCheck, Phone, Mail, Building2, Loader2, RefreshCw } from "lucide-react";
 import { useAuth } from "@/lib/auth/AuthContext";
 
@@ -88,7 +89,8 @@ export default function LeadsAdminPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-6">
+    <AdminGuard>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-6">
       <div className="max-w-6xl mx-auto space-y-6">
         <header>
           <p className="text-sm uppercase tracking-wide text-blue-600 font-semibold">Sales</p>
@@ -229,5 +231,6 @@ export default function LeadsAdminPage() {
         )}
       </div>
     </div>
+    </AdminGuard>
   );
 }

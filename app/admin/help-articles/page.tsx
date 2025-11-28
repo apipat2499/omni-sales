@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { AdminGuard } from '@/components/RouteGuard';
 import {
   Plus,
   Edit,
@@ -89,7 +90,8 @@ export default function AdminHelpArticlesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <AdminGuard>
+      <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
@@ -347,5 +349,6 @@ export default function AdminHelpArticlesPage() {
         </div>
       )}
     </div>
+    </AdminGuard>
   );
 }

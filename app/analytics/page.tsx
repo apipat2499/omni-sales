@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
-import { AdminGuard } from '@/components/RouteGuard';
 import {
   TrendingUp,
   DollarSign,
@@ -199,7 +198,6 @@ export default function AnalyticsPage() {
   ];
 
   return (
-    <AdminGuard>
       <DashboardLayout>
         <div className="p-6 space-y-6">
         {/* Header */}
@@ -670,6 +668,5 @@ export default function AnalyticsPage() {
         </div>
       </div>
       </DashboardLayout>
-    </AdminGuard>
   );
 }

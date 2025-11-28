@@ -16,6 +16,9 @@ import {
   Calendar,
 } from 'lucide-react';
 import { WishlistWithItems } from '@/types';
+import { AuthGuard } from '@/components/RouteGuard';
+import { useAuth } from '@/lib/auth/AuthContext';
+import DashboardLayout from '@/components/DashboardLayout';
 
 interface KPIStats {
   totalWishlists: number;
@@ -25,6 +28,7 @@ interface KPIStats {
 }
 
 export default function WishlistsPage() {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'my-wishlists' | 'shared' | 'analytics'>('my-wishlists');
   const [wishlists, setWishlists] = useState<WishlistWithItems[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -37,22 +41,12 @@ export default function WishlistsPage() {
   const [shareName, setShareName] = useState('');
   const [shareType, setShareType] = useState<'email' | 'link'>('email');
   const [sharedLink, setSharedLink] = useState('');
-  const [userId, setUserId] = useState<string | null>(null);
-  const [customerEmail, setCustomerEmail] = useState<string | null>(null);
 
   useEffect(() => {
-    const storedUserId = localStorage.getItem('userId');
-    const storedEmail = localStorage.getItem('userEmail');
-
-    if (!storedUserId || !storedEmail) {
-      window.location.href = '/login';
-      return;
+    if (user?.id && user?.email) {
+      fetchWishlists(user.id, user.email);
     }
-
-    setUserId(storedUserId);
-    setCustomerEmail(storedEmail);
-    fetchWishlists(storedUserId, storedEmail);
-  }, []);
+  }, [user]);
 
   const fetchWishlists = async (userId: string, email: string) => {
     try {
@@ -178,14 +172,16 @@ export default function WishlistsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 dark:bg-gray-900">
-      <div className="mx-auto max-w-7xl">
-        {/* Header */}
-        <div className="mb-8 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Heart className="h-8 w-8 text-red-500" />
-            <h1 className="text-4xl font-bold dark:text-white">Wishlists</h1>
-          </div>
+    <AuthGuard>
+      <DashboardLayout>
+        <div className="min-h-screen bg-gray-50 p-4 dark:bg-gray-900">
+          <div className="mx-auto max-w-7xl">
+            {/* Header */}
+            <div className="mb-8 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Heart className="h-8 w-8 text-red-500" />
+                <h1 className="text-4xl font-bold dark:text-white">Wishlists</h1>
+              </div>
           <button
             onClick={() => setIsCreating(true)}
             className="flex items-center gap-2 rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
@@ -620,5 +616,7 @@ export default function WishlistsPage() {
         )}
       </div>
     </div>
+      </DashboardLayout>
+    </AuthGuard>
   );
 }

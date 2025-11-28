@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { TrendingUp, DollarSign, Zap, Plus, Edit2, Trash2, TrendingDown } from "lucide-react";
+import { AdminGuard } from '@/components/RouteGuard';
+import { useAuth } from '@/lib/auth/AuthContext';
+import DashboardLayout from "@/components/DashboardLayout";
 
 interface Strategy {
   id: string;
@@ -22,22 +25,18 @@ interface Analytics {
 }
 
 export default function PricingPage() {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("overview");
-  const [userId, setUserId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [strategies, setStrategies] = useState<Strategy[]>([]);
   const [analytics, setAnalytics] = useState<Analytics[]>([]);
   const [isCreatingStrategy, setIsCreatingStrategy] = useState(false);
 
   useEffect(() => {
-    const storedUserId = localStorage.getItem("userId");
-    if (!storedUserId) {
-      window.location.href = "/login";
-      return;
+    if (user?.id) {
+      fetchData(user.id);
     }
-    setUserId(storedUserId);
-    fetchData(storedUserId);
-  }, []);
+  }, [user]);
 
   const fetchData = async (userId: string) => {
     try {
@@ -66,12 +65,14 @@ export default function PricingPage() {
   const totalRevenue = analytics.reduce((sum, a) => sum + (a.revenueImpact || 0), 0);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 dark:bg-gray-900">
-      <div className="mx-auto max-w-7xl">
-        <div className="mb-8 flex items-center justify-between">
-          <h1 className="text-4xl font-bold dark:text-white">Dynamic Pricing</h1>
-          <button className="rounded-lg bg-blue-500 px-4 py-2 text-white">New Strategy</button>
-        </div>
+    <AdminGuard>
+      <DashboardLayout>
+        <div className="min-h-screen bg-gray-50 p-4 dark:bg-gray-900">
+          <div className="mx-auto max-w-7xl">
+            <div className="mb-8 flex items-center justify-between">
+              <h1 className="text-4xl font-bold dark:text-white">Dynamic Pricing</h1>
+              <button className="rounded-lg bg-blue-500 px-4 py-2 text-white">New Strategy</button>
+            </div>
 
         <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-4">
           <div className="rounded-lg border border-gray-200 bg-white p-6 dark:bg-gray-800">
@@ -109,5 +110,7 @@ export default function PricingPage() {
         </div>
       </div>
     </div>
+      </DashboardLayout>
+    </AdminGuard>
   );
 }

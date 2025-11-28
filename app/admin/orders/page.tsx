@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
+import { AdminGuard } from '@/components/RouteGuard';
 import StatusBadge from '@/components/admin/StatusBadge';
 import { mockOrders, updateOrderStatus, type MockOrder } from '@/lib/admin/mockData';
 import { formatCurrency } from '@/lib/utils';
@@ -105,8 +106,9 @@ export default function AdminOrdersPage() {
   };
 
   return (
-    <AdminLayout>
-      <div className="p-6 space-y-6">
+    <AdminGuard>
+      <AdminLayout>
+        <div className="p-6 space-y-6">
         {/* Header */}
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
@@ -319,6 +321,7 @@ export default function AdminOrdersPage() {
           )}
         </div>
       </div>
-    </AdminLayout>
+      </AdminLayout>
+    </AdminGuard>
   );
 }

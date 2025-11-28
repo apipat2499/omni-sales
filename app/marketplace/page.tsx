@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { AuthGuard } from '@/components/RouteGuard';
 import { MarketplaceConnection, MarketplacePlatform } from '@/types';
 import { MarketplaceCard } from '@/components/marketplace/MarketplaceCard';
 import { ConnectMarketplaceModal } from '@/components/marketplace/ConnectMarketplaceModal';
@@ -121,9 +122,11 @@ export default function MarketplacePage() {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="text-gray-600 dark:text-gray-400">Loading...</div>
-      </div>
+      <AuthGuard>
+        <div className="flex h-screen items-center justify-center">
+          <div className="text-gray-600 dark:text-gray-400">Loading...</div>
+        </div>
+      </AuthGuard>
     );
   }
 
@@ -133,7 +136,8 @@ export default function MarketplacePage() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 dark:bg-gray-900">
+    <AuthGuard>
+      <div className="min-h-screen bg-gray-50 p-4 dark:bg-gray-900">
       <div className="mx-auto max-w-6xl">
         {/* Header */}
         <div className="mb-8">
@@ -240,5 +244,6 @@ export default function MarketplacePage() {
         />
       )}
     </div>
+    </AuthGuard>
   );
 }

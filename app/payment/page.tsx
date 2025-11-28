@@ -15,6 +15,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import type { PaymentDashboardData, Payment, Invoice } from '@/types';
+import { AdminGuard } from '@/components/RouteGuard';
 
 interface MetricCard {
   label: string;
@@ -123,8 +124,9 @@ export default function PaymentPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-8">
-      <div className="max-w-7xl mx-auto">
+    <AdminGuard>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-8">
+        <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -429,6 +431,6 @@ export default function PaymentPage() {
           )}
         </div>
       </div>
-    </div>
+    </AdminGuard>
   );
 }

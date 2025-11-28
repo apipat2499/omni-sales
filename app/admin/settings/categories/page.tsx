@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { AdminGuard } from '@/components/RouteGuard';
 import { useSettings } from '@/contexts/SettingsContext';
 import Modal from '@/components/ui/Modal';
 
@@ -62,7 +63,8 @@ export default function CategoriesSettingsPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
+    <AdminGuard>
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
       <div className="mb-8 flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Categories Management</h1>
@@ -179,5 +181,6 @@ export default function CategoriesSettingsPage() {
         </form>
       </Modal>
     </div>
+    </AdminGuard>
   );
 }

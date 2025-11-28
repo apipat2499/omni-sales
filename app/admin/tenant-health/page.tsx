@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { AdminGuard } from '@/components/RouteGuard';
 import { AlertTriangle, CheckCircle2, CloudOff, RefreshCw } from "lucide-react";
 
 interface HealthResponse {
@@ -143,7 +144,8 @@ export default function TenantHealthPage() {
   }, [loadData]);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-6">
+    <AdminGuard>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-6">
       <div className="max-w-6xl mx-auto space-y-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
@@ -319,6 +321,7 @@ export default function TenantHealthPage() {
         </div>
       </div>
     </div>
+    </AdminGuard>
   );
 }
 

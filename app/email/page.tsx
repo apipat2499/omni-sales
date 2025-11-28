@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { AuthGuard } from '@/components/RouteGuard';
 import { Mail, Send, Users, TrendingUp, Eye, Pointer, Zap, RefreshCw, Plus, BarChart3, Gauge } from "lucide-react";
 
 interface EmailMetrics {
@@ -91,17 +92,20 @@ export default function EmailMarketingPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <Mail className="w-12 h-12 text-blue-500 mx-auto mb-4 animate-pulse" />
-          <p className="text-gray-600 dark:text-gray-400">Loading Email Marketing...</p>
+      <AuthGuard>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <Mail className="w-12 h-12 text-blue-500 mx-auto mb-4 animate-pulse" />
+            <p className="text-gray-600 dark:text-gray-400">Loading Email Marketing...</p>
+          </div>
         </div>
-      </div>
+      </AuthGuard>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-8">
+    <AuthGuard>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
@@ -376,5 +380,6 @@ export default function EmailMarketingPage() {
         </div>
       </div>
     </div>
+    </AuthGuard>
   );
 }

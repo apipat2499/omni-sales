@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { AuthGuard } from '@/components/RouteGuard';
 import { AlertCircle, CheckCircle, Clock, MessageSquare, TrendingUp, RefreshCw, Filter } from 'lucide-react';
 
 interface ComplaintData {
@@ -119,7 +120,8 @@ export default function ComplaintsPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 dark:bg-gray-900">
+    <AuthGuard>
+      <div className="min-h-screen bg-gray-50 p-4 dark:bg-gray-900">
       <div className="mx-auto max-w-7xl">
         {/* Header */}
         <div className="mb-8 flex items-center justify-between">
@@ -319,5 +321,6 @@ export default function ComplaintsPage() {
         )}
       </div>
     </div>
+    </AuthGuard>
   );
 }

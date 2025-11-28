@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { AuthGuard } from '@/components/RouteGuard';
 import {
   Ticket,
   MessageSquare,
@@ -101,28 +102,33 @@ export default function SupportPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <Ticket className="w-12 h-12 text-blue-500 mx-auto mb-4 animate-pulse" />
-          <p className="text-gray-600 dark:text-gray-400">Loading Support System...</p>
+      <AuthGuard>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <Ticket className="w-12 h-12 text-blue-500 mx-auto mb-4 animate-pulse" />
+            <p className="text-gray-600 dark:text-gray-400">Loading Support System...</p>
+          </div>
         </div>
-      </div>
+      </AuthGuard>
     );
   }
 
   if (!dashboardData) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <p className="text-gray-600 dark:text-gray-400">Failed to load support data</p>
+      <AuthGuard>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+            <p className="text-gray-600 dark:text-gray-400">Failed to load support data</p>
+          </div>
         </div>
-      </div>
+      </AuthGuard>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-8">
+    <AuthGuard>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
@@ -385,5 +391,6 @@ export default function SupportPage() {
         </div>
       </div>
     </div>
+    </AuthGuard>
   );
 }

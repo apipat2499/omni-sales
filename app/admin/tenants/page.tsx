@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { AdminGuard } from '@/components/RouteGuard';
 
 interface Tenant {
   id: string;
@@ -100,14 +101,17 @@ export default function TenantsAdminPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <AdminGuard>
+        <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
+      </AdminGuard>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <AdminGuard>
+      <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Tenant Management</h1>
         <p className="text-gray-600">Manage all tenants, subscriptions, and usage</p>
@@ -258,5 +262,6 @@ export default function TenantsAdminPage() {
         )}
       </div>
     </div>
+    </AdminGuard>
   );
 }

@@ -1,4 +1,5 @@
 import DashboardLayout from '@/components/DashboardLayout';
+import { AuthGuard } from '@/components/RouteGuard';
 import StatsCards from '@/components/dashboard/StatsCards';
 import RevenueChart from '@/components/dashboard/RevenueChart';
 import CategoryChart from '@/components/dashboard/CategoryChart';
@@ -9,7 +10,8 @@ import QuickActions from '@/components/dashboard/QuickActions';
 
 export default function DashboardPage() {
   return (
-    <DashboardLayout>
+    <AuthGuard>
+      <DashboardLayout>
       <div className="p-6 space-y-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
@@ -33,5 +35,6 @@ export default function DashboardPage() {
         <RecentOrders />
       </div>
     </DashboardLayout>
+    </AuthGuard>
   );
 }

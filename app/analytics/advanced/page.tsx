@@ -22,6 +22,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import DashboardCards from '@/components/analytics/DashboardCards';
+import { AdminGuard } from '@/components/RouteGuard';
 
 export default function AdvancedAnalyticsPage() {
   const [activeTab, setActiveTab] = useState<'overview' | 'cohort' | 'rfm' | 'clv' | 'retention' | 'funnel'>('overview');
@@ -41,8 +42,9 @@ export default function AdvancedAnalyticsPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-7xl mx-auto">
+    <AdminGuard>
+      <div className="min-h-screen bg-gray-50 p-8">
+        <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">

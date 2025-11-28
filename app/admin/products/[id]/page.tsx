@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import AdminLayout from '@/components/admin/AdminLayout';
+import { AdminGuard } from '@/components/RouteGuard';
 import {
   getProductById,
   updateProduct,
@@ -54,8 +55,9 @@ export default function EditProductPage() {
 
   if (!product) {
     return (
-      <AdminLayout>
-        <div className="p-6">
+      <AdminGuard>
+        <AdminLayout>
+          <div className="p-6">
           <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6 text-center">
             <AlertCircle className="h-12 w-12 text-red-600 dark:text-red-400 mx-auto mb-4" />
             <h2 className="text-xl font-semibold text-red-900 dark:text-red-200 mb-2">
@@ -73,7 +75,8 @@ export default function EditProductPage() {
             </Link>
           </div>
         </div>
-      </AdminLayout>
+        </AdminLayout>
+      </AdminGuard>
     );
   }
 
@@ -120,8 +123,9 @@ export default function EditProductPage() {
   const isLowStock = formData.stock < 10;
 
   return (
-    <AdminLayout>
-      <div className="p-6 space-y-6">
+    <AdminGuard>
+      <AdminLayout>
+        <div className="p-6 space-y-6">
         {/* Header */}
         <div>
           <Link
@@ -351,6 +355,7 @@ export default function EditProductPage() {
           </div>
         </form>
       </div>
-    </AdminLayout>
+      </AdminLayout>
+    </AdminGuard>
   );
 }

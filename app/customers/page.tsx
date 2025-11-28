@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
+import { AuthGuard } from '@/components/RouteGuard';
 import CustomerModal from '@/components/customers/CustomerModal';
 import {
   Users,
@@ -111,11 +112,13 @@ export default function CustomersPage() {
 
   if (isLoading) {
     return (
-      <DashboardLayout>
-        <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
-          <div className="text-gray-600 dark:text-gray-400">Loading customers...</div>
-        </div>
-      </DashboardLayout>
+      <AuthGuard>
+        <DashboardLayout>
+          <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
+            <div className="text-gray-600 dark:text-gray-400">Loading customers...</div>
+          </div>
+        </DashboardLayout>
+      </AuthGuard>
     );
   }
 
@@ -125,7 +128,8 @@ export default function CustomersPage() {
   // };
 
   return (
-    <DashboardLayout>
+    <AuthGuard>
+      <DashboardLayout>
       <div className="p-6 space-y-6">
         <div className="mb-8 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -317,5 +321,6 @@ export default function CustomersPage() {
         />
       </div>
     </DashboardLayout>
+    </AuthGuard>
   );
 }
