@@ -21,6 +21,7 @@ export default function AIChatWidget() {
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const conversationIdRef = useRef<string | null>(null);
 
   // Don't render if disabled
   if (!aiSettings.is_enabled) {
@@ -67,22 +68,58 @@ export default function AIChatWidget() {
       timestamp: new Date(),
     };
 
+    const userInput = inputValue;
     setMessages((prev) => [...prev, userMessage]);
     setInputValue('');
     setIsTyping(true);
 
-    // Simulate AI response (in real implementation, call your AI API)
-    setTimeout(() => {
+    try {
+      // Call real AI API
+      const response = await fetch('/api/ai-chat/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: userInput,
+          conversationId: conversationIdRef.current,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get AI response');
+      }
+
+      const data = await response.json();
+
+      // Save conversation ID for next messages
+      if (data.conversation?.id) {
+        conversationIdRef.current = data.conversation.id;
+      }
+
       const aiResponse: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: generateAIResponse(inputValue),
+        content: data.message || 'ขออภัยครับ ไม่สามารถตอบกลับได้ในขณะนี้',
         timestamp: new Date(),
       };
 
       setMessages((prev) => [...prev, aiResponse]);
+    } catch (error) {
+      console.error('AI Chat error:', error);
+
+      // Fallback to keyword-based response
+      const aiResponse: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: generateAIResponse(userInput),
+        timestamp: new Date(),
+      };
+
+      setMessages((prev) => [...prev, aiResponse]);
+    } finally {
       setIsTyping(false);
-    }, 1500);
+    }
   };
 
   const generateAIResponse = (userInput: string): string => {
