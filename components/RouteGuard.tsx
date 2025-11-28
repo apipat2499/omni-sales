@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState, useRef } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth/AuthContext';
-import { Shield, AlertTriangle, Loader2 } from 'lucide-react';
+import { AlertTriangle, Loader2 } from 'lucide-react';
 
 interface RouteGuardProps {
   children: React.ReactNode;
@@ -11,38 +11,69 @@ interface RouteGuardProps {
   fallbackPath?: string;
 }
 
+// Development mode bypass (ปิดการใช้งานได้ผ่าน env)
+const DEV_BYPASS = process.env.NEXT_PUBLIC_BYPASS_AUTH === 'true';
+
 export default function RouteGuard({
   children,
   requireAdmin = false,
   fallbackPath = '/dashboard'
 }: RouteGuardProps) {
-  const { user, userRole, isAdmin, loading } = useAuth();
+  const { user, userRole, isAdmin, loading, supabaseReady } = useAuth();
   const router = useRouter();
-  const [isAuthorized, setIsAuthorized] = useState(false);
-  const [checkingAuth, setCheckingAuth] = useState(true);
+  const pathname = usePathname();
+  const [showContent, setShowContent] = useState(false);
+  const redirectingRef = useRef(false);
 
   useEffect(() => {
-    if (!loading) {
-      // Check authentication
-      if (!user) {
-        router.push('/login');
-        return;
-      }
-
-      // Check admin requirement
-      if (requireAdmin && !isAdmin) {
-        console.warn('Unauthorized access attempt to admin route');
-        router.push(fallbackPath);
-        return;
-      }
-
-      setIsAuthorized(true);
-      setCheckingAuth(false);
+    // Development bypass mode
+    if (DEV_BYPASS) {
+      console.warn('🚨 Auth bypass enabled (DEV_BYPASS=true)');
+      setShowContent(true);
+      return;
     }
-  }, [user, isAdmin, loading, requireAdmin, fallbackPath, router]);
 
-  // Loading state
-  if (loading || checkingAuth) {
+    // Supabase not ready - bypass for now (show warning)
+    if (!supabaseReady) {
+      console.warn('⚠️ Supabase not configured - bypassing auth check');
+      setShowContent(true);
+      return;
+    }
+
+    // Wait for loading to complete
+    if (loading) {
+      return;
+    }
+
+    // Prevent redirect loop
+    if (redirectingRef.current) {
+      return;
+    }
+
+    // Check authentication
+    if (!user) {
+      if (pathname !== '/login') {
+        console.log('🔒 No user - redirecting to login');
+        redirectingRef.current = true;
+        router.push('/login');
+      }
+      return;
+    }
+
+    // Check admin requirement
+    if (requireAdmin && !isAdmin) {
+      console.warn('🚫 Unauthorized admin access attempt:', { userRole, pathname });
+      redirectingRef.current = true;
+      router.push(fallbackPath);
+      return;
+    }
+
+    // All checks passed
+    setShowContent(true);
+  }, [user, isAdmin, loading, requireAdmin, fallbackPath, router, pathname, supabaseReady]);
+
+  // Loading state - รอ AuthContext
+  if (loading && !DEV_BYPASS) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
@@ -53,8 +84,8 @@ export default function RouteGuard({
     );
   }
 
-  // Unauthorized state (shouldn't normally show due to redirect, but just in case)
-  if (!isAuthorized) {
+  // Unauthorized - แสดงข้อความชั่วคราว ก่อน redirect
+  if (!showContent && !DEV_BYPASS && supabaseReady) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 text-center">
@@ -66,24 +97,37 @@ export default function RouteGuard({
           </h2>
           <p className="text-gray-600 dark:text-gray-400 mb-6">
             {requireAdmin
-              ? 'หน้านี้สำหรับผู้ดูแลระบบเท่านั้น คุณต้องมี role Owner หรือ Manager'
-              : 'คุณไม่มีสิทธิ์เข้าถึงหน้านี้'}
+              ? 'หน้านี้สำหรับผู้ดูแลระบบเท่านั้น (Owner/Manager)'
+              : 'กรุณาเข้าสู่ระบบเพื่อดำเนินการต่อ'}
           </p>
           {userRole && (
             <div className="mb-6 p-3 bg-gray-100 dark:bg-gray-700 rounded-lg">
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                Role ปัจจุบันของคุณ: <span className="font-semibold text-gray-900 dark:text-white">{userRole}</span>
+                Role ของคุณ: <span className="font-semibold text-gray-900 dark:text-white">{userRole}</span>
               </p>
             </div>
           )}
-          <button
-            onClick={() => router.push(fallbackPath)}
-            className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-          >
-            กลับไปหน้าหลัก
-          </button>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            กำลังนำคุณไปยังหน้าที่เหมาะสม...
+          </p>
         </div>
       </div>
+    );
+  }
+
+  // Supabase not ready - show warning banner
+  if (!supabaseReady) {
+    return (
+      <>
+        <div className="bg-yellow-50 dark:bg-yellow-900/20 border-b border-yellow-200 dark:border-yellow-800">
+          <div className="max-w-7xl mx-auto py-2 px-4">
+            <p className="text-sm text-yellow-800 dark:text-yellow-200 text-center">
+              ⚠️ ระบบยืนยันตัวตนยังไม่พร้อม - กำลังใช้งานในโหมด Demo
+            </p>
+          </div>
+        </div>
+        {children}
+      </>
     );
   }
 
