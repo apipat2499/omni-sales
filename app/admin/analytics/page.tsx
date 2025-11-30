@@ -6,7 +6,7 @@ import { AdminGuard } from '@/components/RouteGuard';
 import { formatCurrency } from '@/lib/utils';
 import { useOrdersSWR } from '@/lib/hooks/useOrdersSWR';
 import { useProductsSWR } from '@/lib/hooks/useProductsSWR';
-import { useCustomersSWR } from '@/lib/hooks/useCustomersSWR';
+import { useCustomers } from '@/lib/hooks/useCustomers';
 import {
   BarChart,
   Bar,
@@ -39,7 +39,7 @@ const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'
 export default function AnalyticsPage() {
   const { orders, loading: ordersLoading } = useOrdersSWR();
   const { products, loading: productsLoading } = useProductsSWR();
-  const { customers, loading: customersLoading } = useCustomersSWR();
+  const { customers, loading: customersLoading } = useCustomers();
 
   const [dateRange, setDateRange] = useState(30);
   const loading = ordersLoading || productsLoading || customersLoading;
