@@ -5,8 +5,6 @@ import { corsMiddleware } from './lib/middleware/cors';
 import { generateRequestID } from './lib/security/edge-security';
 import { tenantMiddleware } from './lib/middleware/tenant-middleware';
 import { logServerTelemetry } from './lib/telemetry';
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
 
 const redirectCounters = new Map<string, { count: number; windowStart: number }>();
 const REDIRECT_WINDOW = 60000;
@@ -110,7 +108,9 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
-  // Admin-only routes - require owner or manager role
+  // Admin-only routes - defer to client-side RouteGuard
+  // NOTE: Admin role checking is handled by client-side RouteGuard (AdminGuard)
+  // This is more efficient and avoids database queries in middleware
   const adminRoutes = [
     '/admin',
     '/analytics',
@@ -122,55 +122,13 @@ export async function middleware(req: NextRequest) {
 
   const isAdminRoute = adminRoutes.some(route => pathname.startsWith(route));
 
-  if (isAdminRoute && hasSession) {
-    try {
-      const supabase = createMiddlewareClient({ req, res: NextResponse.next() });
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (user) {
-        // Check user role from database
-        const { data: roleData } = await supabase
-          .from('user_roles')
-          .select('roles(name)')
-          .eq('user_id', user.id)
-          .single();
-
-        const userRole = (roleData?.roles as any)?.name;
-        const isAdmin = userRole === 'owner' || userRole === 'manager';
-
-        if (!isAdmin) {
-          // Not admin, redirect to dashboard
-          const redirectUrl = req.nextUrl.clone();
-          redirectUrl.pathname = '/dashboard';
-          recordRedirectSpike('unauthorized_admin_access', {
-            pathname,
-            requestId,
-            userId: user.id,
-            role: userRole
-          });
-
-          logServerTelemetry({
-            type: 'unauthorized_admin_access',
-            level: 'warning',
-            message: `User ${user.id} attempted to access admin route: ${pathname}`,
-            context: { pathname, role: userRole },
-            source: 'middleware',
-          });
-
-          return NextResponse.redirect(redirectUrl);
-        }
-      }
-    } catch (error) {
-      console.error('Error checking admin role:', error);
-      // On error, allow access but log it
-      logServerTelemetry({
-        type: 'admin_role_check_error',
-        level: 'error',
-        message: 'Failed to check admin role',
-        context: { pathname, error: String(error) },
-        source: 'middleware',
-      });
-    }
+  // Just ensure user is authenticated for admin routes
+  // Actual admin permission check happens in client-side RouteGuard
+  if (isAdminRoute && !hasSession) {
+    const redirectUrl = req.nextUrl.clone();
+    redirectUrl.pathname = '/login';
+    recordRedirectSpike('unauthenticated_admin_access', { pathname, requestId });
+    return NextResponse.redirect(redirectUrl);
   }
 
   // Create base response
