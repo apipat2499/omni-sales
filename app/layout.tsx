@@ -24,7 +24,6 @@ const geistMono = {
 export const metadata: Metadata = {
   title: "Omni Sales - ระบบจัดการขาย Omnichannel",
   description: "ระบบจัดการขายออนไลน์และออฟไลน์แบบครบวงจร",
-  manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -34,7 +33,6 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
-      { url: "/icons/icon-512x512.png", sizes: "512x512", type: "image/png" },
     ],
     apple: [
       { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
@@ -70,9 +68,6 @@ export default function RootLayout({
                 <SettingsProvider>
                   <AdvancedSettingsProvider>
                     <ToastProvider>
-                      <AuthStatusBanner />
-                      <LeadCaptureWidget />
-                      <AIChatWidget />
                       {children}
                     </ToastProvider>
                   </AdvancedSettingsProvider>

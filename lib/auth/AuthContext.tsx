@@ -30,6 +30,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
+    // Set timeout to force stop loading after 3 seconds
+    const loadingTimeout = setTimeout(() => {
+      console.warn('[AuthContext] Loading timeout - forcing loading state to false');
+      setLoading(false);
+    }, 3000);
+
     const supabase = getSupabaseClient();
 
     if (!supabase) {
@@ -37,6 +43,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSupabaseReady(false);
       setAuthError('ระบบยังไม่ได้ตั้งค่า Supabase จึงปิดการยืนยันตัวตนชั่วคราว');
       setLoading(false);
+      clearTimeout(loadingTimeout);
       return;
     }
     setSupabaseReady(true);
@@ -45,16 +52,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Check active session
     const checkSession = async () => {
       try {
+        console.log('[AuthContext] Checking session...');
         const { data: { session } } = await supabase.auth.getSession();
         const currentUser = session?.user ?? null;
+        console.log('[AuthContext] Session check complete. User:', currentUser ? 'logged in' : 'not logged in');
         setUser(currentUser);
 
-        // Get user role
+        // Get user role (skip if no user to avoid unnecessary API calls)
         if (currentUser) {
-          const roleInfo = await getRoleFromSession(supabase, currentUser);
-          const role = roleInfo?.role ?? null;
-          setUserRole(role);
-          setIsAdmin(role === 'owner' || role === 'manager');
+          // Try to get role, but gracefully handle if RBAC tables don't exist
+          try {
+            const roleInfo = await getRoleFromSession(supabase, currentUser);
+            const role = roleInfo?.role ?? null;
+            setUserRole(role);
+            setIsAdmin(role === 'owner' || role === 'manager');
+          } catch (roleError) {
+            // Silently fail - RBAC not configured
+            console.warn('RBAC tables not found - running in demo mode');
+            setUserRole(null);
+            setIsAdmin(false);
+          }
         } else {
           setUserRole(null);
           setIsAdmin(false);
@@ -63,7 +80,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.error('Error checking session:', error);
         setAuthError('ไม่สามารถเชื่อมต่อ Supabase ได้ ตรวจสอบค่า Environment');
       } finally {
+        console.log('[AuthContext] Setting loading to false');
         setLoading(false);
+        clearTimeout(loadingTimeout);
       }
     };
 
@@ -75,12 +94,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const currentUser = session?.user ?? null;
         setUser(currentUser);
 
-        // Get user role
+        // Get user role (skip if no user to avoid unnecessary API calls)
         if (currentUser) {
-          const roleInfo = await getRoleFromSession(supabase, currentUser);
-          const role = roleInfo?.role ?? null;
-          setUserRole(role);
-          setIsAdmin(role === 'owner' || role === 'manager');
+          // Try to get role, but gracefully handle if RBAC tables don't exist
+          try {
+            const roleInfo = await getRoleFromSession(supabase, currentUser);
+            const role = roleInfo?.role ?? null;
+            setUserRole(role);
+            setIsAdmin(role === 'owner' || role === 'manager');
+          } catch (roleError) {
+            // Silently fail - RBAC not configured
+            setUserRole(null);
+            setIsAdmin(false);
+          }
         } else {
           setUserRole(null);
           setIsAdmin(false);

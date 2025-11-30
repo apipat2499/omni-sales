@@ -17,6 +17,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setMounted(true);
+    // FORCE LIGHT MODE for debugging
+    setTheme('light');
+    document.documentElement.classList.remove('dark');
+    localStorage.setItem('theme', 'light');
+
+    /* Original code - commented for debugging
     // Load theme from localStorage
     const savedTheme = localStorage.getItem('theme') as Theme | null;
     if (savedTheme) {
@@ -29,6 +35,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       setTheme(defaultTheme);
       document.documentElement.classList.toggle('dark', defaultTheme === 'dark');
     }
+    */
   }, []);
 
   const toggleTheme = () => {
@@ -38,10 +45,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     document.documentElement.classList.toggle('dark', newTheme === 'dark');
   };
 
-  if (!mounted) {
-    return null;
-  }
-
+  // Always render children, even before mounted
+  // This prevents blocking page rendering
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme }}>
       {children}

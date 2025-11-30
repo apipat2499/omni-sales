@@ -23,6 +23,12 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  min-height: 100vh;
+}
+
+/* Force light background for debugging */
+html, body {
+  background-color: #f3f4f6 !important;
 }
 
 /* Toast Animations */

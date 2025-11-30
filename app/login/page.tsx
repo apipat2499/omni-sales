@@ -76,9 +76,22 @@ export default function LoginPage() {
     );
   }
 
-  // Don't show login form if already logged in
+  // Don't show login form if already logged in - redirect to dashboard
   if (user) {
-    return null;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="bg-white p-8 rounded-lg shadow-lg text-center">
+          <h2 className="text-xl font-semibold mb-4">คุณเข้าสู่ระบบแล้ว</h2>
+          <p className="text-gray-600 mb-4">กำลังพาคุณไปที่แดชบอร์ด...</p>
+          <button
+            onClick={() => router.push('/dashboard')}
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            ไปที่แดชบอร์ด
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (

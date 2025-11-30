@@ -62,7 +62,9 @@
       "Bash(then grep \"ADMIN_SECRET\" .env.local)",
       "Bash(else echo \"ADMIN_SECRET not found\")",
       "WebFetch(domain:omni-sales-be05y0rf7-flog2499s-projects.vercel.app)",
-      "Bash(git stash:*)"
+      "Bash(git stash:*)",
+      "WebFetch(domain:omni-sales-1dfsupyun-flog2499s-projects.vercel.app)",
+      "WebFetch(domain:omni-sales-4q1qrursj-flog2499s-projects.vercel.app)"
     ],
     "deny": [],
     "ask": []

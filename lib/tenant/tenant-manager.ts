@@ -109,35 +109,55 @@ export class TenantManager {
    * Supports: subdomain.app.com, custom.domain.com
    */
   public async detectTenantFromRequest(hostname: string): Promise<TenantConfig | null> {
-    const supabase = createClient(this.supabaseUrl, this.supabaseKey);
+    try {
+      const supabase = createClient(this.supabaseUrl, this.supabaseKey);
 
-    // Try custom domain first
-    let { data: tenant, error } = await supabase
-      .from('tenants')
-      .select('*')
-      .eq('custom_domain', hostname)
-      .eq('status', 'active')
-      .single();
+      // Try custom domain first
+      let { data: tenant, error } = await supabase
+        .from('tenants')
+        .select('*')
+        .eq('custom_domain', hostname)
+        .eq('status', 'active')
+        .single();
 
-    // If not found, try subdomain
-    if (!tenant && !error) {
-      const subdomain = this.extractSubdomain(hostname);
-      if (subdomain) {
-        ({ data: tenant, error } = await supabase
-          .from('tenants')
-          .select('*')
-          .eq('subdomain', subdomain)
-          .eq('status', 'active')
-          .single());
+      // Handle table not found error gracefully
+      if (error && (error.code === 'PGRST116' || error.code === 'PGRST204' || error.code === 'PGRST205')) {
+        console.warn('Tenants table not found - running in demo mode without multi-tenancy');
+        return null;
       }
-    }
 
-    if (error || !tenant) {
-      console.error('Tenant detection error:', error);
+      // If not found, try subdomain
+      if (!tenant && !error) {
+        const subdomain = this.extractSubdomain(hostname);
+        if (subdomain) {
+          ({ data: tenant, error } = await supabase
+            .from('tenants')
+            .select('*')
+            .eq('subdomain', subdomain)
+            .eq('status', 'active')
+            .single());
+
+          // Handle table not found error gracefully
+          if (error && (error.code === 'PGRST116' || error.code === 'PGRST204' || error.code === 'PGRST205')) {
+            console.warn('Tenants table not found - running in demo mode without multi-tenancy');
+            return null;
+          }
+        }
+      }
+
+      if (error || !tenant) {
+        // Only log non-404 errors
+        if (error && error.code !== 'PGRST116' && error.code !== 'PGRST204' && error.code !== 'PGRST205') {
+          console.error('Tenant detection error:', error);
+        }
+        return null;
+      }
+
+      return this.mapDatabaseToConfig(tenant);
+    } catch (error) {
+      console.error('Unexpected error in tenant detection:', error);
       return null;
     }
-
-    return this.mapDatabaseToConfig(tenant);
   }
 
   /**
