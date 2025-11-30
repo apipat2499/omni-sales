@@ -563,85 +563,14 @@ export function AdvancedSettingsProvider({ children }: { children: ReactNode }) 
   const [settings, setSettings] = useState<AdvancedSettingsState>(defaultSettings);
   const [loading, setLoading] = useState(true);
 
-  // Load settings from API
+  // Load settings from API (deferred - only when needed)
   useEffect(() => {
     const loadSettings = async () => {
       try {
-        // Load all settings from API in parallel
-        const [
-          storefrontRes,
-          taxRulesRes,
-          ordersRes,
-          invoiceRes,
-          shippingZonesRes,
-          shippingProvidersRes,
-          productRes,
-          emailTemplatesRes,
-          languagesRes,
-          currenciesRes,
-          automationRes,
-          aiAgentRes,
-        ] = await Promise.all([
-          fetch('/api/settings/storefront'),
-          fetch('/api/settings/tax-rules'),
-          fetch('/api/settings/orders'),
-          fetch('/api/settings/invoice'),
-          fetch('/api/settings/shipping/zones'),
-          fetch('/api/settings/shipping/providers'),
-          fetch('/api/settings/products'),
-          fetch('/api/settings/email-templates'),
-          fetch('/api/settings/localization/languages'),
-          fetch('/api/settings/localization/currencies'),
-          fetch('/api/settings/automation'),
-          fetch('/api/settings/ai-agent'),
-        ]);
-
-        const [
-          storefront,
-          taxRules,
-          orders,
-          invoice,
-          shippingZones,
-          shippingProviders,
-          productSettings,
-          emailTemplates,
-          languages,
-          currencies,
-          automation,
-          aiAgent,
-        ] = await Promise.all([
-          storefrontRes.json(),
-          taxRulesRes.json(),
-          ordersRes.json(),
-          invoiceRes.json(),
-          shippingZonesRes.json(),
-          shippingProvidersRes.json(),
-          productRes.json(),
-          emailTemplatesRes.json(),
-          languagesRes.json(),
-          currenciesRes.json(),
-          automationRes.json(),
-          aiAgentRes.json(),
-        ]);
-
-        setSettings({
-          storefront: storefront.id ? storefront : defaultSettings.storefront,
-          taxRules: taxRules || defaultSettings.taxRules,
-          orderNumberSettings: orders.numberSettings?.id
-            ? orders.numberSettings
-            : defaultSettings.orderNumberSettings,
-          orderStatuses: orders.statuses || defaultSettings.orderStatuses,
-          invoiceSettings: invoice.id ? invoice : defaultSettings.invoiceSettings,
-          shippingZones: shippingZones || defaultSettings.shippingZones,
-          shippingProviders: shippingProviders || defaultSettings.shippingProviders,
-          productSettings: productSettings.id ? productSettings : defaultSettings.productSettings,
-          emailTemplates: emailTemplates || defaultSettings.emailTemplates,
-          languages: languages?.length > 0 ? languages : defaultSettings.languages,
-          currencies: currencies?.length > 0 ? currencies : defaultSettings.currencies,
-          automation: automation.id ? automation : defaultSettings.automation,
-          integrations: [],
-          aiAgent: aiAgent.id ? aiAgent : defaultSettings.aiAgent,
-        });
+        // Skip API calls for now - use default settings
+        // API calls will be made on-demand when user interacts with settings pages
+        console.log('Using default settings - API calls deferred');
+        setSettings(defaultSettings);
       } catch (error) {
         console.error('Error loading advanced settings:', error);
         // Fall back to default settings
