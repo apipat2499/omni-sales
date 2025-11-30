@@ -1,19 +1,40 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useCart } from '@/lib/contexts/CartContext';
-import { shopProducts } from '@/lib/data/products';
-import { ShoppingCart, Package, ArrowRight } from 'lucide-react';
+import { ShoppingCart, Package, ArrowRight, Loader2 } from 'lucide-react';
+import type { Product } from '@/types';
 
 export default function HomePage() {
   const { addToCart } = useCart();
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/products?limit=8');
+      if (!response.ok) throw new Error('Failed to fetch products');
+      const data = await response.json();
+      setProducts(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Featured products (first 4)
-  const featuredProducts = shopProducts.slice(0, 4);
+  const featuredProducts = products.slice(0, 4);
 
-  const handleAddToCart = (product: typeof shopProducts[0]) => {
+  const handleAddToCart = (product: Product) => {
     addToCart({
-      id: product.id,
+      id: product.id.toString(),
       name: product.name,
       price: product.price,
       stock: product.stock,
@@ -58,7 +79,16 @@ export default function HomePage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            {featuredProducts.map((product) => (
+            {loading ? (
+              <div className="col-span-full flex justify-center py-12">
+                <Loader2 className="h-12 w-12 text-blue-600 animate-spin" />
+              </div>
+            ) : featuredProducts.length === 0 ? (
+              <div className="col-span-full text-center py-12">
+                <p className="text-gray-600">No products available</p>
+              </div>
+            ) : (
+              featuredProducts.map((product) => (
               <div
                 key={product.id}
                 className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition transform hover:-translate-y-1"
@@ -95,7 +125,8 @@ export default function HomePage() {
                   </button>
                 </div>
               </div>
-            ))}
+            ))
+            )}
           </div>
 
           <div className="text-center">

@@ -1,6 +1,111 @@
 import type { OrderItem } from '@/types';
 
 /**
+ * ========================================
+ * GENERAL EXPORT UTILITIES
+ * ========================================
+ */
+
+/**
+ * Convert any data to CSV format
+ */
+export function convertToCSV<T extends Record<string, any>>(
+  data: T[],
+  columns?: { key: keyof T; label: string }[]
+): string {
+  if (data.length === 0) {
+    return '';
+  }
+
+  const cols = columns || Object.keys(data[0]).map((key) => ({ key, label: key }));
+  const header = cols.map((col) => escapeCSV(col.label)).join(',');
+  const rows = data.map((item) =>
+    cols.map((col) => escapeCSV(formatValue(item[col.key]))).join(',')
+  );
+
+  return [header, ...rows].join('\n');
+}
+
+/**
+ * Download data as CSV file
+ */
+export function downloadCSV<T extends Record<string, any>>(
+  data: T[],
+  filename: string,
+  columns?: { key: keyof T; label: string }[]
+): void {
+  const csv = convertToCSV(data, columns);
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  downloadBlob(blob, filename.endsWith('.csv') ? filename : `${filename}.csv`);
+}
+
+/**
+ * Download data as JSON file
+ */
+export function downloadJSON<T>(data: T, filename: string): void {
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  downloadBlob(blob, filename.endsWith('.json') ? filename : `${filename}.json`);
+}
+
+/**
+ * Copy data to clipboard as CSV
+ */
+export async function copyToClipboard<T extends Record<string, any>>(
+  data: T[],
+  columns?: { key: keyof T; label: string }[]
+): Promise<void> {
+  const csv = convertToCSV(data, columns);
+  try {
+    await navigator.clipboard.writeText(csv);
+  } catch (err) {
+    const textarea = document.createElement('textarea');
+    textarea.value = csv;
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+  }
+}
+
+/**
+ * Helper functions
+ */
+function escapeCSV(value: string): string {
+  const str = String(value);
+  if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
+
+function formatValue(value: any): string {
+  if (value === null || value === undefined) return '';
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value === 'object') return JSON.stringify(value);
+  return String(value);
+}
+
+function downloadBlob(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * ========================================
+ * ORDER-SPECIFIC EXPORT FUNCTIONS
+ * ========================================
+ */
+
+/**
  * Export order items to CSV format
  */
 export function exportOrderItemsToCSV(

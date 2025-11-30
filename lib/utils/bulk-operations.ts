@@ -3,7 +3,8 @@
  * Supports batch operations with progress tracking, undo/redo, and operation history
  */
 
-import type { OrderItem, Product } from '@/types';
+import type { OrderItem, Product, Order, Customer } from '@/lib/types';
+import { showToast } from './toast';
 
 // ===========================
 // Types and Interfaces
@@ -717,4 +718,227 @@ export function validateBulkOperation(
     valid: errors.length === 0,
     errors,
   };
+}
+
+// ===========================
+// Product Bulk Operations
+// ===========================
+
+/**
+ * Bulk delete products
+ */
+export async function bulkDeleteProducts(productIds: string[]): Promise<void> {
+  const toastId = showToast.loading(`กำลังลบสินค้า ${productIds.length} รายการ...`);
+
+  try {
+    const response = await fetch('/api/products/bulk-delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: productIds }),
+    });
+
+    if (!response.ok) {
+      throw new Error('ไม่สามารถลบสินค้าได้');
+    }
+
+    showToast.dismiss(toastId);
+    showToast.success(`ลบสินค้าสำเร็จ ${productIds.length} รายการ`);
+  } catch (error) {
+    showToast.dismiss(toastId);
+    throw error;
+  }
+}
+
+/**
+ * Bulk update product field
+ */
+export async function bulkUpdateProducts(
+  productIds: string[],
+  field: keyof Product,
+  value: any
+): Promise<void> {
+  const toastId = showToast.loading(`กำลังอัพเดทสินค้า ${productIds.length} รายการ...`);
+
+  try {
+    const response = await fetch('/api/products/bulk-update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: productIds, field, value }),
+    });
+
+    if (!response.ok) {
+      throw new Error('ไม่สามารถอัพเดทสินค้าได้');
+    }
+
+    showToast.dismiss(toastId);
+    showToast.success(`อัพเดทสินค้าสำเร็จ ${productIds.length} รายการ`);
+  } catch (error) {
+    showToast.dismiss(toastId);
+    throw error;
+  }
+}
+
+// ===========================
+// Order Bulk Operations
+// ===========================
+
+/**
+ * Bulk delete orders
+ */
+export async function bulkDeleteOrders(orderIds: string[]): Promise<void> {
+  const toastId = showToast.loading(`กำลังลบคำสั่งซื้อ ${orderIds.length} รายการ...`);
+
+  try {
+    const response = await fetch('/api/orders/bulk-delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: orderIds }),
+    });
+
+    if (!response.ok) {
+      throw new Error('ไม่สามารถลบคำสั่งซื้อได้');
+    }
+
+    showToast.dismiss(toastId);
+    showToast.success(`ลบคำสั่งซื้อสำเร็จ ${orderIds.length} รายการ`);
+  } catch (error) {
+    showToast.dismiss(toastId);
+    throw error;
+  }
+}
+
+/**
+ * Bulk update order status
+ */
+export async function bulkUpdateOrderStatus(
+  orderIds: string[],
+  status: Order['status']
+): Promise<void> {
+  const toastId = showToast.loading(`กำลังอัพเดทสถานะ ${orderIds.length} รายการ...`);
+
+  try {
+    const response = await fetch('/api/orders/bulk-update-status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: orderIds, status }),
+    });
+
+    if (!response.ok) {
+      throw new Error('ไม่สามารถอัพเดทสถานะได้');
+    }
+
+    showToast.dismiss(toastId);
+    showToast.success(`อัพเดทสถานะสำเร็จ ${orderIds.length} รายการ`);
+  } catch (error) {
+    showToast.dismiss(toastId);
+    throw error;
+  }
+}
+
+// ===========================
+// Customer Bulk Operations
+// ===========================
+
+/**
+ * Bulk delete customers
+ */
+export async function bulkDeleteCustomers(customerIds: string[]): Promise<void> {
+  const toastId = showToast.loading(`กำลังลบลูกค้า ${customerIds.length} รายการ...`);
+
+  try {
+    const response = await fetch('/api/customers/bulk-delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: customerIds }),
+    });
+
+    if (!response.ok) {
+      throw new Error('ไม่สามารถลบลูกค้าได้');
+    }
+
+    showToast.dismiss(toastId);
+    showToast.success(`ลบลูกค้าสำเร็จ ${customerIds.length} รายการ`);
+  } catch (error) {
+    showToast.dismiss(toastId);
+    throw error;
+  }
+}
+
+// ===========================
+// Export Operations
+// ===========================
+
+/**
+ * Bulk export to CSV
+ */
+export function bulkExportToCSV<T extends Record<string, any>>(
+  data: T[],
+  filename: string,
+  columns: { key: keyof T; label: string }[]
+): void {
+  try {
+    // Create CSV header
+    const headers = columns.map((col) => col.label).join(',');
+
+    // Create CSV rows
+    const rows = data.map((item) => {
+      return columns
+        .map((col) => {
+          const value = item[col.key];
+          // Escape quotes and wrap in quotes if contains comma
+          const stringValue = String(value ?? '');
+          if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+            return `"${stringValue.replace(/"/g, '""')}"`;
+          }
+          return stringValue;
+        })
+        .join(',');
+    });
+
+    // Combine header and rows
+    const csv = [headers, ...rows].join('\n');
+
+    // Create blob and download
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${filename}-${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    showToast.success(`ส่งออก ${data.length} รายการสำเร็จ`);
+  } catch (error) {
+    showToast.error('ไม่สามารถส่งออกข้อมูลได้');
+    throw error;
+  }
+}
+
+/**
+ * Bulk export to JSON
+ */
+export function bulkExportToJSON<T>(data: T[], filename: string): void {
+  try {
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${filename}-${new Date().toISOString().split('T')[0]}.json`);
+    link.style.visibility = 'hidden';
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    showToast.success(`ส่งออก ${data.length} รายการสำเร็จ`);
+  } catch (error) {
+    showToast.error('ไม่สามารถส่งออกข้อมูลได้');
+    throw error;
+  }
 }

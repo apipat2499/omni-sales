@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { shopProducts } from '@/lib/data/products';
+import { supabase } from '@/lib/supabase/client';
+import { getCachedProducts } from '@/lib/cache/strategies/products-cache';
 
 /**
  * GET /api/shop/products
- * Get all products for the shop (MOCK IMPLEMENTATION)
+ * Get all products for the shop (using real API/Database)
  */
 export async function GET(request: NextRequest) {
   try {
@@ -11,24 +12,34 @@ export async function GET(request: NextRequest) {
     const category = searchParams.get('category');
     const inStockOnly = searchParams.get('inStockOnly') === 'true';
 
-    let filteredProducts = [...shopProducts];
+    // Use cached products with filters
+    const products = await getCachedProducts({
+      category: category && category !== 'all' ? category : undefined,
+      inStock: inStockOnly ? true : undefined,
+    });
 
-    // Filter by category if provided
-    if (category && category !== 'all') {
-      filteredProducts = filteredProducts.filter(p => p.category === category);
-    }
-
-    // Filter to only show in-stock products
-    if (inStockOnly) {
-      filteredProducts = filteredProducts.filter(p => p.stock > 0);
-    }
+    // Transform to include only necessary fields
+    const shopProducts = products.map((product) => ({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      stock: product.stock,
+      category: product.category,
+      description: product.description,
+      image: product.image,
+    }));
 
     return NextResponse.json(
       {
-        products: filteredProducts,
-        total: filteredProducts.length,
+        products: shopProducts,
+        total: shopProducts.length,
       },
-      { status: 200 }
+      {
+        status: 200,
+        headers: {
+          'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=7200',
+        },
+      }
     );
 
   } catch (error) {

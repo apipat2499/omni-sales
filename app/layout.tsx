@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthProvider } from "@/lib/auth/AuthContext";
-import { ToastProvider } from "@/components/ToastProvider";
+import ToastProvider from "@/components/providers/ToastProvider";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import QueryProvider from "@/lib/providers/QueryProvider";
 import { SettingsProvider } from "@/contexts/SettingsContext";

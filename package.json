@@ -38,7 +38,9 @@
     "deploy:check": "bash scripts/deploy-vercel.sh",
     "telemetry:test": "node scripts/test-telemetry.mjs",
     "seed": "ts-node scripts/seed-data.ts",
-    "seed:db": "ts-node scripts/seed-database.ts"
+    "seed:db": "ts-node scripts/seed-database.ts",
+    "seed:supabase": "ts-node scripts/seed-supabase.ts",
+    "seed:supabase:clear": "ts-node scripts/seed-supabase.ts -- --clear"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -74,13 +76,14 @@
     "quagga": "^0.12.1",
     "react": "19.2.0",
     "react-dom": "19.2.0",
+    "react-hot-toast": "^2.6.0",
     "react-i18next": "^14.0.0",
-    "recharts": "^3.4.1",
+    "recharts": "^3.5.1",
     "resend": "^6.4.2",
     "speakeasy": "^2.0.0",
     "stripe": "^19.3.1",
     "swagger-ui-react": "^5.30.2",
-    "swr": "^2.3.6",
+    "swr": "^2.3.7",
     "twilio": "^5.10.5",
     "workbox-background-sync": "^7.3.0",
     "workbox-core": "^7.3.0",

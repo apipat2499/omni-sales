@@ -1,11 +1,15 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { AdminGuard } from '@/components/RouteGuard';
 import StatusBadge from '@/components/admin/StatusBadge';
-import { mockOrders, updateOrderStatus, type MockOrder } from '@/lib/admin/mockData';
 import { formatCurrency } from '@/lib/utils';
+import { useOrdersSWR } from '@/lib/hooks/useOrdersSWR';
+import { useRealtimeOrders } from '@/lib/hooks/useRealtimeOrders';
+import { useAdvancedSearch } from '@/lib/hooks/useAdvancedSearch';
+import { useBulkSelect } from '@/lib/hooks/useBulkSelect';
+import type { Order } from '@/types';
 import {
   Search,
   Eye,
@@ -13,97 +17,279 @@ import {
   ArrowUpDown,
   Filter,
   RefreshCw,
+  Loader2,
+  Trash2,
+  Download,
+  Edit as EditIcon,
 } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { th } from 'date-fns/locale';
+import Pagination from '@/components/Pagination';
+import SearchInput from '@/components/SearchInput';
+import AdvancedFilter, { FilterField, FilterValues } from '@/components/AdvancedFilter';
+import ExportButton from '@/components/ExportButton';
+import Checkbox from '@/components/Checkbox';
+import BulkActionBar, { BulkAction } from '@/components/BulkActionBar';
+import { bulkDeleteOrders, bulkUpdateOrderStatus, bulkExportToCSV } from '@/lib/utils/bulk-operations';
 
+type OrderStatus = 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'new';
 type SortField = 'id' | 'customerName' | 'total' | 'createdAt';
 type SortOrder = 'asc' | 'desc';
 
 export default function AdminOrdersPage() {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<MockOrder['status'] | 'all'>('all');
-  const [sortField, setSortField] = useState<SortField>('createdAt');
-  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
-  const [orders, setOrders] = useState(mockOrders);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
 
-  // Filter and sort orders
-  const filteredOrders = useMemo(() => {
-    let filtered = [...orders];
+  // Use SWR for caching and performance
+  const { orders: swrOrders, loading, error, refresh, mutate } = useOrdersSWR();
 
-    // Apply search filter
-    if (searchTerm) {
-      filtered = filtered.filter(
-        (order) =>
-          order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          order.customerEmail.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+  // Use Realtime for live updates
+  const { orders: realtimeOrders, setOrders: setRealtimeOrders } = useRealtimeOrders(swrOrders);
+
+  // Sync realtime orders back to SWR cache
+  useEffect(() => {
+    if (realtimeOrders.length > 0 && realtimeOrders !== swrOrders) {
+      mutate(realtimeOrders, false); // Update cache without revalidation
     }
+  }, [realtimeOrders, swrOrders, mutate]);
 
-    // Apply status filter
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter((order) => order.status === statusFilter);
-    }
+  // Use realtime orders for display
+  const allOrders = realtimeOrders.length > 0 ? realtimeOrders : swrOrders;
 
-    // Apply sorting
-    filtered.sort((a, b) => {
-      let aValue: any = a[sortField];
-      let bValue: any = b[sortField];
+  // Advanced Search & Filter
+  const {
+    searchTerm,
+    setSearchTerm,
+    filterValues,
+    setFilterValues,
+    clearFilters,
+    sortBy,
+    setSortBy,
+    sortOrder,
+    toggleSort,
+    results: filteredOrdersList,
+    totalCount,
+    filteredCount,
+    hasActiveFilters,
+    hasActiveSearch,
+  } = useAdvancedSearch<Order>({
+    data: allOrders,
+    searchFields: ['id', 'customerName', 'customerId'],
+    fuzzy: true,
+    fuzzyThreshold: 0.6,
+    filters: {
+      status: (order, value) => order.status === value,
+      dateRange: (order, value) => {
+        if (!value.from && !value.to) return true;
+        const orderDate = new Date(order.createdAt).getTime();
+        const from = value.from ? new Date(value.from).getTime() : 0;
+        const to = value.to ? new Date(value.to).setHours(23, 59, 59) : Infinity;
+        return orderDate >= from && orderDate <= to;
+      },
+      totalRange: (order, value) => {
+        if (!value.min && !value.max) return true;
+        const min = value.min ? parseFloat(value.min) : 0;
+        const max = value.max ? parseFloat(value.max) : Infinity;
+        return order.total >= min && order.total <= max;
+      },
+    },
+    sortBy: 'createdAt',
+    sortOrder: 'desc',
+  });
 
-      if (sortField === 'createdAt') {
-        aValue = new Date(aValue).getTime();
-        bValue = new Date(bValue).getTime();
+  // Filter fields for advanced filter component
+  const filterFields: FilterField[] = [
+    {
+      id: 'status',
+      label: 'Order Status',
+      type: 'select',
+      options: [
+        { value: 'new', label: 'New' },
+        { value: 'pending', label: 'Pending' },
+        { value: 'processing', label: 'Processing' },
+        { value: 'shipped', label: 'Shipped' },
+        { value: 'delivered', label: 'Delivered' },
+        { value: 'cancelled', label: 'Cancelled' },
+      ],
+    },
+    {
+      id: 'dateRange',
+      label: 'Order Date',
+      type: 'dateRange',
+    },
+    {
+      id: 'totalRange',
+      label: 'Total Amount (฿)',
+      type: 'numberRange',
+    },
+  ];
+
+  // Pagination
+  const totalPages = Math.ceil(filteredOrdersList.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const filteredOrders = filteredOrdersList.slice(startIndex, startIndex + itemsPerPage);
+
+  // Reset to page 1 when filters/search change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterValues]);
+
+  // Bulk selection
+  const bulk = useBulkSelect<Order>({
+    items: filteredOrders,
+    getItemId: (order) => order.id,
+  });
+
+  // Bulk actions handlers
+  const handleBulkAction = async (actionId: string) => {
+    if (bulk.selectedCount === 0) return;
+
+    try {
+      if (actionId === 'delete') {
+        await bulkDeleteOrders(bulk.selectedIds);
+        // Refresh data after deletion
+        await refresh();
+        bulk.clearSelection();
+      } else if (actionId === 'export') {
+        bulkExportToCSV(
+          bulk.selectedItems,
+          'selected-orders',
+          [
+            { key: 'id', label: 'Order ID' },
+            { key: 'customerName', label: 'Customer' },
+            { key: 'status', label: 'Status' },
+            { key: 'total', label: 'Total' },
+            { key: 'createdAt', label: 'Date' },
+            { key: 'channel', label: 'Channel' },
+            { key: 'paymentMethod', label: 'Payment' },
+          ]
+        );
+        bulk.clearSelection();
+      } else if (actionId.startsWith('status-')) {
+        const status = actionId.replace('status-', '') as Order['status'];
+        await bulkUpdateOrderStatus(bulk.selectedIds, status);
+        await refresh();
+        bulk.clearSelection();
       }
-
-      if (sortOrder === 'asc') {
-        return aValue > bValue ? 1 : -1;
-      } else {
-        return aValue < bValue ? 1 : -1;
-      }
-    });
-
-    return filtered;
-  }, [orders, searchTerm, statusFilter, sortField, sortOrder]);
-
-  const handleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortOrder('asc');
+    } catch (error) {
+      console.error('Bulk action failed:', error);
     }
   };
 
-  const handleMarkAsShipped = (orderId: string) => {
-    if (confirm('Mark this order as shipped?')) {
-      updateOrderStatus(orderId, 'shipped');
-      setOrders([...mockOrders]);
+  const bulkActions: BulkAction[] = [
+    {
+      id: 'export',
+      label: 'ส่งออก CSV',
+      icon: <Download className="h-4 w-4" />,
+      variant: 'default',
+    },
+    {
+      id: 'status-processing',
+      label: 'Processing',
+      icon: <EditIcon className="h-4 w-4" />,
+      variant: 'default',
+    },
+    {
+      id: 'status-shipped',
+      label: 'Shipped',
+      icon: <Check className="h-4 w-4" />,
+      variant: 'success',
+    },
+    {
+      id: 'delete',
+      label: 'ลบรายการ',
+      icon: <Trash2 className="h-4 w-4" />,
+      variant: 'danger',
+      requiresConfirmation: true,
+      confirmationMessage: 'คลิกอีกครั้งเพื่อยืนยันการลบ',
+    },
+  ];
+
+  const handleMarkAsShipped = async (orderId: string) => {
+    if (!confirm('Mark this order as shipped?')) return;
+
+    try {
+      // Optimistic update: update order status in UI immediately
+      await mutate(
+        async () => {
+          const response = await fetch(`/api/orders/${orderId}/status`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'shipped' }),
+          });
+
+          if (!response.ok) {
+            throw new Error('Failed to update order status');
+          }
+
+          // Return updated orders list
+          return allOrders.map((order) =>
+            order.id === orderId ? { ...order, status: 'shipped' as OrderStatus } : order
+          );
+        },
+        {
+          optimisticData: allOrders.map((order) =>
+            order.id === orderId ? { ...order, status: 'shipped' as OrderStatus } : order
+          ),
+          rollbackOnError: true,
+          populateCache: true,
+          revalidate: false,
+        }
+      );
+    } catch (err) {
+      console.error('Error updating order:', err);
+      alert(err instanceof Error ? err.message : 'Failed to update order');
     }
   };
 
   const statusCounts = {
-    all: orders.length,
-    new: orders.filter((o) => o.status === 'new').length,
-    processing: orders.filter((o) => o.status === 'processing').length,
-    shipped: orders.filter((o) => o.status === 'shipped').length,
-    delivered: orders.filter((o) => o.status === 'delivered').length,
-    cancelled: orders.filter((o) => o.status === 'cancelled').length,
+    all: allOrders.length,
+    new: allOrders.filter((o) => o.status === 'new').length,
+    processing: allOrders.filter((o) => o.status === 'processing').length,
+    shipped: allOrders.filter((o) => o.status === 'shipped').length,
+    delivered: allOrders.filter((o) => o.status === 'delivered').length,
+    cancelled: allOrders.filter((o) => o.status === 'cancelled').length,
   };
 
-  const SortIcon = ({ field }: { field: SortField }) => {
-    if (sortField !== field) {
-      return <ArrowUpDown className="h-4 w-4 text-gray-400" />;
-    }
+  if (loading) {
     return (
-      <ArrowUpDown
-        className={`h-4 w-4 ${
-          sortOrder === 'asc' ? 'text-blue-600' : 'text-blue-600 rotate-180'
-        }`}
-      />
+      <AdminGuard>
+        <AdminLayout>
+          <div className="p-6 flex items-center justify-center min-h-screen">
+            <div className="flex flex-col items-center gap-4">
+              <Loader2 className="h-12 w-12 text-blue-600 animate-spin" />
+              <p className="text-gray-600 dark:text-gray-400">กำลังโหลดข้อมูล...</p>
+            </div>
+          </div>
+        </AdminLayout>
+      </AdminGuard>
     );
-  };
+  }
+
+  if (error) {
+    return (
+      <AdminGuard>
+        <AdminLayout>
+          <div className="p-6 flex items-center justify-center min-h-screen">
+            <div className="flex flex-col items-center gap-4 text-center">
+              <Filter className="h-12 w-12 text-red-600" />
+              <div>
+                <p className="text-red-600 font-semibold">เกิดข้อผิดพลาด</p>
+                <p className="text-gray-600 dark:text-gray-400 mt-1">{error}</p>
+              </div>
+              <button
+                onClick={() => refresh()}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+              >
+                ลองอีกครั้ง
+              </button>
+            </div>
+          </div>
+        </AdminLayout>
+      </AdminGuard>
+    );
+  }
 
   return (
     <AdminGuard>
@@ -119,8 +305,8 @@ export default function AdminOrdersPage() {
           </p>
         </div>
 
-        {/* Status Filter Tabs */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-2">
+        {/* Stats Overview */}
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
           {[
             { label: 'All', value: 'all', count: statusCounts.all },
             { label: 'New', value: 'new', count: statusCounts.new },
@@ -129,43 +315,54 @@ export default function AdminOrdersPage() {
             { label: 'Delivered', value: 'delivered', count: statusCounts.delivered },
             { label: 'Cancelled', value: 'cancelled', count: statusCounts.cancelled },
           ].map((tab) => (
-            <button
+            <div
               key={tab.value}
-              onClick={() => setStatusFilter(tab.value as any)}
-              className={`px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-colors ${
-                statusFilter === tab.value
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
-              }`}
+              className="bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap"
             >
               {tab.label} ({tab.count})
-            </button>
+            </div>
           ))}
         </div>
 
         {/* Search and Filter */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
-          <div className="flex items-center gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search by Order ID, Customer Name, or Email..."
+          <div className="flex flex-col md:flex-row gap-4">
+            {/* Search Input with Fuzzy Search */}
+            <div className="flex-1">
+              <SearchInput
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                onChange={setSearchTerm}
+                placeholder="Search by Order ID, Customer Name, or Email..."
+                fuzzy={true}
+                resultsCount={filteredCount}
+                totalCount={totalCount}
               />
             </div>
-            <button
-              onClick={() => {
-                setSearchTerm('');
-                setStatusFilter('all');
-              }}
-              className="px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium text-sm transition-colors flex items-center gap-2"
-            >
-              <RefreshCw className="h-4 w-4" />
-              Reset
-            </button>
+
+            {/* Advanced Filters & Export */}
+            <div className="flex gap-2">
+              <AdvancedFilter
+                fields={filterFields}
+                values={filterValues}
+                onChange={setFilterValues}
+                onReset={clearFilters}
+              />
+
+              <ExportButton
+                data={filteredOrdersList}
+                filename="orders-export"
+                columns={[
+                  { key: 'id', label: 'Order ID' },
+                  { key: 'customerName', label: 'Customer' },
+                  { key: 'status', label: 'Status' },
+                  { key: 'total', label: 'Total' },
+                  { key: 'createdAt', label: 'Date' },
+                ]}
+                onExport={(format) => {
+                  console.log(`Exporting ${filteredOrdersList.length} orders as ${format}`);
+                }}
+              />
+            </div>
           </div>
         </div>
 
@@ -176,22 +373,17 @@ export default function AdminOrdersPage() {
               <thead className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-700">
                 <tr>
                   <th className="px-6 py-3 text-left">
-                    <button
-                      onClick={() => handleSort('id')}
-                      className="flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:text-gray-700 dark:hover:text-gray-200"
-                    >
-                      Order ID
-                      <SortIcon field="id" />
-                    </button>
+                    <Checkbox
+                      checked={bulk.isAllSelected}
+                      onChange={bulk.toggleAll}
+                      indeterminate={bulk.isIndeterminate}
+                    />
                   </th>
-                  <th className="px-6 py-3 text-left">
-                    <button
-                      onClick={() => handleSort('customerName')}
-                      className="flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:text-gray-700 dark:hover:text-gray-200"
-                    >
-                      Customer
-                      <SortIcon field="customerName" />
-                    </button>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Order ID
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Customer
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Items
@@ -199,26 +391,14 @@ export default function AdminOrdersPage() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Payment
                   </th>
-                  <th className="px-6 py-3 text-left">
-                    <button
-                      onClick={() => handleSort('total')}
-                      className="flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:text-gray-700 dark:hover:text-gray-200"
-                    >
-                      Total
-                      <SortIcon field="total" />
-                    </button>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Total
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-left">
-                    <button
-                      onClick={() => handleSort('createdAt')}
-                      className="flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:text-gray-700 dark:hover:text-gray-200"
-                    >
-                      Date
-                      <SortIcon field="createdAt" />
-                    </button>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Date
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Actions
@@ -228,7 +408,7 @@ export default function AdminOrdersPage() {
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                 {filteredOrders.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-6 py-12 text-center">
+                    <td colSpan={9} className="px-6 py-12 text-center">
                       <div className="flex flex-col items-center gap-2">
                         <Filter className="h-12 w-12 text-gray-400 dark:text-gray-500" />
                         <p className="text-gray-600 dark:text-gray-400">
@@ -241,8 +421,16 @@ export default function AdminOrdersPage() {
                   filteredOrders.map((order) => (
                     <tr
                       key={order.id}
-                      className="hover:bg-gray-50 dark:hover:bg-gray-700"
+                      className={`hover:bg-gray-50 dark:hover:bg-gray-700 ${
+                        bulk.isSelected(order.id) ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+                      }`}
                     >
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <Checkbox
+                          checked={bulk.isSelected(order.id)}
+                          onChange={() => bulk.toggleItem(order.id)}
+                        />
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900 dark:text-white">
                           {order.id}
@@ -253,7 +441,7 @@ export default function AdminOrdersPage() {
                           {order.customerName}
                         </div>
                         <div className="text-xs text-gray-500 dark:text-gray-400">
-                          {order.customerEmail}
+                          ID: {order.customerId}
                         </div>
                       </td>
                       <td className="px-6 py-4">
@@ -313,13 +501,31 @@ export default function AdminOrdersPage() {
             </table>
           </div>
 
-          {/* Results Summary */}
-          {filteredOrders.length > 0 && (
-            <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-400">
-              Showing {filteredOrders.length} of {orders.length} orders
-            </div>
+          {/* Pagination */}
+          {filteredOrdersList.length > 0 && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={filteredOrdersList.length}
+              itemsPerPage={itemsPerPage}
+              onPageChange={setCurrentPage}
+              onItemsPerPageChange={(newSize) => {
+                setItemsPerPage(newSize);
+                setCurrentPage(1);
+              }}
+              showItemsPerPage={true}
+            />
           )}
         </div>
+
+        {/* Bulk Action Bar */}
+        <BulkActionBar
+          selectedCount={bulk.selectedCount}
+          totalCount={filteredOrders.length}
+          actions={bulkActions}
+          onAction={handleBulkAction}
+          onClear={bulk.clearSelection}
+        />
       </div>
       </AdminLayout>
     </AdminGuard>

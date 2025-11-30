@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { AdminGuard } from '@/components/RouteGuard';
 import StatusBadge from '@/components/admin/StatusBadge';
-import { getOrderById, updateOrderStatus, type MockOrder } from '@/lib/admin/mockData';
+import { useOrderSWR } from '@/lib/hooks/useOrderSWR';
+import type { Order } from '@/types';
 import { formatCurrency } from '@/lib/utils';
 import {
   ArrowLeft,
@@ -21,6 +21,7 @@ import {
   XCircle,
   Clock,
   DollarSign,
+  Loader2,
 } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
@@ -31,11 +32,25 @@ export default function OrderDetailsPage() {
   const router = useRouter();
   const orderId = params.orderId as string;
 
-  const [order, setOrder] = useState<MockOrder | undefined>(
-    getOrderById(orderId)
-  );
+  // Use SWR for caching and performance
+  const { order, loading, error, refresh, mutate } = useOrderSWR(orderId);
 
-  if (!order) {
+  if (loading) {
+    return (
+      <AdminGuard>
+        <AdminLayout>
+          <div className="p-6 flex items-center justify-center min-h-screen">
+            <div className="flex flex-col items-center gap-4">
+              <Loader2 className="h-12 w-12 text-blue-600 animate-spin" />
+              <p className="text-gray-600 dark:text-gray-400">Loading order details...</p>
+            </div>
+          </div>
+        </AdminLayout>
+      </AdminGuard>
+    );
+  }
+
+  if (error || !order) {
     return (
       <AdminGuard>
         <AdminLayout>
@@ -46,7 +61,7 @@ export default function OrderDetailsPage() {
               Order Not Found
             </h2>
             <p className="text-red-700 dark:text-red-300 mb-4">
-              The order {orderId} could not be found.
+              {error || `The order ${orderId} could not be found.`}
             </p>
             <Link
               href="/admin/orders"
@@ -62,10 +77,36 @@ export default function OrderDetailsPage() {
     );
   }
 
-  const handleStatusChange = (newStatus: MockOrder['status']) => {
-    if (confirm(`Change order status to ${newStatus}?`)) {
-      updateOrderStatus(orderId, newStatus);
-      setOrder({ ...order, status: newStatus });
+  const handleStatusChange = async (newStatus: Order['status']) => {
+    if (!confirm(`Change order status to ${newStatus}?`)) return;
+
+    try {
+      // Optimistic update: update order status in UI immediately
+      await mutate(
+        async () => {
+          const response = await fetch(`/api/orders/${orderId}/status`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: newStatus }),
+          });
+
+          if (!response.ok) {
+            throw new Error('Failed to update order status');
+          }
+
+          // Return updated order
+          return { ...order!, status: newStatus };
+        },
+        {
+          optimisticData: order ? { ...order, status: newStatus } : null,
+          rollbackOnError: true,
+          populateCache: true,
+          revalidate: false,
+        }
+      );
+    } catch (err) {
+      console.error('Error updating order:', err);
+      alert(err instanceof Error ? err.message : 'Failed to update order status');
     }
   };
 
